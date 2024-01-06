@@ -1,0 +1,15 @@
+[package]
+name = "simple-todo"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+async-graphql = { version = "7.0.0", features = ["chrono"] }
+async-graphql-axum = "7.0.0"
+axum = "0.7.3"
+grand-line = { path = "../.." }
+sea-orm = { version = "0.12.10", default-features = false, features = ["macros", "with-chrono", "with-json", "runtime-tokio-rustls", "sqlx-sqlite"] }
+serde = { version = "1.0.195", features = ["derive", "std"] }
+serde_json = "1.0.111"
+sqlx = { version = "0.7.3", features = ["macros", "chrono", "json", "runtime-tokio-rustls", "sqlite"] }
+tokio = { version = "1.35.1", features = ["full"] }
