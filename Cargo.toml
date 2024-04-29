@@ -1,0 +1,16 @@
+[workspace]
+members = [".", "examples/simple-todo", "grand-line-macros", "grand-line-proc-macros"]
+
+[package]
+name = "grand-line"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+grand-line-macros = { path = "grand-line-macros" }
+grand-line-proc-macros = { path = "grand-line-proc-macros" }
+paste = "1.0.14"
+ulid = "1.1.2"
