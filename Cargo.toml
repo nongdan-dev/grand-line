@@ -12,5 +12,5 @@ path = "lib.rs"
 [dependencies]
 grand-line-macros = { path = "grand-line-macros" }
 grand-line-proc-macros = { path = "grand-line-proc-macros" }
-paste = "1.0.14"
-ulid = "1.1.2"
+paste = "1.0.15"
+ulid = "1.1.3"
