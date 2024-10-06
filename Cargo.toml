@@ -1,0 +1,32 @@
+[workspace]
+members = [".", "lib", "lib/macros"]
+
+[package]
+name = "grand-line"
+version = "0.0.0"
+edition = "2021"
+
+[lib]
+path = "lib.rs"
+
+[features]
+sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
+tracing = ["sea-orm/debug-print", "dep:tracing", "dep:tracing-subscriber"]
+
+[dependencies]
+async-graphql = { version = "7.0.11", default-features = false, features = ["string_number", "altair", "bigdecimal", "chrono", "chrono-tz", "dataloader", "decimal", "chrono-duration"] }
+chrono = { version = "0.4.37", default-features = false, features = ["clock", "std", "serde"] }
+grand-line-macros = { path = "lib/macros" }
+grand-line-proc-macros = { path = "lib" }
+paste = "1.0.15"
+proc-macro2 = "1.0.86"
+quote = "1.0.37"
+sea-orm = { version = "1.0.1", default-features = false, features = ["macros", "with-chrono", "with-json", "runtime-tokio-rustls"] }
+serde = { version = "1.0.210", default-features = false, features = ["derive", "std"] }
+serde_json = "1.0.128"
+serde_with = "3.10.0"
+sqlx = { version = "0.7.4", default-features = false, features = ["macros", "chrono", "json", "runtime-tokio-rustls"] }
+tokio = { version = "1.40.0", default-features = false, features = ["full"] }
+tracing = { version = "0.1.40", optional = true }
+tracing-subscriber = { version = "0.3.18", optional = true }
+ulid = "1.1.3"
