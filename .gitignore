@@ -22,7 +22,7 @@ DerivedData
 #
 **/build/
 **/.cxx/
-.idea
+**/.idea/
 .gradle
 local.properties
 *.iml
@@ -77,10 +77,11 @@ yarn-error.log*
 .env.production.local
 **/.vscode/
 **/dist/
-
-# use pnpm instead
-package-lock.json
-yarn.lock
+next-env.d.ts
+**/.next/
+**/.vercel/
+**/out/
+**/.velite/
 
 # local/debug output
 *.local
@@ -88,5 +89,11 @@ yarn.lock
 *.sqlite3
 *.debug.png
 
-# rust
+# pick one between npm/yarn/pnpm
+package-lock.json
+yarn.lock
+# pnpm-lock.yaml
+
+# go, rust
+**/.*-cache
 **/target/

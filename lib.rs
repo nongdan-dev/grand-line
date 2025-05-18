@@ -23,6 +23,11 @@ pub use tower;
 #[cfg(feature = "axum")]
 pub use tower_http;
 
+#[cfg(feature = "tracing")]
+pub use tracing;
+#[cfg(feature = "tracing")]
+pub use tracing_subscriber;
+
 pub mod build {
     pub use grand_line_macros::*;
     pub use grand_line_proc_macros::*;

@@ -13,6 +13,7 @@ path = "lib.rs"
 sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
 mysql = ["sea-orm/sqlx-mysql", "sqlx/mysql"]
 postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres"]
+tracing = ["dep:tracing", "dep:tracing-subscriber"]
 axum = ["dep:axum", "dep:async-graphql-axum", "dep:tower", "dep:tower-http"]
 
 [dependencies]
@@ -39,3 +40,7 @@ async-graphql-axum = { version = "7.0.11", default-features = false, optional = 
 axum = { version = "0.7.7", default-features = false, optional = true, features = ["default", "http2", "tokio", "multipart"] }
 tower = { version = "0.5.1", default-features = false, optional = true }
 tower-http = { version = "0.6.1", default-features = false, optional = true, features = ["normalize-path"] }
+
+# tracing
+tracing = { version = "0.1.40", optional = true }
+tracing-subscriber = { version = "0.3.19", optional = true }

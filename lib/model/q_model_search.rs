@@ -31,7 +31,7 @@ pub fn q_model_search(
                 q = q.order_by_desc(Column::Id);
             }
             let mut offset = 0;
-            let mut limit = 10;
+            let mut limit = 100;
             if let Some(p) = page {
                 if let Some(o) = p.offset {
                     offset = o;

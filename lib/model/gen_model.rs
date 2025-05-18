@@ -79,6 +79,7 @@ pub fn gen_model(_attr: TokenStream, _item: TokenStream) -> TokenStream {
         use sea_orm::entity::prelude::*;
 
         #[derive(
+            Default,
             Clone,
             Debug,
             serde::Deserialize,
