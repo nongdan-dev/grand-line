@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! filter_some_and {
     ($model:ident, $f1:expr, $f2:expr) => {{
-        use grand_line::build::*;
+        use grand_line::grand_line_macro::*;
 
         let f1 = $f1;
         let f2 = $f2;

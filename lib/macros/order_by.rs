@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! order_by {
     ($model:ident[$($order_by:tt),*]) => {{
-        use grand_line::build::*;
+        use grand_line::grand_line_macro::*;
         paste! {
             vec![$([<$model OrderBy>]::$order_by),*]
         }

@@ -85,7 +85,7 @@ pub fn gen_model(_attr: TokenStream, _item: TokenStream) -> TokenStream {
             serde::Deserialize,
             serde::Serialize,
             async_graphql::SimpleObject,
-            build::GrandLineModel,
+            grand_line_macro::GrandLineModel,
             DeriveEntityModel,
         )]
         #[sea_orm(table_name=#alias_snake_str)]

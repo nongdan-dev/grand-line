@@ -68,7 +68,7 @@ pub fn gen_macro(_attr: TokenStream, _item: TokenStream) -> TokenStream {
                 }
                 let item: TokenStream2 = _item.into();
                 quote! {
-                    use grand_line::build::*;
+                    use grand_line::grand_line_macro::*;
                     #[#func(#a2)]
                     #i2
                 }.into()
@@ -78,12 +78,12 @@ pub fn gen_macro(_attr: TokenStream, _item: TokenStream) -> TokenStream {
     }
 
     quote! {
-        use grand_line::build::*;
+        use grand_line::grand_line_macro::*;
 
         #[proc_macro]
         pub fn #model(_item: proc_macro::TokenStream) -> proc_macro::TokenStream {
             quote! {
-                use grand_line::build::*;
+                use grand_line::grand_line_macro::*;
                 #[model(#attr)]
                 #struk
             }
