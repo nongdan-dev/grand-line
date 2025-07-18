@@ -9,16 +9,13 @@ update:
 	&& dprint upgrade \
 	&& dprint config update;
 
-reinit:
-	rm -rf .git \
-	&& git init \
-	&& git add -A \
+push:
+	git add -A \
 	&& make -Bs fmt \
 	&& make -Bs imagemin \
 	&& git add -A \
-	&& git commit -m "Initial commit" \
-	&& git remote add origin git@github.com:nongdan-dev/grand-line.git \
-	&& git push -uf origin master;
+	&& git commit -m "Update" \
+	&& git push;
 
 imagemin:
 	export EXT="png|jpg|gif|ico" \

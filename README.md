@@ -50,7 +50,7 @@ fn todoSearch2024() {
   <img src="https://github.com/nongdan-dev/grand-line/blob/master/doc/altair.jpg?raw=true" alt="Altair screenshot"/>
 </p>
 
-- [Simple Todo example](https://github.com/nongdan-dev/grand-line-examples/blob/master/simple-todo/src/main.rs)
+- [Simple Todo example](https://github.com/nongdan-dev/grand-line-examples/blob/master/simple_todo/src/main.rs)
 - [All examples](https://github.com/nongdan-dev/grand-line-examples)
 
 ### Documentation

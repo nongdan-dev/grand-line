@@ -28,7 +28,7 @@ pub use tracing;
 #[cfg(feature = "tracing")]
 pub use tracing_subscriber;
 
-pub mod grand_line_macro {
+pub mod grand_line_macros {
     pub use grand_line_macros::*;
     pub use grand_line_proc_macros::*;
     pub use paste::paste;
