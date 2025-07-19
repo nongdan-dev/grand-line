@@ -1,6 +1,5 @@
-use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
+use crate::prelude::*;
 
 pub fn gen_derive(_: TokenStream) -> TokenStream {
-    "".parse::<TokenStream2>().unwrap().into()
+    ts2!("").into()
 }

@@ -1,5 +1,4 @@
-use proc_macro2::TokenStream as TokenStream2;
-use quote::quote;
+use crate::prelude::*;
 
 pub fn push_filter_and_or_not(
     f: &TokenStream2,
@@ -17,11 +16,9 @@ fn push_and_or(
     query: &mut Vec<TokenStream2>,
     op_str: &str,
 ) {
-    let op = op_str.parse::<TokenStream2>().unwrap();
+    let op = ts2!(op_str);
     let gql_op = op_str.to_uppercase();
-    let cond = if op_str == "and" { "all" } else { "any" }
-        .parse::<TokenStream2>()
-        .unwrap();
+    let cond = ts2!(if op_str == "and" { "all" } else { "any" });
 
     struk.push(quote! {
         #[graphql(name=#gql_op)]

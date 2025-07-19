@@ -1,8 +1,6 @@
 #[macro_export]
 macro_rules! parse_attr {
     ($attr:ident) => {{
-        use crate::prelude::*;
-        use quote::ToTokens;
         use syn::{meta::parser, parse_macro_input, LitStr, LitBool};
 
         let mut a = MacroAttr::default();
@@ -11,7 +9,7 @@ macro_rules! parse_attr {
         let attr_parser = parser(|m| {
             let mut found = false;
             if !first {
-                a.model = m.path.to_token_stream().to_string();
+                a.model = str!(m.path.to_token_stream());
                 found = true;
                 first = true;
             }

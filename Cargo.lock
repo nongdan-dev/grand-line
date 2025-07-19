@@ -860,8 +860,6 @@ dependencies = [
  "grand-line-macros",
  "grand-line-proc-macros",
  "paste",
- "proc-macro2",
- "quote",
  "sea-orm",
  "serde",
  "serde_json",

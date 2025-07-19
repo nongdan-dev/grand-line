@@ -1,13 +1,10 @@
 use crate::prelude::*;
-use heck::ToSnakeCase;
-use proc_macro::TokenStream;
-use quote::{ToTokens, format_ident, quote};
 use syn::{Fields, ItemStruct, parse_macro_input};
 
 pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut a = parse_attr!(attr);
     let mut struk = parse_macro_input!(item as ItemStruct);
-    a.model = struk.ident.to_string();
+    a.model = str!(struk.ident);
     // ------------------------------------------------------------------------
     // insert built-in fields: id, created_at, updated_at...
     struk = insert_builtin(&a, struk);
@@ -20,8 +17,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let gql = ty_gql(&alias);
     let column = ty_column(&alias);
     let active_model = ty_active_model(&alias);
-    let gql_alias = alias.to_string();
-    let sql_alias = alias.to_string().to_snake_case();
+    let gql_alias = str!(alias);
+    let sql_alias = snake_str!(alias);
     // ------------------------------------------------------------------------
     // filter / order_by fields
     let filter = ty_filter(&alias);
@@ -66,7 +63,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             Clone,
             Debug,
             DeriveEntityModel,
-            grand_line_macros::DeriveModel,
+            grand_line::macros::DeriveModel,
         )]
         #[sea_orm(table_name=#sql_alias)]
         #struk

@@ -11,10 +11,13 @@ mod prelude {
     pub use crate::resolver::*;
     pub use crate::utils::*;
     pub use grand_line_macros::*;
+    pub use heck::*;
+    pub use proc_macro::TokenStream;
+    pub use proc_macro2::TokenStream as TokenStream2;
+    pub use quote::*;
 }
 
 use crate::prelude::*;
-use proc_macro::TokenStream;
 
 // ============================================================================
 // model

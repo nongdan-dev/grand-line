@@ -25,8 +25,6 @@ chrono = { version = "0.4.41", default-features = false, features = ["now", "ser
 grand-line-macros = { path = "macros" }
 grand-line-proc-macros = { path = "proc_macros" }
 paste = { version = "1.0.15", default-features = false }
-proc-macro2 = { version = "1.0.95", default-features = false }
-quote = { version = "1.0.40", default-features = false }
 sea-orm = { version = "1.1.13", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
 serde = { version = "1.0.219", default-features = false, features = ["derive", "std"] }
 serde_json = { version = "1.0.140", default-features = false }

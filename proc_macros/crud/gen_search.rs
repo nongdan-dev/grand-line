@@ -1,31 +1,27 @@
 use crate::prelude::*;
-use proc_macro::TokenStream;
-use quote::quote;
 
 pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
     let a = parse_attr!(attr);
-    let g = parse_resolver!(ty_query, item, gql_search(&a.model));
+    let g = parse_resolver!(ty_query, item, camel_str!(a.model, "Search"));
     let (a, mut g) = check_crud_io(a, g);
-
-    let output = ty_gql(&a.model);
-    let model_filter = ty_filter(&a.model);
-    let model_order_by = ty_order_by(&a.model);
-    let db_fn = rs_gql_search(a.model);
+    g.no_tx = a.no_tx;
 
     if !a.resolver_inputs {
+        let filter = ty_filter(&a.model);
+        let order_by = ty_order_by(&a.model);
         g.inputs = quote! {
-            filter: Option<#model_filter>,
-            order_by: Option<Vec<#model_order_by>>,
+            filter: Option<#filter>,
+            order_by: Option<Vec<#order_by>>,
             page: Option<Pagination>,
         };
     }
 
     if !a.resolver_output {
-        g.output = quote! {
-            Vec<#output>
-        };
+        let output = ty_gql(&a.model);
+        g.output = quote!(Vec<#output>);
 
         let body = g.body;
+        let db_fn = ts2!(a.model, "::gql_search");
         g.body = quote! {
             let (extra_filter, default_order_by) = {
                 #body
@@ -34,6 +30,5 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
         };
     }
 
-    g.no_tx = a.no_tx;
     gen_resolver(g)
 }

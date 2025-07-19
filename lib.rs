@@ -28,12 +28,9 @@ pub use tracing;
 #[cfg(feature = "tracing")]
 pub use tracing_subscriber;
 
-pub mod grand_line_macros {
-    pub use grand_line_macros::*;
-    pub use grand_line_proc_macros::*;
+pub mod macros {
+    pub use grand_line_proc_macros::DeriveModel;
     pub use paste::paste;
-    pub use proc_macro2::TokenStream as TokenStream2;
-    pub use quote::quote;
 }
 
 #[input]

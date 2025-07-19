@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use proc_macro::TokenStream;
 
 pub fn gen_query(attr: TokenStream, item: TokenStream) -> TokenStream {
     let a = parse_attr!(attr);

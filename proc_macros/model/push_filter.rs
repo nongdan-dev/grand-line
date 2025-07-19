@@ -1,23 +1,20 @@
 use crate::prelude::*;
-use heck::{ToLowerCamelCase, ToUpperCamelCase};
-use proc_macro2::TokenStream as TokenStream2;
-use quote::{ToTokens, quote};
 use syn::Field;
 
 pub fn push_filter(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<TokenStream2>) {
     push(f, struk, query, "eq");
     push(f, struk, query, "ne");
-    let (is_option, ty_str) = unwrap_option(f.ty.to_token_stream());
-    if is_option {
+    let (opt, uw_str) = unwrap_option_str(f.ty.to_token_stream());
+    if opt {
         push(f, struk, query, "is_null");
         push(f, struk, query, "is_not_null");
     }
-    if ty_str == "bool" {
+    if uw_str == "bool" {
         return;
     }
     push(f, struk, query, "is_in");
     push(f, struk, query, "is_not_in");
-    let name = f.ident.to_token_stream().to_string();
+    let name = str!(f.ident.to_token_stream());
     if name == "id" || name.ends_with("_id") {
         return;
     }
@@ -25,7 +22,7 @@ pub fn push_filter(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<Tok
     push(f, struk, query, "gte");
     push(f, struk, query, "lt");
     push(f, struk, query, "lte");
-    if ty_str != "String" {
+    if uw_str != "String" {
         return;
     }
     push(f, struk, query, "like");
@@ -36,41 +33,32 @@ pub fn push_filter(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<Tok
 
 fn push(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<TokenStream2>, op_str: &str) {
     // sea_orm generated Column::Name.op(v)
-    let column = f
-        .ident
-        .to_token_stream()
-        .to_string()
-        .to_upper_camel_case()
-        .parse::<TokenStream2>()
-        .unwrap();
-    let op = op_str.parse::<TokenStream2>().unwrap();
+    let column = pascal!(f.ident.to_token_stream());
+    let op = ts2!(op_str);
     // unwrap Option<type>
     // the type can be generic such as Box<type>
-    let (_, ty_str) = unwrap_option(f.ty.to_token_stream());
-    let mut ty = ty_str.parse::<TokenStream2>().unwrap();
+    let (_, mut uw) = unwrap_option(f.ty.to_token_stream());
     // handle special operators
     if op_str == "is_null" || op_str == "is_not_null" {
-        ty = quote!(bool);
+        uw = quote!(bool);
     }
-    let mut as_op_str = op_str.to_string();
+    let mut as_op_str = str!(op_str);
     if op_str == "is_in" || op_str == "is_not_in" {
         as_op_str = op_str.replace("is_", "");
-        ty = quote!(Vec<#ty>);
+        uw = quote!(Vec<#uw>);
     }
     // struct struct_field_some_op
     // graphql structField_someOp
     let mut name = f.ident.to_token_stream();
-    let mut gql_name = name.to_string().to_lower_camel_case();
+    let mut gql_name = camel_str!(name);
     if op_str != "eq" {
-        name = format!("{}_{}", name, as_op_str)
-            .parse::<TokenStream2>()
-            .unwrap();
-        gql_name = format!("{}_{}", gql_name, as_op_str.to_lower_camel_case());
+        name = snake!(name, as_op_str);
+        gql_name = str!(gql_name, "_", camel_str!(as_op_str));
     }
     // push
     struk.push(quote! {
         #[graphql(name=#gql_name)]
-        pub #name: Option<#ty>,
+        pub #name: Option<#uw>,
     });
     if op_str == "is_null" || op_str == "is_not_null" {
         query.push(quote! {

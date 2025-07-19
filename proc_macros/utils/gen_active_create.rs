@@ -1,6 +1,4 @@
 use crate::prelude::*;
-use proc_macro::TokenStream;
-use quote::quote;
 
 pub fn gen_active_create(item: TokenStream) -> TokenStream {
     let item = prepend_struct(
