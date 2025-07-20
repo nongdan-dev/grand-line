@@ -37,8 +37,8 @@ pub fn gen_resolver(g: GenResolver) -> TokenStream {
     }
 
     quote! {
-        use grand_line::*;
         use sea_orm::*;
+        use sea_orm::prelude::*;
         use sea_orm::entity::prelude::*;
 
         #[derive(Default)]

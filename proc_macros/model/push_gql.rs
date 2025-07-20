@@ -18,17 +18,14 @@ pub fn push_gql(
     });
 
     let res = if opt {
-        quote! {
-            self.#name
-        }
+        quote!(v)
     } else {
-        quote! {
-            self.#name.clone().unwrap_or_default()
-        }
+        quote!(v.unwrap_or_default())
     };
     resolver.push(quote! {
         #[graphql(name=#gql_name)]
         async fn #name(&self) -> #ty {
+            let v = self.#name.clone();
             #res
         }
     });

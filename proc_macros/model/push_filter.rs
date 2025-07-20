@@ -14,8 +14,8 @@ pub fn push_filter(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<Tok
     }
     push(f, struk, query, "is_in");
     push(f, struk, query, "is_not_in");
-    let name = str!(f.ident.to_token_stream());
-    if name == "id" || name.ends_with("_id") {
+    let name_str = str!(f.ident.to_token_stream());
+    if name_str == "id" || name_str.ends_with("_id") {
         return;
     }
     push(f, struk, query, "gt");

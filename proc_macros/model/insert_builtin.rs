@@ -18,7 +18,7 @@ pub fn insert_builtin(a: &MacroAttr, mut struk: ItemStruct) -> ItemStruct {
         });
         if !a.no_by_id {
             fields.named.push(gen_field! {
-                pub created_by_id: String
+                pub created_by_id: Option<String>
             });
         }
     }

@@ -8,14 +8,13 @@ macro_rules! parse_resolver {
         use syn::{ItemFn, ReturnType, parse_macro_input};
 
         let ifn = parse_macro_input!($item as ItemFn);
-        let name_default = str!($name_default);
-
         let mut gql_name = str!(ifn.sig.ident);
+        let name_default_str = str!($name_default);
         if gql_name == "resolver" {
-            if name_default == "" {
+            if name_default_str == "" {
                 panic!("resolver name must be different than the reserved keyword `resolver`");
             }
-            gql_name = name_default;
+            gql_name = name_default_str;
         }
         let name = snake!(gql_name);
 

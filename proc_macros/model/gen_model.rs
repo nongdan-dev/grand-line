@@ -9,6 +9,32 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // insert built-in fields: id, created_at, updated_at...
     struk = insert_builtin(&a, struk);
     // ------------------------------------------------------------------------
+    // extract virtual fields such as relation and so on...
+    let mut relation_fields = vec![];
+    struk.fields = match struk.fields {
+        Fields::Named(ref mut f) => {
+            f.named = f
+                .named
+                .clone()
+                .into_iter()
+                .filter(|f| {
+                    if f.attrs.iter().map(|a| a.path()).any(|p| {
+                        p.is_ident("belongs_to")
+                            || p.is_ident("has_one")
+                            || p.is_ident("has_many")
+                            || p.is_ident("many_to_many")
+                    }) {
+                        relation_fields.push(f.clone());
+                        return false;
+                    }
+                    true
+                })
+                .collect();
+            Fields::Named(f.clone())
+        }
+        _ => panic!("model fields must be all named"),
+    };
+    // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
     // get the original model name in snake case for sql table, non-plural
     let alias = struk.ident;
@@ -54,8 +80,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     );
 
     quote! {
-        use grand_line::*;
         use sea_orm::*;
+        use sea_orm::prelude::*;
         use sea_orm::entity::prelude::*;
 
         #[derive(
@@ -99,14 +125,14 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             #(#gql_resolver)*
         }
         impl Entity {
-            /// select only columns that in the request context
+            /// Select only columns in the graphql request context
             fn gql_select(ctx: &async_graphql::Context<'_>, mut q: Select<Entity>) -> Selector<SelectModel<#gql>> {
                 q = q.select_only();
                 let l = ctx.look_ahead();
                 #(#gql_look_ahead)*
                 q.into_model::<#gql>()
             }
-            /// select only id for the delete result
+            /// Select only id for the graphql delete response
             fn gql_select_id(ctx: &async_graphql::Context<'_>, q: Select<Entity>) -> Selector<SelectModel<#gql>> {
                 q.select_only().column(Column::Id).into_model::<#gql>()
             }

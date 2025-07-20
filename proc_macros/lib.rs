@@ -30,14 +30,13 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_derive(
     DeriveModel,
     attributes(
-        // to get attrs from other derive macros
-        sea_orm,
+        // get and move them to the graphql output type
         graphql,
         // our attrs
+        belongs_to,
         has_one,
         has_many,
         many_to_many,
-        belongs_to,
     )
 )]
 pub fn derive_model(item: TokenStream) -> TokenStream {
