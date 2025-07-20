@@ -29,7 +29,7 @@ pub fn gen_resolver(g: GenResolver) -> TokenStream {
 
     if !no_tx {
         body = quote! {
-            let tx = ctx.data_unchecked::<DatabaseConnection>().begin().await?;
+            let tx = ctx.data_unchecked::<Context>().db.begin().await?;
             let r = #body;
             tx.commit().await?;
             r

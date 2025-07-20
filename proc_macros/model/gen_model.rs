@@ -11,6 +11,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // ------------------------------------------------------------------------
     // extract virtual fields such as relation and so on...
     let mut relation_fields = vec![];
+    let mut relation_types = vec![];
+    let mut relation_sql_deps = vec![];
     struk.fields = match struk.fields {
         Fields::Named(ref mut f) => {
             f.named = f
@@ -18,13 +20,26 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 .clone()
                 .into_iter()
                 .filter(|f| {
-                    if f.attrs.iter().map(|a| a.path()).any(|p| {
-                        p.is_ident("belongs_to")
-                            || p.is_ident("has_one")
-                            || p.is_ident("has_many")
-                            || p.is_ident("many_to_many")
-                    }) {
+                    let ref mut attrs = f.attrs.iter().map(|a| a.path());
+                    let relation = if attrs.any(|p| p.is_ident("belongs_to")) {
+                        "belongs_to"
+                    } else if attrs.any(|p| p.is_ident("has_one")) {
+                        "has_one"
+                    } else if attrs.any(|p| p.is_ident("has_many")) {
+                        "has_many"
+                    } else if attrs.any(|p| p.is_ident("many_to_many")) {
+                        "many_to_many"
+                    } else {
+                        ""
+                    };
+                    if relation != "" {
                         relation_fields.push(f.clone());
+                        relation_types.push(relation);
+                        if relation == "belongs_to" {
+                            relation_sql_deps.push(snake_str!(f.ident.to_token_stream(), "id"));
+                        } else {
+                            panic!("TODO:");
+                        }
                         return false;
                     }
                     true
@@ -34,6 +49,10 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
         _ => panic!("model fields must be all named"),
     };
+    let relation_field_strs = relation_fields
+        .iter()
+        .map(|f| str!(f.ident.to_token_stream()))
+        .collect();
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
     // get the original model name in snake case for sql table, non-plural
@@ -69,15 +88,31 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             &mut gql_resolver,
             &mut gql_look_ahead,
             &mut gql_into,
+            &relation_sql_deps,
+            &relation_field_strs,
         );
         push_filter(f, &mut filter_struk, &mut filter_query);
         push_order_by(f, &mut order_by_struk, &mut order_by_query);
     }
-    push_filter_and_or_not(
-        &filter.to_token_stream(),
-        &mut filter_struk,
-        &mut filter_query,
-    );
+    push_filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
+
+    for ref f in relation_fields {
+        let name = f.ident.to_token_stream();
+        let gql_name = camel_str!(name);
+        let fkey = snake!(name, "id");
+        let model = f.ty.clone().into_token_stream();
+        let ty = ts2!("Option<", model, "Gql>");
+        gql_resolver.push(quote! {
+            #[graphql(name=#gql_name)]
+            async fn #name(&self, ctx: &async_graphql::Context<'_>) -> Result<#ty, Box<dyn std::error::Error + Send + Sync>> {
+                let tx = ctx.data_unchecked::<Context>().db.begin().await?;
+                let q = #model::find_by_id(self.#fkey.clone().unwrap_or_default());
+                let r = #model::gql_select(ctx, q).one(&tx).await?;
+                tx.commit().await?;
+                Ok(r)
+            }
+        });
+    }
 
     quote! {
         use sea_orm::*;
@@ -126,14 +161,14 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
         impl Entity {
             /// Select only columns in the graphql request context
-            fn gql_select(ctx: &async_graphql::Context<'_>, mut q: Select<Entity>) -> Selector<SelectModel<#gql>> {
+            pub fn gql_select(ctx: &async_graphql::Context<'_>, mut q: Select<Entity>) -> Selector<SelectModel<#gql>> {
                 q = q.select_only();
                 let l = ctx.look_ahead();
                 #(#gql_look_ahead)*
                 q.into_model::<#gql>()
             }
             /// Select only id for the graphql delete response
-            fn gql_select_id(ctx: &async_graphql::Context<'_>, q: Select<Entity>) -> Selector<SelectModel<#gql>> {
+            pub fn gql_select_id(ctx: &async_graphql::Context<'_>, q: Select<Entity>) -> Selector<SelectModel<#gql>> {
                 q.select_only().column(Column::Id).into_model::<#gql>()
             }
         }

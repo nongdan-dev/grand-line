@@ -10,6 +10,14 @@ macro_rules! str {
 
 /// Internal macro utils to handle strings and casings
 #[macro_export]
+macro_rules! trim {
+    ($s:expr $(, $ss:expr)*) => {
+        str!($s $(, $ss)*).trim()
+    };
+}
+
+/// Internal macro utils to handle strings and casings
+#[macro_export]
 macro_rules! ts2 {
     ($s:expr $(, $ss:expr)*) => {
         str!($s $(, $ss)*).parse::<TokenStream2>().unwrap()
