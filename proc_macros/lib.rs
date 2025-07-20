@@ -28,7 +28,7 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_derive(
-    DeriveModel,
+    GrandLineModel,
     attributes(
         // get and move them to the graphql output type
         graphql,
@@ -39,7 +39,7 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
         many_to_many,
     )
 )]
-pub fn derive_model(item: TokenStream) -> TokenStream {
+pub fn grand_line_model(item: TokenStream) -> TokenStream {
     gen_derive(item)
 }
 
@@ -101,26 +101,52 @@ pub fn delete(attr: TokenStream, item: TokenStream) -> TokenStream {
 // utils
 
 #[proc_macro]
+/// Helper to quickly create a filter with concise syntax.
 pub fn filter(item: TokenStream) -> TokenStream {
     gen_struct(item, "Filter", "Some", "")
 }
 
 #[proc_macro]
+/// Helper to quickly create a filter with concise syntax and wrap with Some.
 pub fn filter_some(item: TokenStream) -> TokenStream {
-    gen_struct(item, "Filter", "Some", "Some")
+    let item = Into::<TokenStream2>::into(item);
+    quote!(Some(filter!(#item))).into()
 }
 
 #[proc_macro]
+/// Helper to quickly create an order_by with concise syntax.
+pub fn order_by(item: TokenStream) -> TokenStream {
+    gen_order_by(item)
+}
+
+#[proc_macro]
+/// Helper to quickly create an order_by with concise syntax and wrap with Some.
+pub fn order_by_some(item: TokenStream) -> TokenStream {
+    let item = Into::<TokenStream2>::into(item);
+    quote!(Some(order_by!(#item))).into()
+}
+
+#[proc_macro]
+/// Helper to quickly create an active model with concise syntax
+/// and converts all string literals into String automatically.
 pub fn active_model(item: TokenStream) -> TokenStream {
-    gen_struct(item, "ActiveModel", "sea_orm::ActiveValue::Set", "")
+    gen_struct(item, "ActiveModel", "ActiveValue::Set", "")
 }
 
 #[proc_macro]
+/// Helper to quickly create an active model with concise syntax
+/// and converts all string literals into String automatically.
+/// It also wraps the active model with Entity::active_create
+/// to get default values on this operation.
 pub fn active_create(item: TokenStream) -> TokenStream {
-    gen_active_create(item)
+    gen_struct(item, "ActiveModel", "ActiveValue::Set", "active_create")
 }
 
 #[proc_macro]
+/// Helper to quickly create active model with concise syntax
+/// and converts all string literals into String automatically.
+/// It also wraps the active model with Entity::active_update
+/// to get default values on this operation.
 pub fn active_update(item: TokenStream) -> TokenStream {
-    gen_active_update(item)
+    gen_struct(item, "ActiveModel", "ActiveValue::Set", "active_update")
 }

@@ -2,7 +2,7 @@ use crate::prelude::*;
 use syn::{Fields, ItemStruct, parse_macro_input};
 
 pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let mut a = parse_attr!(attr);
+    let mut a = parse_macro_input!(attr as MacroAttr);
     let mut struk = parse_macro_input!(item as ItemStruct);
     a.model = str!(struk.ident);
     // ------------------------------------------------------------------------
@@ -47,7 +47,11 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 .collect();
             Fields::Named(f.clone())
         }
-        _ => panic!("model fields must be all named"),
+        _ => panic!(
+            "{} fields must be Fields::Named, found {}",
+            a.model,
+            struk.fields.to_token_stream()
+        ),
     };
     let relation_field_strs = relation_fields
         .iter()
@@ -104,15 +108,40 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         let ty = ts2!("Option<", model, "Gql>");
         gql_resolver.push(quote! {
             #[graphql(name=#gql_name)]
-            async fn #name(&self, ctx: &async_graphql::Context<'_>) -> Result<#ty, Box<dyn std::error::Error + Send + Sync>> {
-                let tx = ctx.data_unchecked::<Context>().db.begin().await?;
+            async fn #name(&self, ctx: &async_graphql::Context<'_>) -> Result<#ty, Box<dyn Error + Send + Sync>> {
+                let gl = ctx.data_unchecked::<GrandLineContext>();
+                let _tx = gl.tx().await?;
+                let tx = _tx.as_ref();
                 let q = #model::find_by_id(self.#fkey.clone().unwrap_or_default());
-                let r = #model::gql_select(ctx, q).one(&tx).await?;
-                tx.commit().await?;
+                let r = #model::gql_select(ctx, q).one(tx).await?;
                 Ok(r)
             }
         });
     }
+
+    let am_id = quote! {
+        if !matches!(am.id, Set(_)) {
+            am.id = Set(ulid::Ulid::new().to_string());
+        }
+    };
+    let am_created_at = if a.no_created_at {
+        ts2!("")
+    } else {
+        quote! {
+            if !matches!(am.created_at, ActiveValue::Set(_)) {
+                am.created_at = ActiveValue::Set(chrono::Utc::now());
+            }
+        }
+    };
+    let am_updated_at = if a.no_updated_at {
+        ts2!("")
+    } else {
+        quote! {
+            if !matches!(am.updated_at, ActiveValue::Set(_)) {
+                am.updated_at = ActiveValue::Set(Some(chrono::Utc::now()));
+            }
+        }
+    };
 
     quote! {
         use sea_orm::*;
@@ -124,18 +153,31 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             Clone,
             Debug,
             DeriveEntityModel,
-            grand_line::macros::DeriveModel,
+            GrandLineModel,
         )]
         #[sea_orm(table_name=#sql_alias)]
         #struk
 
         impl ActiveModelBehavior for ActiveModel {
-            fn new() -> Self {
-                Self {
-                    ..ActiveModelTrait::default()
-                }
+        }
+        impl Entity {
+            /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
+            /// We need to have this method instead to get default values on create.
+            /// This can be used together with the macro grand_line::active_create.
+            pub fn active_create(mut am: ActiveModel) -> ActiveModel {
+                #am_id
+                #am_created_at
+                am
+            }
+            /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
+            /// We need to have this method instead to get default values on update.
+            /// This can be used together with the macro grand_line::active_update.
+            pub fn active_update(mut am: ActiveModel) -> ActiveModel {
+                #am_updated_at
+                am
             }
         }
+
         #[derive(Debug, EnumIter, DeriveRelation)]
         pub enum Relation {
             // TODO:
@@ -186,6 +228,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             #(#filter_struk)*
         }
         impl Conditionable for #filter {
+            /// Helper to create sea_orm condition with filter
             fn condition(&self) -> Condition {
                 let this = self.clone();
                 let mut c = Condition::all();
@@ -194,19 +237,18 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
         impl Chainable<Entity> for #filter {
+            /// Helper to concat sea_orm select query with filter
             fn chain(&self, q: Select<Entity>) -> Select<Entity> {
                 q.filter(self.condition())
             }
         }
-        /**
-         * Helper to combine filter and extra_filter
-         */
         pub trait #filter_combine {
+            /// Helper to combine filter and extra_filter
             fn combine(self, e: Option<#filter>) -> Option<#filter>;
         }
         impl #filter_combine for Option<#filter> {
             fn combine(self, e: Option<#filter>) -> Option<#filter> {
-                CrudHelpers::filter_combine(self, e, &|a, b| #filter {
+                filter_combine(self, e, &|a, b| #filter {
                     and: Some(vec![a, b]),
                     ..Default::default()
                 })
@@ -227,22 +269,20 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             #(#order_by_struk)*
         }
         impl Chainable<Entity> for #order_by {
+            /// Helper to concat sea_orm select query with order_by
             fn chain(&self, q: Select<Entity>) -> Select<Entity> {
                 match *self {
                     #(#order_by_query)*
                 }
             }
         }
-
-        /**
-         * Helper to combine order_by and default_order_by with an initial value if all are empty
-         */
         pub trait #order_by_combine {
+            /// Helper to combine order_by and default_order_by with an initial value if all are empty
             fn combine(self, d: Option<Vec<#order_by>>) -> Vec<#order_by>;
         }
         impl #order_by_combine for Option<Vec<#order_by>> {
             fn combine(self, d: Option<Vec<#order_by>>) -> Vec<#order_by> {
-                CrudHelpers::order_by_combine(self, d, #order_by::IdDesc)
+                order_by_combine(self, d, #order_by::IdDesc)
             }
         }
 
@@ -255,10 +295,11 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 order_by: Option<Vec<#order_by>>,
                 default_order_by: Option<Vec<#order_by>>,
                 page: Option<Pagination>,
-            ) -> Result<Vec<#gql>, Box<dyn std::error::Error + Send + Sync>> {
+            ) -> Result<Vec<#gql>, Box<dyn Error + Send + Sync>> {
                 let q = filter.combine(extra_filter).query();
                 let q = order_by.combine(default_order_by).chain(q);
-                let (offset, limit) = CrudHelpers::pagination(page, 100, 1000);
+                // TODO: config 100, 1000 globally, and via model attr
+                let (offset, limit) = pagination(page, 100, 1000);
                 let q = q.offset(offset).limit(limit);
                 let q = Entity::gql_select(ctx, q);
                 Ok(q.all(tx).await?)
@@ -268,7 +309,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 tx: &DatabaseTransaction,
                 filter: Option<#filter>,
                 extra_filter: Option<#filter>,
-            ) -> Result<u64, Box<dyn std::error::Error + Send + Sync>> {
+            ) -> Result<u64, Box<dyn Error + Send + Sync>> {
                 let q = filter.combine(extra_filter).query();
                 Ok(q.count(tx).await?)
             }
@@ -276,7 +317,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 ctx: &async_graphql::Context<'_>,
                 tx: &DatabaseTransaction,
                 id: &String,
-            ) -> Result<#gql, Box<dyn std::error::Error + Send + Sync>> {
+            ) -> Result<#gql, Box<dyn Error + Send + Sync>> {
                 let q = Entity::find_by_id(id);
                 let q = Entity::gql_select(ctx, q);
                 match q.one(tx).await? {
@@ -288,7 +329,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 ctx: &async_graphql::Context<'_>,
                 tx: &DatabaseTransaction,
                 id: &String,
-            ) -> Result<Option<#gql>, Box<dyn std::error::Error + Send + Sync>> {
+            ) -> Result<Option<#gql>, Box<dyn Error + Send + Sync>> {
                 let q = Entity::find_by_id(id);
                 let q = Entity::gql_select_id(ctx, q);
                 match q.one(tx).await? {

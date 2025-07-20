@@ -1,4 +1,5 @@
 #[macro_export]
+// TODO: migrate to parse_macro_input with Parse impl
 macro_rules! parse_resolver {
     ($ty:ident, $item:ident) => {
         parse_resolver!($ty, $item, "")
@@ -12,7 +13,7 @@ macro_rules! parse_resolver {
         let name_default_str = str!($name_default);
         if gql_name == "resolver" {
             if name_default_str == "" {
-                panic!("resolver name must be different than the reserved keyword `resolver`");
+                panic!("Resolver name must be different than the reserved keyword `resolver`");
             }
             gql_name = name_default_str;
         }

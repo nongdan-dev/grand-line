@@ -29,10 +29,10 @@ pub fn gen_resolver(g: GenResolver) -> TokenStream {
 
     if !no_tx {
         body = quote! {
-            let tx = ctx.data_unchecked::<Context>().db.begin().await?;
-            let r = #body;
-            tx.commit().await?;
-            r
+            let gl = ctx.data_unchecked::<GrandLineContext>();
+            let _tx = gl.tx().await?;
+            let tx = _tx.as_ref();
+            #body
         };
     }
 
@@ -51,7 +51,7 @@ pub fn gen_resolver(g: GenResolver) -> TokenStream {
                 &self,
                 ctx: &async_graphql::Context<'_>,
                 #inputs
-            ) -> Result<#output, Box<dyn std::error::Error + Send + Sync>> {
+            ) -> Result<#output, Box<dyn Error + Send + Sync>> {
                 // TODO: catch panic
                 #body
             }

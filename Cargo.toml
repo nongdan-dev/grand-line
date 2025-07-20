@@ -20,11 +20,11 @@ axum = ["dep:axum", "dep:async-graphql-axum", "dep:tower", "dep:tower-http"]
 [dependencies]
 async-graphql = { version = "7.0.17", default-features = false, features = ["altair", "chrono", "chrono-duration", "chrono-tz", "dataloader", "decimal", "string_number"] }
 async-graphql-axum = { version = "7.0.17", default-features = false, optional = true }
+async-trait = { version = "0.1.88" }
 axum = { version = "0.8.4", default-features = false, optional = true, features = ["default", "http2", "tokio", "multipart"] }
 chrono = { version = "0.4.41", default-features = false, features = ["now", "serde"] }
 grand-line-macros = { path = "macros" }
 grand-line-proc-macros = { path = "proc_macros" }
-paste = { version = "1.0.15", default-features = false }
 sea-orm = { version = "1.1.13", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
 serde = { version = "1.0.219", default-features = false, features = ["derive", "std"] }
 serde_json = { version = "1.0.140", default-features = false }

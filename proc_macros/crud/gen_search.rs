@@ -1,7 +1,8 @@
 use crate::prelude::*;
+use syn::parse_macro_input;
 
 pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let a = parse_attr!(attr);
+    let a = parse_macro_input!(attr as MacroAttr);
     let g = parse_resolver!(ty_query, item, camel_str!(a.model, "Search"));
     let (a, mut g) = check_crud_io(a, g);
     g.no_tx = a.no_tx;
@@ -26,7 +27,7 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
             let (extra_filter, default_order_by) = {
                 #body
             };
-            #db_fn(ctx, &tx, filter, extra_filter, order_by, default_order_by, page).await?
+            #db_fn(ctx, tx, filter, extra_filter, order_by, default_order_by, page).await?
         };
     }
 

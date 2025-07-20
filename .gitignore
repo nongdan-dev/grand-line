@@ -80,14 +80,14 @@ yarn-error.log*
 next-env.d.ts
 **/.next/
 **/.vercel/
-**/out/
 **/.velite/
+**/out/
 
 # local/debug output
 *.local
 *.sqlite
 *.sqlite3
-*.debug.png
+*.debug.*
 
 # pick one between npm/yarn/pnpm
 package-lock.json
@@ -95,5 +95,5 @@ yarn.lock
 # pnpm-lock.yaml
 
 # go, rust
-**/.*-cache
+**/.*-cache/
 **/target/

@@ -1,7 +1,8 @@
 use crate::prelude::*;
+use syn::parse_macro_input;
 
 pub fn gen_count(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let a = parse_attr!(attr);
+    let a = parse_macro_input!(attr as MacroAttr);
     let g = parse_resolver!(ty_query, item, camel_str!(a.model, "Count"));
     let (a, mut g) = check_crud_io(a, g);
     g.no_tx = a.no_tx;
@@ -20,7 +21,7 @@ pub fn gen_count(attr: TokenStream, item: TokenStream) -> TokenStream {
             let extra_filter = {
                 #body
             };
-            #db_fn(ctx, &tx, filter, extra_filter).await?
+            #db_fn(ctx, tx, filter, extra_filter).await?
         };
     }
 
