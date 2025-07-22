@@ -7,8 +7,9 @@ pub fn gen_count(attr: TokenStream, item: TokenStream) -> TokenStream {
     let (a, mut g) = check_crud_io(a, g);
     g.no_tx = a.no_tx;
 
+    let filter = ty_filter(&a.model);
+
     if !a.resolver_inputs {
-        let filter = ty_filter(&a.model);
         g.inputs = quote!(filter: Option<#filter>);
     }
 
@@ -18,7 +19,7 @@ pub fn gen_count(attr: TokenStream, item: TokenStream) -> TokenStream {
         let body = g.body;
         let db_fn = ts2!(a.model, "::gql_count");
         g.body = quote! {
-            let extra_filter = {
+            let extra_filter: Option<#filter> = {
                 #body
             };
             #db_fn(ctx, tx, filter, extra_filter).await?

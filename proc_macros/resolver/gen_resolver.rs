@@ -29,7 +29,7 @@ pub fn gen_resolver(g: GenResolver) -> TokenStream {
 
     if !no_tx {
         body = quote! {
-            let gl = ctx.data_unchecked::<GrandLineContext>();
+            let gl = GrandLineContext::from(ctx);
             let _tx = gl.tx().await?;
             let tx = _tx.as_ref();
             #body

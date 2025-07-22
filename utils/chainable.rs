@@ -1,16 +1,15 @@
-use sea_orm::entity::prelude::*;
+use crate::*;
 use sea_orm::*;
 
-pub trait Conditionable {
-    fn condition(&self) -> Condition;
-}
-
+/// Helper trait to abstract chain sea_orm query of different types like filter, order_by...
 pub trait Chainable<T>
 where
     T: EntityTrait,
 {
     fn chain(&self, q: Select<T>) -> Select<T>;
 }
+
+/// Automatically implement Chainable for Option<Chainable>
 impl<T, F> Chainable<T> for Option<F>
 where
     T: EntityTrait,
@@ -23,6 +22,8 @@ where
         }
     }
 }
+
+/// Automatically implement Chainable for Vec<Chainable>
 impl<T, F> Chainable<T> for Vec<F>
 where
     T: EntityTrait,
@@ -34,18 +35,5 @@ where
             q = c.chain(q)
         }
         q
-    }
-}
-
-pub trait Queryable<E: EntityTrait> {
-    fn query(&self) -> Select<E>;
-}
-impl<T, E> Queryable<E> for T
-where
-    T: Chainable<E>,
-    E: EntityTrait,
-{
-    fn query(&self) -> Select<E> {
-        self.chain(E::find())
     }
 }

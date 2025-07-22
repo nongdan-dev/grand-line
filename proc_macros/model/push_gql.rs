@@ -1,14 +1,16 @@
+use std::collections::HashSet;
+
 use crate::prelude::*;
 use syn::Field;
 
 pub fn push_gql(
     f: &Field,
+    dep_sql: &Vec<String>,
+    dep_gql: &Vec<String>,
     struk: &mut Vec<TokenStream2>,
     resolver: &mut Vec<TokenStream2>,
-    look_ahead: &mut Vec<TokenStream2>,
     into: &mut Vec<TokenStream2>,
-    sql_deps: &Vec<String>,
-    dep_fields: &Vec<String>,
+    columns: &mut Vec<TokenStream2>,
 ) {
     let name = f.ident.to_token_stream();
     let gql_name = camel_str!(name.to_token_stream());
@@ -32,27 +34,6 @@ pub fn push_gql(
         }
     });
 
-    let column = pascal!(name.to_token_stream());
-    let ii = sql_deps
-        .iter()
-        .enumerate()
-        .filter(|(_, v)| **v == str!(name))
-        .map(|(i, _)| i)
-        .collect::<Vec<usize>>();
-    let x = dep_fields
-        .iter()
-        .enumerate()
-        .filter(|(i, _)| ii.contains(i))
-        .map(|(_, v)| camel_str!(v))
-        .map(|v| quote!(|| l.field(#v).exists()))
-        .collect::<Vec<TokenStream2>>();
-    // TODO: make x unique arr
-    look_ahead.push(quote! {
-        if l.field(#gql_name).exists() #(#x)* {
-            q = q.column(Column::#column)
-        }
-    });
-
     into.push(if opt {
         quote! {
             #name: v.#name,
@@ -61,5 +42,29 @@ pub fn push_gql(
         quote! {
             #name: Some(v.#name),
         }
+    });
+
+    let sql = dep_sql
+        .iter()
+        .enumerate()
+        .filter(|(_, v)| **v == str!(name))
+        .map(|(i, _)| i)
+        .collect::<Vec<_>>();
+    let mut gql = dep_gql
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| sql.contains(i))
+        .map(|(_, v)| camel_str!(v))
+        .collect::<Vec<_>>();
+    gql.push(gql_name);
+    gql = gql
+        .iter()
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .map(|f| f.to_string())
+        .collect::<Vec<_>>();
+    let column = pascal!(name.to_token_stream());
+    columns.push(quote! {
+        #(m.insert(#gql, Column::#column);)*
     });
 }

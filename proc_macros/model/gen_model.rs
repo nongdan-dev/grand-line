@@ -11,8 +11,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // ------------------------------------------------------------------------
     // extract virtual fields such as relation and so on...
     let mut relation_fields = vec![];
-    let mut relation_types = vec![];
-    let mut relation_sql_deps = vec![];
+    let mut relation_dep_sql = vec![];
     struk.fields = match struk.fields {
         Fields::Named(ref mut f) => {
             f.named = f
@@ -33,10 +32,9 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                         ""
                     };
                     if relation != "" {
-                        relation_fields.push(f.clone());
-                        relation_types.push(relation);
+                        relation_fields.push((relation, f.clone()));
                         if relation == "belongs_to" {
-                            relation_sql_deps.push(snake_str!(f.ident.to_token_stream(), "id"));
+                            relation_dep_sql.push(snake_str!(f.ident.to_token_stream(), "id"));
                         } else {
                             panic!("TODO:");
                         }
@@ -53,9 +51,9 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             struk.fields.to_token_stream()
         ),
     };
-    let relation_field_strs = relation_fields
+    let relation_dep_gql = relation_fields
         .iter()
-        .map(|f| str!(f.ident.to_token_stream()))
+        .map(|f| str!(f.1.ident.to_token_stream()))
         .collect();
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
@@ -71,13 +69,11 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // ------------------------------------------------------------------------
     // filter / order_by fields
     let filter = ty_filter(&alias);
-    let filter_combine = ty_filter_combine(&alias);
     let order_by = ty_order_by(&alias);
-    let order_by_combine = ty_order_by_combine(&alias);
     let mut gql_struk = vec![];
     let mut gql_resolver = vec![];
-    let mut gql_look_ahead = vec![];
     let mut gql_into = vec![];
+    let mut gql_columns = vec![];
     let mut filter_struk = vec![];
     let mut filter_query = vec![];
     let mut order_by_struk = vec![];
@@ -88,19 +84,20 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     {
         push_gql(
             f,
+            &relation_dep_sql,
+            &relation_dep_gql,
             &mut gql_struk,
             &mut gql_resolver,
-            &mut gql_look_ahead,
             &mut gql_into,
-            &relation_sql_deps,
-            &relation_field_strs,
+            &mut gql_columns,
         );
         push_filter(f, &mut filter_struk, &mut filter_query);
         push_order_by(f, &mut order_by_struk, &mut order_by_query);
     }
     push_filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
 
-    for ref f in relation_fields {
+    for f in relation_fields {
+        let f = &f.1;
         let name = f.ident.to_token_stream();
         let gql_name = camel_str!(name);
         let fkey = snake!(name, "id");
@@ -109,7 +106,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         gql_resolver.push(quote! {
             #[graphql(name=#gql_name)]
             async fn #name(&self, ctx: &async_graphql::Context<'_>) -> Result<#ty, Box<dyn Error + Send + Sync>> {
-                let gl = ctx.data_unchecked::<GrandLineContext>();
+                // TODO: data loader
+                let gl = GrandLineContext::from(ctx);
                 let _tx = gl.tx().await?;
                 let tx = _tx.as_ref();
                 let q = #model::find_by_id(self.#fkey.clone().unwrap_or_default());
@@ -163,7 +161,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         impl Entity {
             /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
             /// We need to have this method instead to get default values on create.
-            /// This can be used together with the macro grand_line::active_create.
+            /// This can be used together with the macro grand_line::active_create
             pub fn active_create(mut am: ActiveModel) -> ActiveModel {
                 #am_id
                 #am_created_at
@@ -171,7 +169,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
             /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
             /// We need to have this method instead to get default values on update.
-            /// This can be used together with the macro grand_line::active_update.
+            /// This can be used together with the macro grand_line::active_update
             pub fn active_update(mut am: ActiveModel) -> ActiveModel {
                 #am_updated_at
                 am
@@ -201,19 +199,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         impl #gql {
             #(#gql_resolver)*
         }
-        impl Entity {
-            /// Select only columns in the graphql request context
-            pub fn gql_select(ctx: &async_graphql::Context<'_>, mut q: Select<Entity>) -> Selector<SelectModel<#gql>> {
-                q = q.select_only();
-                let l = ctx.look_ahead();
-                #(#gql_look_ahead)*
-                q.into_model::<#gql>()
-            }
-            /// Select only id for the graphql delete response
-            pub fn gql_select_id(ctx: &async_graphql::Context<'_>, q: Select<Entity>) -> Selector<SelectModel<#gql>> {
-                q.select_only().column(Column::Id).into_model::<#gql>()
-            }
-        }
         impl From<#sql> for #gql {
             fn from(v: #sql) -> Self {
                 #gql {
@@ -223,12 +208,25 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
 
+        static GQL_COLUMNS: once_cell::sync::Lazy<std::collections::HashMap<&'static str, Column>> = once_cell::sync::Lazy::new(|| {
+            let mut m = std::collections::HashMap::new();
+            #(#gql_columns)*
+            m
+        });
+        impl Gql<Entity, #filter, #order_by, #gql> for Entity {
+            fn id() -> Column {
+                Column::Id
+            }
+            fn column(field: &str) -> Option<Column> {
+                GQL_COLUMNS.get(field).copied()
+            }
+        }
+
         #[input]
         pub struct #filter {
             #(#filter_struk)*
         }
         impl Conditionable for #filter {
-            /// Helper to create sea_orm condition with filter
             fn condition(&self) -> Condition {
                 let this = self.clone();
                 let mut c = Condition::all();
@@ -237,21 +235,16 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
         impl Chainable<Entity> for #filter {
-            /// Helper to concat sea_orm select query with filter
             fn chain(&self, q: Select<Entity>) -> Select<Entity> {
                 q.filter(self.condition())
             }
         }
-        pub trait #filter_combine {
-            /// Helper to combine filter and extra_filter
-            fn combine(self, e: Option<#filter>) -> Option<#filter>;
-        }
-        impl #filter_combine for Option<#filter> {
-            fn combine(self, e: Option<#filter>) -> Option<#filter> {
-                filter_combine(self, e, &|a, b| #filter {
+        impl Filter for #filter {
+            fn combine(a: Self, b: Self) -> Self {
+                Self {
                     and: Some(vec![a, b]),
                     ..Default::default()
-                })
+                }
             }
         }
 
@@ -276,13 +269,9 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
         }
-        pub trait #order_by_combine {
-            /// Helper to combine order_by and default_order_by with an initial value if all are empty
-            fn combine(self, d: Option<Vec<#order_by>>) -> Vec<#order_by>;
-        }
-        impl #order_by_combine for Option<Vec<#order_by>> {
-            fn combine(self, d: Option<Vec<#order_by>>) -> Vec<#order_by> {
-                order_by_combine(self, d, #order_by::IdDesc)
+        impl OrderBy for #order_by {
+            fn default() -> Self {
+                Self::IdDesc
             }
         }
 
@@ -331,7 +320,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 id: &String,
             ) -> Result<Option<#gql>, Box<dyn Error + Send + Sync>> {
                 let q = Entity::find_by_id(id);
-                let q = Entity::gql_select_id(ctx, q);
+                let q = Entity::gql_select_id(q);
                 match q.one(tx).await? {
                     Some(v) => {
                         Entity::delete_by_id(id).exec(tx).await?;

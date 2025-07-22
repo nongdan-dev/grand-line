@@ -7,9 +7,10 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
     let (a, mut g) = check_crud_io(a, g);
     g.no_tx = a.no_tx;
 
+    let filter = ty_filter(&a.model);
+    let order_by = ty_order_by(&a.model);
+
     if !a.resolver_inputs {
-        let filter = ty_filter(&a.model);
-        let order_by = ty_order_by(&a.model);
         g.inputs = quote! {
             filter: Option<#filter>,
             order_by: Option<Vec<#order_by>>,
@@ -24,7 +25,7 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
         let body = g.body;
         let db_fn = ts2!(a.model, "::gql_search");
         g.body = quote! {
-            let (extra_filter, default_order_by) = {
+            let (extra_filter, default_order_by): (Option<#filter>, Option<Vec<#order_by>>) = {
                 #body
             };
             #db_fn(ctx, tx, filter, extra_filter, order_by, default_order_by, page).await?
