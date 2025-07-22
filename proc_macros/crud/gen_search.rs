@@ -3,9 +3,9 @@ use syn::parse_macro_input;
 
 pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
     let a = parse_macro_input!(attr as MacroAttr);
-    let g = parse_resolver!(ty_query, item, camel_str!(a.model, "Search"));
-    let (a, mut g) = check_crud_io(a, g);
-    g.no_tx = a.no_tx;
+    let mut g = parse_macro_input!(item as GenResolver);
+    g.init(&a, "Query", "Search");
+    check_crud_io(&a, &g);
 
     let filter = ty_filter(&a.model);
     let order_by = ty_order_by(&a.model);
@@ -25,10 +25,10 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
         let body = g.body;
         let db_fn = ts2!(a.model, "::gql_search");
         g.body = quote! {
-            let (extra_filter, default_order_by): (Option<#filter>, Option<Vec<#order_by>>) = {
+            let (filter_extra, order_by_default): (Option<#filter>, Option<Vec<#order_by>>) = {
                 #body
             };
-            #db_fn(ctx, tx, filter, extra_filter, order_by, default_order_by, page).await?
+            #db_fn(ctx, tx, filter, filter_extra, order_by, order_by_default, page).await?
         };
     }
 

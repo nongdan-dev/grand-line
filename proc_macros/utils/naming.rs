@@ -19,10 +19,3 @@ pub fn ty_filter(model: impl Display) -> TokenStream2 {
 pub fn ty_order_by(model: impl Display) -> TokenStream2 {
     pascal!(model, "OrderBy")
 }
-
-pub fn ty_query(pre: impl Display) -> TokenStream2 {
-    pascal!(pre, "Query")
-}
-pub fn ty_mutation(pre: impl Display) -> TokenStream2 {
-    pascal!(pre, "Mutation")
-}

@@ -1,41 +1,53 @@
-/// Helper trait to combine order_by and default_order_by with an initial value if all are empty
-pub trait OrderBy
+use crate::*;
+use sea_orm::*;
+
+/// Helper trait to combine order_by and order_by_default with an initial value if all are empty.
+pub trait OrderBy<T>
 where
-    Self: Sized,
+    Self: Chainable<T> + Send + Sync + Sized,
+    T: EntityTrait,
 {
+    /// Get order_by_default to use in abstract methods.
+    /// Should will be generated in the macro.
     fn default() -> Self;
 }
 
-/// Automatically implement combine for Option<Vec<T>>
-pub trait OrderByImpl<T> {
-    fn combine(self, default_order_by: Self) -> Vec<T>;
+/// Automatically implement combine for Option<Vec<OrderBy>>.
+pub trait OrderByImpl<T, O>
+where
+    T: EntityTrait,
+    O: OrderBy<T>,
+{
+    /// Helper to combine order_by and order_by_default with an initial value if all are empty.
+    fn combine(self, order_by_default: Self) -> Vec<O>;
 }
 
-/// Automatically implement combine for Option<Vec<T>>
-impl<T> OrderByImpl<T> for Option<Vec<T>>
+/// Automatically implement combine for Option<Vec<OrderBy>>.
+impl<T, O> OrderByImpl<T, O> for Option<Vec<O>>
 where
-    T: OrderBy,
+    T: EntityTrait,
+    O: OrderBy<T>,
 {
-    fn combine(self, default_order_by: Self) -> Vec<T> {
+    fn combine(self, order_by_default: Self) -> Vec<O> {
         match self {
-            Some(a) => match a.len() {
-                0 => opt(default_order_by, T::default()),
-                _ => a,
+            Some(o) => match o.len() {
+                0 => opt(order_by_default, O::default()),
+                _ => o,
             },
-            None => opt(default_order_by, T::default()),
+            None => opt(order_by_default, O::default()),
         }
     }
 }
 
-fn opt<T>(a: Option<Vec<T>>, v: T) -> Vec<T> {
-    match a {
-        Some(a) => vec(a, v),
-        None => vec![v],
+fn opt<O>(o: Option<Vec<O>>, order_by_default: O) -> Vec<O> {
+    match o {
+        Some(a) => vec(a, order_by_default),
+        None => vec![order_by_default],
     }
 }
-fn vec<T>(a: Vec<T>, v: T) -> Vec<T> {
-    match a.len() {
-        0 => vec![v],
-        _ => a,
+fn vec<O>(o: Vec<O>, order_by_default: O) -> Vec<O> {
+    match o.len() {
+        0 => vec![order_by_default],
+        _ => o,
     }
 }

@@ -5,52 +5,82 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut a = parse_macro_input!(attr as MacroAttr);
     let mut struk = parse_macro_input!(item as ItemStruct);
     a.model = str!(struk.ident);
+    let ref mut fields = match struk.fields {
+        Fields::Named(f) => f,
+        _ => panic!("{} struct fields must be Fields::Named", a.model),
+    };
     // ------------------------------------------------------------------------
     // insert built-in fields: id, created_at, updated_at...
-    struk = insert_builtin(&a, struk);
+    fields.named.insert(
+        0,
+        field! {
+            #[sea_orm(primary_key, column_type="String(StringLen::N(26))", auto_increment=false)]
+            pub id: String
+        },
+    );
+    if !a.no_created_at {
+        fields.named.push(field! {
+            pub created_at: DateTimeUtc
+        });
+        if !a.no_by_id {
+            fields.named.push(field! {
+                pub created_by_id: Option<String>
+            });
+        }
+    }
+    if !a.no_updated_at {
+        fields.named.push(field! {
+            pub updated_at: Option<DateTimeUtc>
+        });
+        if !a.no_by_id {
+            fields.named.push(field! {
+                pub updated_by_id: Option<String>
+            });
+        }
+    }
+    if !a.no_deleted_at {
+        fields.named.push(field! {
+            pub deleted_at: Option<DateTimeUtc>
+        });
+        if !a.no_by_id {
+            fields.named.push(field! {
+                pub deleted_by_id: Option<String>
+            });
+        }
+    }
     // ------------------------------------------------------------------------
     // extract virtual fields such as relation and so on...
     let mut relation_fields = vec![];
     let mut relation_dep_sql = vec![];
-    struk.fields = match struk.fields {
-        Fields::Named(ref mut f) => {
-            f.named = f
-                .named
-                .clone()
-                .into_iter()
-                .filter(|f| {
-                    let ref mut attrs = f.attrs.iter().map(|a| a.path());
-                    let relation = if attrs.any(|p| p.is_ident("belongs_to")) {
-                        "belongs_to"
-                    } else if attrs.any(|p| p.is_ident("has_one")) {
-                        "has_one"
-                    } else if attrs.any(|p| p.is_ident("has_many")) {
-                        "has_many"
-                    } else if attrs.any(|p| p.is_ident("many_to_many")) {
-                        "many_to_many"
-                    } else {
-                        ""
-                    };
-                    if relation != "" {
-                        relation_fields.push((relation, f.clone()));
-                        if relation == "belongs_to" {
-                            relation_dep_sql.push(snake_str!(f.ident.to_token_stream(), "id"));
-                        } else {
-                            panic!("TODO:");
-                        }
-                        return false;
-                    }
-                    true
-                })
-                .collect();
-            Fields::Named(f.clone())
-        }
-        _ => panic!(
-            "{} fields must be Fields::Named, found {}",
-            a.model,
-            struk.fields.to_token_stream()
-        ),
-    };
+    fields.named = fields
+        .named
+        .clone()
+        .into_iter()
+        .filter(|f| {
+            let ref mut attrs = f.attrs.iter().map(|a| a.path());
+            let relation = if attrs.any(|p| p.is_ident("belongs_to")) {
+                "belongs_to"
+            } else if attrs.any(|p| p.is_ident("has_one")) {
+                "has_one"
+            } else if attrs.any(|p| p.is_ident("has_many")) {
+                "has_many"
+            } else if attrs.any(|p| p.is_ident("many_to_many")) {
+                "many_to_many"
+            } else {
+                ""
+            };
+            if relation != "" {
+                relation_fields.push((relation, f.clone()));
+                if relation == "belongs_to" {
+                    relation_dep_sql.push(snake_str!(f.ident.to_token_stream(), "id"));
+                } else {
+                    panic!("TODO:");
+                }
+                return false;
+            }
+            true
+        })
+        .collect();
     let relation_dep_gql = relation_fields
         .iter()
         .map(|f| str!(f.1.ident.to_token_stream()))
@@ -60,6 +90,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // get the original model name in snake case for sql table, non-plural
     let alias = struk.ident;
     struk.ident = format_ident!("Model");
+    struk.fields = Fields::Named(fields.clone());
     let sql = ty_sql(&alias);
     let gql = ty_gql(&alias);
     let column = ty_column(&alias);
@@ -78,10 +109,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut filter_query = vec![];
     let mut order_by_struk = vec![];
     let mut order_by_query = vec![];
-    for ref f in parse_unwrap_ref!(struk.fields => Fields::Named)
-        .named
-        .iter()
-    {
+    for ref f in fields.named.iter() {
         push_gql(
             f,
             &relation_dep_sql,
@@ -111,7 +139,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 let _tx = gl.tx().await?;
                 let tx = _tx.as_ref();
                 let q = #model::find_by_id(self.#fkey.clone().unwrap_or_default());
-                let r = #model::gql_select(ctx, q).one(tx).await?;
+                let r = #model::gql_select(ctx, q).await?.one(tx).await?;
                 Ok(r)
             }
         });
@@ -161,7 +189,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         impl Entity {
             /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
             /// We need to have this method instead to get default values on create.
-            /// This can be used together with the macro grand_line::active_create
+            /// This can be used together with the macro grand_line::active_create.
             pub fn active_create(mut am: ActiveModel) -> ActiveModel {
                 #am_id
                 #am_created_at
@@ -169,7 +197,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
             /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
             /// We need to have this method instead to get default values on update.
-            /// This can be used together with the macro grand_line::active_update
+            /// This can be used together with the macro grand_line::active_update.
             pub fn active_update(mut am: ActiveModel) -> ActiveModel {
                 #am_updated_at
                 am
@@ -213,18 +241,27 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             #(#gql_columns)*
             m
         });
-        impl Gql<Entity, #filter, #order_by, #gql> for Entity {
+        impl EntityX<Model, #filter, #order_by, #gql> for Entity {
             fn id() -> Column {
                 Column::Id
             }
             fn column(field: &str) -> Option<Column> {
                 GQL_COLUMNS.get(field).copied()
             }
+            // TODO: config_limit via model attr
         }
 
         #[input]
         pub struct #filter {
             #(#filter_struk)*
+        }
+        impl Filter<Entity> for #filter {
+            fn combine(a: Self, b: Self) -> Self {
+                Self {
+                    and: Some(vec![a, b]),
+                    ..Default::default()
+                }
+            }
         }
         impl Conditionable for #filter {
             fn condition(&self) -> Condition {
@@ -234,99 +271,20 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 c
             }
         }
-        impl Chainable<Entity> for #filter {
-            fn chain(&self, q: Select<Entity>) -> Select<Entity> {
-                q.filter(self.condition())
-            }
-        }
-        impl Filter for #filter {
-            fn combine(a: Self, b: Self) -> Self {
-                Self {
-                    and: Some(vec![a, b]),
-                    ..Default::default()
-                }
-            }
-        }
 
-        #[derive(
-          Clone,
-          Debug,
-          Copy,
-          Eq,
-          PartialEq,
-          serde::Deserialize,
-          serde::Serialize,
-          async_graphql::Enum,
-        )]
+        #[enunn]
         pub enum #order_by {
             #(#order_by_struk)*
         }
-        impl Chainable<Entity> for #order_by {
-            /// Helper to concat sea_orm select query with order_by
-            fn chain(&self, q: Select<Entity>) -> Select<Entity> {
-                match *self {
-                    #(#order_by_query)*
-                }
-            }
-        }
-        impl OrderBy for #order_by {
+        impl OrderBy<Entity> for #order_by {
             fn default() -> Self {
                 Self::IdDesc
             }
         }
-
-        impl Entity {
-            pub async fn gql_search(
-                ctx: &async_graphql::Context<'_>,
-                tx: &DatabaseTransaction,
-                filter: Option<#filter>,
-                extra_filter: Option<#filter>,
-                order_by: Option<Vec<#order_by>>,
-                default_order_by: Option<Vec<#order_by>>,
-                page: Option<Pagination>,
-            ) -> Result<Vec<#gql>, Box<dyn Error + Send + Sync>> {
-                let q = filter.combine(extra_filter).query();
-                let q = order_by.combine(default_order_by).chain(q);
-                // TODO: config 100, 1000 globally, and via model attr
-                let (offset, limit) = pagination(page, 100, 1000);
-                let q = q.offset(offset).limit(limit);
-                let q = Entity::gql_select(ctx, q);
-                Ok(q.all(tx).await?)
-            }
-            pub async fn gql_count(
-                ctx: &async_graphql::Context<'_>,
-                tx: &DatabaseTransaction,
-                filter: Option<#filter>,
-                extra_filter: Option<#filter>,
-            ) -> Result<u64, Box<dyn Error + Send + Sync>> {
-                let q = filter.combine(extra_filter).query();
-                Ok(q.count(tx).await?)
-            }
-            pub async fn gql_detail(
-                ctx: &async_graphql::Context<'_>,
-                tx: &DatabaseTransaction,
-                id: &String,
-            ) -> Result<#gql, Box<dyn Error + Send + Sync>> {
-                let q = Entity::find_by_id(id);
-                let q = Entity::gql_select(ctx, q);
-                match q.one(tx).await? {
-                    Some(v) => Ok(v),
-                    None => Err("404".into()),
-                }
-            }
-            pub async fn gql_delete(
-                ctx: &async_graphql::Context<'_>,
-                tx: &DatabaseTransaction,
-                id: &String,
-            ) -> Result<Option<#gql>, Box<dyn Error + Send + Sync>> {
-                let q = Entity::find_by_id(id);
-                let q = Entity::gql_select_id(q);
-                match q.one(tx).await? {
-                    Some(v) => {
-                        Entity::delete_by_id(id).exec(tx).await?;
-                        Ok(Some(v))
-                    }
-                    None => Ok(None),
+        impl Chainable<Entity> for #order_by {
+            fn chain(&self, q: Select<Entity>) -> Select<Entity> {
+                match *self {
+                    #(#order_by_query)*
                 }
             }
         }

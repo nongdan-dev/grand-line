@@ -1,12 +1,10 @@
 mod crud;
-mod input;
 mod model;
 mod resolver;
 mod utils;
 
 mod prelude {
     pub use crate::crud::*;
-    pub use crate::input::*;
     pub use crate::model::*;
     pub use crate::resolver::*;
     pub use crate::utils::*;
@@ -41,14 +39,6 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
 )]
 pub fn grand_line_model(item: TokenStream) -> TokenStream {
     gen_derive(item)
-}
-
-// ============================================================================
-// input
-
-#[proc_macro_attribute]
-pub fn input(attr: TokenStream, item: TokenStream) -> TokenStream {
-    gen_input(attr, item)
 }
 
 // ============================================================================
@@ -99,6 +89,16 @@ pub fn delete(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 // ============================================================================
 // utils
+
+#[proc_macro_attribute]
+pub fn input(attr: TokenStream, item: TokenStream) -> TokenStream {
+    gen_input(attr, item)
+}
+
+#[proc_macro_attribute]
+pub fn enunn(attr: TokenStream, item: TokenStream) -> TokenStream {
+    gen_enum(attr, item)
+}
 
 /// Helper to quickly create a filter with concise syntax
 #[proc_macro]

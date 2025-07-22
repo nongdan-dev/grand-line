@@ -1,13 +1,11 @@
 mod gen_derive;
 mod gen_model;
-mod insert_builtin;
 mod push_filter;
 mod push_filter_and_or_not;
 mod push_gql;
 mod push_order_by;
 pub use gen_derive::*;
 pub use gen_model::*;
-pub use insert_builtin::*;
 pub use push_filter::*;
 pub use push_filter_and_or_not::*;
 pub use push_gql::*;

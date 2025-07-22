@@ -3,9 +3,9 @@ use syn::parse_macro_input;
 
 pub fn gen_update(attr: TokenStream, item: TokenStream) -> TokenStream {
     let a = parse_macro_input!(attr as MacroAttr);
-    let g = parse_resolver!(ty_mutation, item, camel_str!(a.model, "Update"));
-    let (a, mut g) = check_crud_io(a, g);
-    g.no_tx = a.no_tx;
+    let mut g = parse_macro_input!(item as GenResolver);
+    g.init(&a, "Mutation", "Update");
+    check_crud_io(&a, &g);
 
     if !a.resolver_inputs {
         let data = pascal!(g.name);
