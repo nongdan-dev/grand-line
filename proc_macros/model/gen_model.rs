@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::str::FromStr;
 use syn::{Fields, ItemStruct, parse_macro_input};
 
 pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -51,26 +50,22 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     // ------------------------------------------------------------------------
     // extract virtual fields such as relation and so on...
-    let mut virtuals = vec![];
+    let mut virtuals = Vec::<Box<dyn GenVirtualImpl>>::new();
     fields.named = fields
         .named
         .clone()
         .into_iter()
         .filter(|f| {
-            let relation = vec![
-                RelationTy::BelongsTo,
-                RelationTy::HasOne,
-                RelationTy::HasMany,
-                RelationTy::ManyToMany,
-            ]
-            .iter()
-            .map(|r| str!(r))
-            .find(|r| is_attr(f, &r));
-            if let Some(relation) = relation {
-                virtuals.push(Relation {
-                    ty: RelationTy::from_str(&relation).unwrap(),
+            let relation = RelationTy::all()
+                .iter()
+                .find(|r| has_attr(f, &str!(r)))
+                .map(|r| r.to_owned());
+            if let Some(ty) = relation {
+                virtuals.push(Box::new(GenRelation {
+                    model: a.model.clone(),
+                    ty,
                     f: f.clone(),
-                });
+                }));
                 return false;
             }
             // TODO: other kinds of virtual
@@ -101,7 +96,11 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut filter_query = vec![];
     let mut order_by_struk = vec![];
     let mut order_by_query = vec![];
-    for f in fields.named.iter() {
+    for f in fields
+        .named
+        .iter()
+        .filter(|f| !has_attr_key(&f, "graphql", "skip"))
+    {
         push_gql(
             f,
             &virtuals,
@@ -116,60 +115,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     push_filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
 
     for f in virtuals.iter() {
-        if matches!(f.ty, RelationTy::BelongsTo | RelationTy::HasOne) {
-            let model = f.model();
-            let gql = ts2!("Option<", f.gql(), ">");
-            let name = f.name();
-            let gql_name = f.gql_name();
-            let id = f.id();
-            let column = ty_column(&model);
-            let col = f.column();
-            gql_resolver.push(quote! {
-                #[graphql(name=#gql_name)]
-                async fn #name(&self, ctx: &async_graphql::Context<'_>) -> Result<#gql, Box<dyn Error + Send + Sync>> {
-                    // TODO: data loader: belongs to then find by id, otherwise find by fkey column
-                    let gl = GrandLineContext::from(ctx);
-                    let _tx = gl.tx().await?;
-                    let tx = _tx.as_ref();
-                    let id = self.#id.clone().unwrap_or_default();
-                    let c = Condition::all().add(#column::#col.eq(id));
-                    let q = #model::find().filter(c);
-                    let r = #model::gql_select(ctx, q).await?.one(tx).await?;
-                    Ok(r)
-                }
-            });
-        } else if matches!(f.ty, RelationTy::HasMany) {
-            let model = f.model();
-            let gql = ts2!("Vec<", f.gql(), ">");
-            let name = f.name();
-            let gql_name = f.gql_name();
-            let id = f.id();
-            let column = ty_column(&model);
-            let col = f.column();
-            let filter = ty_filter(&model);
-            let order_by = ty_order_by(&model);
-            let db_fn = ts2!(&model, "::gql_search");
-            gql_resolver.push(quote! {
-                #[graphql(name=#gql_name)]
-                async fn #name(
-                    &self,
-                    ctx: &async_graphql::Context<'_>,
-                    filter: Option<#filter>,
-                    order_by: Option<Vec<#order_by>>,
-                    page: Option<Pagination>,
-                ) -> Result<#gql, Box<dyn Error + Send + Sync>> {
-                    let gl = GrandLineContext::from(ctx);
-                    let _tx = gl.tx().await?;
-                    let tx = _tx.as_ref();
-                    let id = self.#id.clone().unwrap_or_default();
-                    let c = Condition::all().add(#column::#col.eq(id));
-                    let r = #db_fn(ctx, tx, Some(c), filter, None, order_by, None, page).await?;
-                    Ok(r)
-                }
-            });
-        } else {
-            panic!("TODO:");
-        }
+        gql_resolver.push(f.gen_resolver());
     }
 
     let am_id = quote! {
@@ -178,7 +124,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
     let am_created_at = if a.no_created_at {
-        ts2!("")
+        ts2!()
     } else {
         quote! {
             if !matches!(am.created_at, ActiveValue::Set(_)) {
@@ -187,7 +133,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
     let am_updated_at = if a.no_updated_at {
-        ts2!("")
+        ts2!()
     } else {
         quote! {
             if !matches!(am.updated_at, ActiveValue::Set(_)) {

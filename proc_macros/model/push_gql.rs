@@ -4,7 +4,7 @@ use syn::Field;
 
 pub fn push_gql(
     f: &Field,
-    virtuals: &Vec<Relation>,
+    virtuals: &Vec<Box<dyn GenVirtualImpl>>,
     struk: &mut Vec<TokenStream2>,
     resolver: &mut Vec<TokenStream2>,
     into: &mut Vec<TokenStream2>,
@@ -25,6 +25,7 @@ pub fn push_gql(
         quote!(v.unwrap_or_default())
     };
     resolver.push(quote! {
+        // TODO: copy #[graphql...] and comments from the original field
         #[graphql(name=#gql_name)]
         async fn #name(&self) -> #ty {
             let v = self.#name.clone();

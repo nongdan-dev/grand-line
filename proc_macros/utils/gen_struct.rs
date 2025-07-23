@@ -8,7 +8,7 @@ pub fn gen_struct(item: TokenStream, suf: &str, fw: &str, rw: &str) -> TokenStre
     let name = ts2!(model, suf);
 
     let rest = item.rest.to_token_stream();
-    let rest = if trim!(rest) == "" {
+    let rest = if str!(rest).trim() == "" {
         ts2!("..Default::default()")
     } else {
         rest

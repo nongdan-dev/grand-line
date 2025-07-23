@@ -1,42 +1,50 @@
 /// Internal macro utils to handle strings and casings
 #[macro_export]
 macro_rules! str {
-    ($s:expr $(, $ss:expr)*) => {{
-        let mut r = $s.to_string();
-        $(r.push_str(&$ss.to_string());)*
+    ($($s:expr),*) => {{
+        let mut r = String::new();
+        $(r.push_str(&$s.to_string());)*
         r
     }};
 }
 
 /// Internal macro utils to handle strings and casings
 #[macro_export]
-macro_rules! trim {
-    ($s:expr $(, $ss:expr)*) => {
-        str!($s $(, $ss)*).trim()
+macro_rules! strf {
+    ($($s:tt)*) => {
+        format!($($s)*)
     };
 }
 
 /// Internal macro utils to handle strings and casings
 #[macro_export]
 macro_rules! ts2 {
-    ($s:expr $(, $ss:expr)*) => {
-        str!($s $(, $ss)*).parse::<TokenStream2>().unwrap()
+    ($($s:expr),*) => {
+        str!($($s),*).parse::<TokenStream2>().unwrap()
+    };
+}
+
+/// Internal macro utils to handle strings and casings
+#[macro_export]
+macro_rules! ts2f {
+    ($($s:tt)*) => {
+        ts2!(strf!($($s)*))
     };
 }
 
 /// Internal macro utils to handle strings and casings
 #[macro_export]
 macro_rules! pascal_str {
-    ($s:expr $(, $ss:expr)*) => {
-        str!(str!($s).to_upper_camel_case() $(, str!($ss).to_upper_camel_case())*)
+    ($($s:expr),*) => {
+        str!($(str!($s).to_upper_camel_case()),*)
     };
 }
 
 /// Internal macro utils to handle strings and casings
 #[macro_export]
 macro_rules! pascal {
-    ($s:expr $(, $ss:expr)*) => {
-        ts2!(pascal_str!($s $(, $ss)*))
+    ($($s:expr),*) => {
+        ts2!(pascal_str!($($s),*))
     };
 }
 

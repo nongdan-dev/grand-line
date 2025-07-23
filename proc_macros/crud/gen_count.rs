@@ -17,12 +17,12 @@ pub fn gen_count(attr: TokenStream, item: TokenStream) -> TokenStream {
         g.output = quote!(u64);
 
         let body = g.body;
-        let db_fn = ts2!(a.model, "::gql_count");
+        let model = ts2!(a.model);
         g.body = quote! {
             let filter_extra: Option<#filter> = {
                 #body
             };
-            #db_fn(ctx, tx, filter, filter_extra).await?
+            #model::gql_count(ctx, tx, filter, filter_extra).await?
         };
     }
 

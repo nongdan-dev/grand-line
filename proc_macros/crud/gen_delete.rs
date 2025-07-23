@@ -16,10 +16,10 @@ pub fn gen_delete(attr: TokenStream, item: TokenStream) -> TokenStream {
         g.output = quote!(#output);
 
         let body = g.body;
-        let db_fn = ts2!(a.model, "::gql_delete");
+        let model = ts2!(a.model);
         g.body = quote! {
             #body
-            #db_fn(ctx, tx, &id).await?
+            #model::gql_delete(ctx, tx, &id).await?
         };
     }
 

@@ -13,13 +13,13 @@ pub fn gen_detail(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     if !a.resolver_output {
         let output = ty_gql(&a.model);
-        g.output = quote!(#output);
+        g.output = quote!(Option<#output>);
 
         let body = g.body;
-        let db_fn = ts2!(a.model, "::gql_detail");
+        let model = ts2!(a.model);
         g.body = quote! {
             #body
-            #db_fn(ctx, tx, &id).await?
+            #model::gql_detail(ctx, tx, &id).await?
         }
     }
 

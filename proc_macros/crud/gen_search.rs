@@ -23,12 +23,12 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
         g.output = quote!(Vec<#output>);
 
         let body = g.body;
-        let db_fn = ts2!(a.model, "::gql_search");
+        let model = ts2!(a.model);
         g.body = quote! {
             let (filter_extra, order_by_default): (Option<#filter>, Option<Vec<#order_by>>) = {
                 #body
             };
-            #db_fn(ctx, tx, None, filter, filter_extra, order_by, order_by_default, page).await?
+            #model::gql_search(ctx, tx, None, filter, filter_extra, order_by, order_by_default, page).await?
         };
     }
 

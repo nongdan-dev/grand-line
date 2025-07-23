@@ -121,14 +121,11 @@ where
     }
 
     /// Helper to use in resolver body of the macro detail.
-    async fn gql_detail(ctx: &Context<'_>, tx: &DatabaseTransaction, id: &str) -> Res<R> {
+    async fn gql_detail(ctx: &Context<'_>, tx: &DatabaseTransaction, id: &str) -> Res<Option<R>> {
         let c = Self::by_id(id);
         let q = Self::find().filter(c);
         let r = Self::gql_select(ctx, q).await?.one(tx).await?;
-        match r {
-            Some(r) => Ok(r),
-            None => Err(GrandLineError::Db404),
-        }
+        Ok(r)
     }
 
     /// Helper to use in resolver body of the macro delete.

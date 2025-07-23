@@ -35,6 +35,7 @@ pub fn gen_resolver(g: GenResolver) -> TokenStream {
 
         #[async_graphql::Object]
         impl #ty {
+            // TODO: copy #[graphql...] and comments from the original field
             #[graphql(name=#gql_name)]
             async fn #name(
                 &self,
