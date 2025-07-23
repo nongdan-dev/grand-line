@@ -1,12 +1,10 @@
-use std::collections::HashSet;
-
 use crate::prelude::*;
+use std::collections::HashSet;
 use syn::Field;
 
 pub fn push_gql(
     f: &Field,
-    dep_sql: &Vec<String>,
-    dep_gql: &Vec<String>,
+    virtuals: &Vec<Relation>,
     struk: &mut Vec<TokenStream2>,
     resolver: &mut Vec<TokenStream2>,
     into: &mut Vec<TokenStream2>,
@@ -44,24 +42,25 @@ pub fn push_gql(
         }
     });
 
-    let sql = dep_sql
+    let sql_dep = virtuals
         .iter()
+        .map(|v| v.sql_dep())
         .enumerate()
         .filter(|(_, v)| **v == str!(name))
         .map(|(i, _)| i)
         .collect::<Vec<_>>();
-    let mut gql = dep_gql
+    let mut gql = virtuals
         .iter()
+        .map(|v| v.gql_name())
         .enumerate()
-        .filter(|(i, _)| sql.contains(i))
+        .filter(|(i, _)| sql_dep.contains(i))
         .map(|(_, v)| camel_str!(v))
         .collect::<Vec<_>>();
     gql.push(gql_name);
-    gql = gql
+    let gql = gql
         .iter()
         .collect::<HashSet<_>>()
         .into_iter()
-        .map(|f| f.to_string())
         .collect::<Vec<_>>();
     let column = pascal!(name.to_token_stream());
     columns.push(quote! {

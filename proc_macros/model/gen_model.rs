@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use std::str::FromStr;
 use syn::{Fields, ItemStruct, parse_macro_input};
 
 pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -50,40 +51,31 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     // ------------------------------------------------------------------------
     // extract virtual fields such as relation and so on...
-    let mut relation_fields = vec![];
-    let mut relation_dep_sql = vec![];
+    let mut virtuals = vec![];
     fields.named = fields
         .named
         .clone()
         .into_iter()
         .filter(|f| {
-            let ref mut attrs = f.attrs.iter().map(|a| a.path());
-            let relation = if attrs.any(|p| p.is_ident("belongs_to")) {
-                "belongs_to"
-            } else if attrs.any(|p| p.is_ident("has_one")) {
-                "has_one"
-            } else if attrs.any(|p| p.is_ident("has_many")) {
-                "has_many"
-            } else if attrs.any(|p| p.is_ident("many_to_many")) {
-                "many_to_many"
-            } else {
-                ""
-            };
-            if relation != "" {
-                relation_fields.push((relation, f.clone()));
-                if relation == "belongs_to" {
-                    relation_dep_sql.push(snake_str!(f.ident.to_token_stream(), "id"));
-                } else {
-                    panic!("TODO:");
-                }
+            let relation = vec![
+                RelationTy::BelongsTo,
+                RelationTy::HasOne,
+                RelationTy::HasMany,
+                RelationTy::ManyToMany,
+            ]
+            .iter()
+            .map(|r| str!(r))
+            .find(|r| is_attr(f, &r));
+            if let Some(relation) = relation {
+                virtuals.push(Relation {
+                    ty: RelationTy::from_str(&relation).unwrap(),
+                    f: f.clone(),
+                });
                 return false;
             }
+            // TODO: other kinds of virtual
             true
         })
-        .collect();
-    let relation_dep_gql = relation_fields
-        .iter()
-        .map(|f| str!(f.1.ident.to_token_stream()))
         .collect();
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
@@ -109,11 +101,10 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut filter_query = vec![];
     let mut order_by_struk = vec![];
     let mut order_by_query = vec![];
-    for ref f in fields.named.iter() {
+    for f in fields.named.iter() {
         push_gql(
             f,
-            &relation_dep_sql,
-            &relation_dep_gql,
+            &virtuals,
             &mut gql_struk,
             &mut gql_resolver,
             &mut gql_into,
@@ -124,25 +115,61 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     push_filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
 
-    for f in relation_fields {
-        let f = &f.1;
-        let name = f.ident.to_token_stream();
-        let gql_name = camel_str!(name);
-        let fkey = snake!(name, "id");
-        let model = f.ty.clone().into_token_stream();
-        let ty = ts2!("Option<", model, "Gql>");
-        gql_resolver.push(quote! {
-            #[graphql(name=#gql_name)]
-            async fn #name(&self, ctx: &async_graphql::Context<'_>) -> Result<#ty, Box<dyn Error + Send + Sync>> {
-                // TODO: data loader
-                let gl = GrandLineContext::from(ctx);
-                let _tx = gl.tx().await?;
-                let tx = _tx.as_ref();
-                let q = #model::find_by_id(self.#fkey.clone().unwrap_or_default());
-                let r = #model::gql_select(ctx, q).await?.one(tx).await?;
-                Ok(r)
-            }
-        });
+    for f in virtuals.iter() {
+        if matches!(f.ty, RelationTy::BelongsTo | RelationTy::HasOne) {
+            let model = f.model();
+            let gql = ts2!("Option<", f.gql(), ">");
+            let name = f.name();
+            let gql_name = f.gql_name();
+            let id = f.id();
+            let column = ty_column(&model);
+            let col = f.column();
+            gql_resolver.push(quote! {
+                #[graphql(name=#gql_name)]
+                async fn #name(&self, ctx: &async_graphql::Context<'_>) -> Result<#gql, Box<dyn Error + Send + Sync>> {
+                    // TODO: data loader: belongs to then find by id, otherwise find by fkey column
+                    let gl = GrandLineContext::from(ctx);
+                    let _tx = gl.tx().await?;
+                    let tx = _tx.as_ref();
+                    let id = self.#id.clone().unwrap_or_default();
+                    let c = Condition::all().add(#column::#col.eq(id));
+                    let q = #model::find().filter(c);
+                    let r = #model::gql_select(ctx, q).await?.one(tx).await?;
+                    Ok(r)
+                }
+            });
+        } else if matches!(f.ty, RelationTy::HasMany) {
+            let model = f.model();
+            let gql = ts2!("Vec<", f.gql(), ">");
+            let name = f.name();
+            let gql_name = f.gql_name();
+            let id = f.id();
+            let column = ty_column(&model);
+            let col = f.column();
+            let filter = ty_filter(&model);
+            let order_by = ty_order_by(&model);
+            let db_fn = ts2!(&model, "::gql_search");
+            gql_resolver.push(quote! {
+                #[graphql(name=#gql_name)]
+                async fn #name(
+                    &self,
+                    ctx: &async_graphql::Context<'_>,
+                    filter: Option<#filter>,
+                    order_by: Option<Vec<#order_by>>,
+                    page: Option<Pagination>,
+                ) -> Result<#gql, Box<dyn Error + Send + Sync>> {
+                    let gl = GrandLineContext::from(ctx);
+                    let _tx = gl.tx().await?;
+                    let tx = _tx.as_ref();
+                    let id = self.#id.clone().unwrap_or_default();
+                    let c = Condition::all().add(#column::#col.eq(id));
+                    let r = #db_fn(ctx, tx, Some(c), filter, None, order_by, None, page).await?;
+                    Ok(r)
+                }
+            });
+        } else {
+            panic!("TODO:");
+        }
     }
 
     let am_id = quote! {

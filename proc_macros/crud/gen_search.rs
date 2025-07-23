@@ -28,7 +28,7 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
             let (filter_extra, order_by_default): (Option<#filter>, Option<Vec<#order_by>>) = {
                 #body
             };
-            #db_fn(ctx, tx, filter, filter_extra, order_by, order_by_default, page).await?
+            #db_fn(ctx, tx, None, filter, filter_extra, order_by, order_by_default, page).await?
         };
     }
 

@@ -1,4 +1,4 @@
-use quote::ToTokens;
+use crate::prelude::*;
 use std::any::type_name;
 use syn::{
     Error, Expr, ExprLit, Ident, Lit, Result, Token,
@@ -29,7 +29,7 @@ impl Parse for MacroAttr {
         let mut a = MacroAttr::default();
 
         if s.peek(Ident) && !s.peek2(Token![=]) {
-            a.model = s.parse::<Ident>()?.to_string();
+            a.model = str!(s.parse::<Ident>()?);
             if s.peek(Token![,]) {
                 s.parse::<Token![,]>()?;
             }
@@ -40,7 +40,7 @@ impl Parse for MacroAttr {
             s.parse::<Token![=]>()?;
             let v = s.parse::<Expr>()?;
 
-            match k.to_string().as_str() {
+            match str!(k).as_str() {
                 "no_created_at" => a.no_created_at = expr_lit::<bool>(&v)?,
                 "no_updated_at" => a.no_updated_at = expr_lit::<bool>(&v)?,
                 "no_deleted_at" => a.no_deleted_at = expr_lit::<bool>(&v)?,

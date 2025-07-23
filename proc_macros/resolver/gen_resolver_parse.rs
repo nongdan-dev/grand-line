@@ -35,7 +35,7 @@ impl Parse for GenResolver {
         let gql_name = str!(ifn.sig.ident);
 
         let inputs = ifn.sig.inputs.to_token_stream();
-        let output = if let ReturnType::Type(_, ref ty) = ifn.sig.output {
+        let output = if let ReturnType::Type(_, ty) = ifn.sig.output {
             ty.to_token_stream()
         } else {
             ts2!("()")

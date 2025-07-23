@@ -15,4 +15,6 @@ proc-macro2 = { version = "1.0.95" }
 quote = { version = "1.0.40" }
 serde = { version = "1.0.219", features = ["derive", "std"] }
 serde_json = { version = "1.0.141" }
+strum = { version = "0.27.2" }
+strum_macros = { version = "0.27.2" }
 syn = { version = "2.0.104", features = ["full"] }

@@ -1,3 +1,4 @@
+use crate::*;
 use sea_orm::*;
 use thiserror::Error;
 

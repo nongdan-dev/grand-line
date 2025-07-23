@@ -88,13 +88,17 @@ where
     async fn gql_search(
         ctx: &Context<'_>,
         tx: &DatabaseTransaction,
+        condition: Option<Condition>,
         filter: Option<F>,
         filter_extra: Option<F>,
         order_by: Option<Vec<O>>,
         order_by_default: Option<Vec<O>>,
         page: Option<Pagination>,
     ) -> Res<Vec<R>> {
-        let q = filter.combine(filter_extra).select();
+        let mut q = filter.combine(filter_extra).select();
+        if let Some(c) = condition {
+            q = q.filter(c);
+        }
         let q = order_by.combine(order_by_default).chain(q);
         let (limit_default, limit_max) = Self::config_limit();
         let (offset, limit) = page.with(limit_default, limit_max);
