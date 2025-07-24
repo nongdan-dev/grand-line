@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::fmt::Display;
 use syn::Field;
 
 pub struct GenRelation {
@@ -79,8 +78,7 @@ impl GenRelation {
         let col = pascal!("Id");
         let r = quote! {
             let c = Condition::all().add(#column::#col.eq(id));
-            let q = #model::find().filter(c);
-            #model::gql_select(ctx, q).await?.one(tx).await?
+            #model::find().filter(c).gql_select(ctx).await?.one(tx).await?
         };
         self.body_utils(r)
     }
@@ -90,8 +88,7 @@ impl GenRelation {
         let col = pascal!(self.key_str());
         let r = quote! {
             let c = Condition::all().add(#column::#col.eq(id));
-            let q = #model::find().filter(c);
-            #model::gql_select(ctx, q).await?.one(tx).await?
+            #model::find().filter(c).gql_select(ctx).await?.one(tx).await?
         };
         self.body_utils(r)
     }
@@ -125,14 +122,7 @@ impl GenRelation {
     }
 }
 
-impl GenVirtualImpl for GenRelation {
-    fn name(&self) -> TokenStream2 {
-        self.f.ident.to_token_stream()
-    }
-    fn gql_name(&self) -> String {
-        camel_str!(self.name())
-    }
-
+impl GenVirtual for GenRelation {
     fn sql_dep(&self) -> String {
         match self.ty {
             RelationTy::BelongsTo => self.key_str(),
@@ -141,8 +131,22 @@ impl GenVirtualImpl for GenRelation {
             RelationTy::ManyToMany => str!("id"),
         }
     }
+}
+impl DebugPanic for GenRelation {
+    fn debug(&self) -> String {
+        self.model.clone()
+    }
+}
 
-    fn input(&self) -> TokenStream2 {
+impl GenResolver for GenRelation {
+    fn name(&self) -> TokenStream2 {
+        self.f.ident.to_token_stream()
+    }
+    fn gql_name(&self) -> String {
+        camel_str!(self.name())
+    }
+
+    fn inputs(&self) -> TokenStream2 {
         match self.ty {
             RelationTy::BelongsTo => self.input_one(),
             RelationTy::HasOne => self.input_one(),
@@ -170,7 +174,7 @@ impl GenVirtualImpl for GenRelation {
     }
 }
 
-impl MustGetAttrImpl for GenRelation {
+impl MustGetAttr for GenRelation {
     fn impl_attr_model(&self) -> &dyn Display {
         &self.model
     }

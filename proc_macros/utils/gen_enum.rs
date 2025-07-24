@@ -7,9 +7,9 @@ pub fn gen_enum(_: TokenStream, item: TokenStream) -> TokenStream {
         #[derive(
           Clone,
           Debug,
-          Copy,
           Eq,
           PartialEq,
+          Copy,
           serde::Deserialize,
           serde::Serialize,
           async_graphql::Enum,

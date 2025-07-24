@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::fmt::Display;
 
 pub fn unwrap_option(ty: impl Display) -> (bool, TokenStream2) {
     let (opt, uw_str) = unwrap_option_str(ty);

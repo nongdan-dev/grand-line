@@ -19,11 +19,7 @@ impl PaginationWith for Pagination {
         (
             if let Some(o) = self.offset { o } else { 0 },
             if let Some(l) = self.limit {
-                if l > limit_max {
-                    limit_max
-                } else {
-                    l
-                }
+                if l > limit_max { limit_max } else { l }
             } else {
                 limit_default
             },

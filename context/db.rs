@@ -1,10 +1,9 @@
 use crate::*;
 use async_trait::async_trait;
 use sea_orm::*;
-use std::sync::Arc;
 
 #[async_trait]
-pub trait GrandLineContextDbImpl {
+pub trait GrandLineContextDb {
     /// Get or create a sea_orm transaction.
     /// The GrandLineExtension will automatically commit this transaction
     /// if the request executed successfully or rollback if there is an error.
@@ -20,7 +19,7 @@ pub trait GrandLineContextDbImpl {
 }
 
 #[async_trait]
-impl GrandLineContextDbImpl for GrandLineContext {
+impl GrandLineContextDb for GrandLineContext {
     async fn tx(&self) -> Res<Arc<DatabaseTransaction>> {
         let mut guard = self.tx.lock().await;
         match &*guard {

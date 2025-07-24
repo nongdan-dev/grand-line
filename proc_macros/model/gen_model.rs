@@ -38,6 +38,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             });
         }
     }
+    let mut config_col_deleted_at = quote!(None);
     if !a.no_deleted_at {
         fields.named.push(field! {
             pub deleted_at: Option<DateTimeUtc>
@@ -47,10 +48,11 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 pub deleted_by_id: Option<String>
             });
         }
+        config_col_deleted_at = quote!(Some(Column::DeletedAt))
     }
     // ------------------------------------------------------------------------
     // extract virtual fields such as relation and so on...
-    let mut virtuals = Vec::<Box<dyn GenVirtualImpl>>::new();
+    let mut virtuals = Vec::<Box<dyn GenVirtual>>::new();
     fields.named = fields
         .named
         .clone()
@@ -142,7 +144,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
-    quote! {
+    let r = quote! {
         use sea_orm::*;
         use sea_orm::prelude::*;
         use sea_orm::entity::prelude::*;
@@ -158,23 +160,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         #struk
 
         impl ActiveModelBehavior for ActiveModel {
-        }
-        impl Entity {
-            /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
-            /// We need to have this method instead to get default values on create.
-            /// This can be used together with the macro grand_line::active_create.
-            pub fn active_create(mut am: ActiveModel) -> ActiveModel {
-                #am_id
-                #am_created_at
-                am
-            }
-            /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
-            /// We need to have this method instead to get default values on update.
-            /// This can be used together with the macro grand_line::active_update.
-            pub fn active_update(mut am: ActiveModel) -> ActiveModel {
-                #am_updated_at
-                am
-            }
         }
 
         #[derive(Debug, EnumIter, DeriveRelation)]
@@ -209,16 +194,28 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
 
-        static GQL_COLUMNS: once_cell::sync::Lazy<std::collections::HashMap<&'static str, Column>> = once_cell::sync::Lazy::new(|| {
-            let mut m = std::collections::HashMap::new();
+        static GQL_COLUMNS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {
+            let mut m = HashMap::new();
             #(#gql_columns)*
             m
         });
-        impl EntityX<Model, #filter, #order_by, #gql> for Entity {
-            fn id() -> Column {
+        impl EntityX<Model, #active_model, #filter, #order_by, #gql> for Entity {
+            fn config_active_create(mut am: ActiveModel) -> ActiveModel {
+                #am_id
+                #am_created_at
+                am
+            }
+            fn config_active_update(mut am: ActiveModel) -> ActiveModel {
+                #am_updated_at
+                am
+            }
+            fn config_col_id() -> Column {
                 Column::Id
             }
-            fn column(field: &str) -> Option<Column> {
+            fn config_col_deleted_at() -> Option<Column> {
+                #config_col_deleted_at
+            }
+            fn config_gql_col(field: &str) -> Option<Column> {
                 GQL_COLUMNS.get(field).copied()
             }
             // TODO: config_limit via model attr
@@ -229,11 +226,23 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             #(#filter_struk)*
         }
         impl Filter<Entity> for #filter {
-            fn combine(a: Self, b: Self) -> Self {
+            fn config_and(a: Self, b: Self) -> Self {
                 Self {
                     and: Some(vec![a, b]),
                     ..Default::default()
                 }
+            }
+            fn config_has_deleted_at(&self) -> bool {
+                todo!("TODO:")
+            }
+            fn and(&self) -> Option<Vec<Self>> {
+                self.and.clone()
+            }
+            fn or(&self) -> Option<Vec<Self>> {
+                self.or.clone()
+            }
+            fn not(&self) -> Option<Self> {
+                self.not.clone().map(|b| *b)
             }
         }
         impl Conditionable for #filter {
@@ -250,7 +259,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             #(#order_by_struk)*
         }
         impl OrderBy<Entity> for #order_by {
-            fn default() -> Self {
+            fn config_default() -> Self {
                 Self::IdDesc
             }
         }
@@ -261,6 +270,10 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
         }
-    }
-    .into()
+    };
+
+    #[cfg(feature = "debug_macro")]
+    debug_macro(&a.model, r.clone());
+
+    r.into()
 }

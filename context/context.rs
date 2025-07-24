@@ -1,9 +1,6 @@
 use crate::*;
-use async_graphql::extensions::ExtensionContext;
-use async_graphql::Context;
+use async_graphql::{Context, extensions::ExtensionContext};
 use sea_orm::*;
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
 pub struct GrandLineContext {
     pub(crate) db: Arc<DatabaseConnection>,

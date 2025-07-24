@@ -3,7 +3,7 @@ use syn::parse_macro_input;
 
 pub fn gen_detail(attr: TokenStream, item: TokenStream) -> TokenStream {
     let a = parse_macro_input!(attr as MacroAttr);
-    let mut g = parse_macro_input!(item as GenResolver);
+    let mut g = parse_macro_input!(item as GenResolverTy);
     g.init(&a, "Query", "Detail");
     check_crud_io(&a, &g);
 
@@ -23,5 +23,5 @@ pub fn gen_detail(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
-    gen_resolver(g)
+    gen_resolver_ty(g)
 }

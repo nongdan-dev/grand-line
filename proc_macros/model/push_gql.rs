@@ -1,10 +1,9 @@
 use crate::prelude::*;
-use std::collections::HashSet;
 use syn::Field;
 
 pub fn push_gql(
     f: &Field,
-    virtuals: &Vec<Box<dyn GenVirtualImpl>>,
+    virtuals: &Vec<Box<dyn GenVirtual>>,
     struk: &mut Vec<TokenStream2>,
     resolver: &mut Vec<TokenStream2>,
     into: &mut Vec<TokenStream2>,

@@ -3,7 +3,7 @@ use syn::parse_macro_input;
 
 pub fn gen_delete(attr: TokenStream, item: TokenStream) -> TokenStream {
     let a = parse_macro_input!(attr as MacroAttr);
-    let mut g = parse_macro_input!(item as GenResolver);
+    let mut g = parse_macro_input!(item as GenResolverTy);
     g.init(&a, "Mutation", "Delete");
     check_crud_io(&a, &g);
 
@@ -19,9 +19,9 @@ pub fn gen_delete(attr: TokenStream, item: TokenStream) -> TokenStream {
         let model = ts2!(a.model);
         g.body = quote! {
             #body
-            #model::gql_delete(ctx, tx, &id).await?
+            #model::gql_delete(tx, &id).await?
         };
     }
 
-    gen_resolver(g)
+    gen_resolver_ty(g)
 }

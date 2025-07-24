@@ -5,7 +5,7 @@ resolver = "2"
 [package]
 name = "grand-line"
 version = "0.0.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 path = "lib.rs"
@@ -14,8 +14,9 @@ path = "lib.rs"
 sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
 mysql = ["sea-orm/sqlx-mysql", "sqlx/mysql"]
 postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres"]
-tracing = ["dep:tracing", "dep:tracing-subscriber", "async-graphql/tracing"]
 axum = ["dep:axum", "dep:async-graphql-axum", "dep:tower", "dep:tower-http"]
+tracing = ["dep:tracing", "dep:tracing-subscriber", "async-graphql/tracing"]
+debug_macro = ["grand-line-proc-macros/debug_macro"]
 
 [dependencies]
 async-graphql = { version = "7.0.17", default-features = false, features = ["chrono", "chrono-duration", "chrono-tz", "dataloader", "decimal", "string_number", "boxed-trait"] }
@@ -25,7 +26,6 @@ axum = { version = "0.8.4", default-features = false, optional = true, features 
 chrono = { version = "0.4.41", default-features = false, features = ["now", "serde"] }
 grand-line-macros = { path = "macros" }
 grand-line-proc-macros = { path = "proc_macros" }
-once_cell = { version = "1.21.3" }
 sea-orm = { version = "1.1.13", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
 serde = { version = "1.0.219", default-features = false, features = ["derive", "std"] }
 serde_json = { version = "1.0.141", default-features = false }

@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::fmt::Display;
 
 pub fn ty_sql(model: impl Display) -> TokenStream2 {
     pascal!(model, "Sql")

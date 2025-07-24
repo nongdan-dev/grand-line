@@ -8,8 +8,8 @@ where
     T: EntityTrait,
 {
     /// Get order_by_default to use in abstract methods.
-    /// Should will be generated in the macro.
-    fn default() -> Self;
+    /// Should be generated in the #[model] macro.
+    fn config_default() -> Self;
 }
 
 /// Automatically implement combine for Option<Vec<OrderBy>>.
@@ -31,10 +31,10 @@ where
     fn combine(self, order_by_default: Self) -> Vec<O> {
         match self {
             Some(o) => match o.len() {
-                0 => opt(order_by_default, O::default()),
+                0 => opt(order_by_default, O::config_default()),
                 _ => o,
             },
-            None => opt(order_by_default, O::default()),
+            None => opt(order_by_default, O::config_default()),
         }
     }
 }

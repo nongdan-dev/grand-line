@@ -3,26 +3,29 @@ use async_graphql::Context;
 use async_trait::async_trait;
 use sea_orm::prelude::*;
 use sea_orm::*;
-use std::collections::HashMap;
 
 /// Abstract extra entity async methods implementation.
 #[async_trait]
-pub trait EntityXAsyncImpl<M, F, O, R>
+pub trait EntityXAsyncImpl<M, A, F, O, G>
 where
-    Self: EntityX<M, F, O, R> + EntityXImpl<M, F, O, R> + 'static,
+    Self: EntityX<M, A, F, O, G> + 'static,
     M: FromQueryResult + Send + Sync + 'static,
+    A: ActiveModelTrait<Entity = Self> + 'static,
     F: Filter<Self> + 'static,
     O: OrderBy<Self> + 'static,
-    R: FromQueryResult + Send + Sync + 'static,
+    G: FromQueryResult + Send + Sync + 'static,
 {
     /// Helper to check if exists by condition.
-    async fn exists(tx: &DatabaseTransaction, c: Condition) -> Res<bool> {
+    async fn exists<C>(db: &C, c: Condition) -> Res<bool>
+    where
+        C: ConnectionTrait,
+    {
         let v = Self::find()
             .filter(c)
             .select()
             .expr(Expr::value(1))
             .limit(1)
-            .one(tx)
+            .one(db)
             .await?;
         match v {
             Some(_) => Ok(true),
@@ -30,25 +33,37 @@ where
         }
     }
     /// Helper to check if exists by id.
-    async fn exists_by_id(tx: &DatabaseTransaction, id: &str) -> Res<bool> {
-        Self::exists(tx, Self::by_id(id)).await
+    async fn exists_by_id<C>(db: &C, id: &str) -> Res<bool>
+    where
+        C: ConnectionTrait,
+    {
+        Self::exists(db, Self::condition_id(id)).await
     }
 
     /// Helper to check if exists by condition and return error if not.
-    async fn must_exists(tx: &DatabaseTransaction, c: Condition) -> Res<()> {
-        match Self::exists(tx, c).await? {
+    async fn must_exists<C>(db: &C, c: Condition) -> Res<()>
+    where
+        C: ConnectionTrait,
+    {
+        match Self::exists(db, c).await? {
             true => Ok(()),
             false => Err(GrandLineError::Db404),
         }
     }
     /// Helper to check if exists by id and return error if not.
-    async fn must_exists_by_id(tx: &DatabaseTransaction, id: &str) -> Res<()> {
-        Self::must_exists(tx, Self::by_id(id)).await
+    async fn must_exists_by_id<C>(db: &C, id: &str) -> Res<()>
+    where
+        C: ConnectionTrait,
+    {
+        Self::must_exists(db, Self::condition_id(id)).await
     }
 
     /// Helper to find by id and return error if not.
-    async fn must_find_by_id(tx: &DatabaseTransaction, id: &str) -> Res<M> {
-        match Self::find().filter(Self::by_id(id)).one(tx).await? {
+    async fn must_find_by_id<C>(db: &C, id: &str) -> Res<M>
+    where
+        C: ConnectionTrait,
+    {
+        match Self::find().filter(Self::condition_id(id)).one(db).await? {
             Some(v) => Ok(v),
             None => Err(GrandLineError::Db404),
         }
@@ -67,7 +82,7 @@ where
 
         let r = f[0]
             .selection_set()
-            .filter_map(|f| Self::column(&f.name().to_string()))
+            .filter_map(|f| Self::config_gql_col(&f.name().to_string()))
             .map(|c| (c.to_string(), c))
             .collect::<HashMap<_, _>>()
             .into_values()
@@ -75,26 +90,20 @@ where
         Ok(r)
     }
 
-    /// Select only columns from requested fields in the graphql context.
-    async fn gql_select(ctx: &Context<'_>, q: Select<Self>) -> Res<Selector<SelectModel<R>>> {
-        let mut q = q.select_only();
-        for c in Self::gql_look_ahead(ctx).await? {
-            q = q.select_column(c);
-        }
-        Ok(q.into_model::<R>())
-    }
-
     /// Helper to use in resolver body of the macro search.
-    async fn gql_search(
+    async fn gql_search<C>(
         ctx: &Context<'_>,
-        tx: &DatabaseTransaction,
+        db: &C,
         condition: Option<Condition>,
         filter: Option<F>,
         filter_extra: Option<F>,
         order_by: Option<Vec<O>>,
         order_by_default: Option<Vec<O>>,
         page: Option<Pagination>,
-    ) -> Res<Vec<R>> {
+    ) -> Res<Vec<G>>
+    where
+        C: ConnectionTrait,
+    {
         let mut q = filter.combine(filter_extra).select();
         if let Some(c) = condition {
             q = q.filter(c);
@@ -102,40 +111,53 @@ where
         let q = order_by.combine(order_by_default).chain(q);
         let (limit_default, limit_max) = Self::config_limit();
         let (offset, limit) = page.with(limit_default, limit_max);
-        let q = q.offset(offset).limit(limit);
-        let r = Self::gql_select(ctx, q).await?.all(tx).await?;
+        let r = q
+            .offset(offset)
+            .limit(limit)
+            .gql_select(ctx)
+            .await?
+            .all(db)
+            .await?;
         Ok(r)
     }
 
     /// Helper to use in resolver body of the macro count.
-    async fn gql_count(
-        ctx: &Context<'_>,
-        tx: &DatabaseTransaction,
-        filter: Option<F>,
-        filter_extra: Option<F>,
-    ) -> Res<u64> {
-        let _ = ctx;
+    async fn gql_count<C>(db: &C, filter: Option<F>, filter_extra: Option<F>) -> Res<u64>
+    where
+        C: ConnectionTrait,
+    {
         let q = filter.combine(filter_extra).select();
-        let r = PaginatorTrait::count(q, tx).await?;
+        let r = PaginatorTrait::count(q, db).await?;
         Ok(r)
     }
 
     /// Helper to use in resolver body of the macro detail.
-    async fn gql_detail(ctx: &Context<'_>, tx: &DatabaseTransaction, id: &str) -> Res<Option<R>> {
-        let c = Self::by_id(id);
-        let q = Self::find().filter(c);
-        let r = Self::gql_select(ctx, q).await?.one(tx).await?;
+    async fn gql_detail<C>(ctx: &Context<'_>, db: &C, id: &str) -> Res<Option<G>>
+    where
+        C: ConnectionTrait,
+    {
+        let r = Self::internal_find_by_id(id)
+            .gql_select(ctx)
+            .await?
+            .one(db)
+            .await?;
         Ok(r)
     }
 
     /// Helper to use in resolver body of the macro delete.
-    async fn gql_delete(ctx: &Context<'_>, tx: &DatabaseTransaction, id: &str) -> Res<R> {
-        let c = Self::by_id(id);
-        let q = Self::find().filter(c.clone());
-        let r = Self::gql_select_id(ctx, q).one(tx).await?;
+    async fn gql_delete<C>(db: &C, id: &str) -> Res<G>
+    where
+        C: ConnectionTrait,
+    {
+        let c = Self::condition_id(id);
+        let r = Self::find()
+            .filter(c.clone())
+            .gql_select_id()
+            .one(db)
+            .await?;
         match r {
             Some(r) => {
-                Self::delete_many().filter(c).exec(tx).await?;
+                Self::delete_many().filter(c).exec(db).await?;
                 Ok(r)
             }
             None => Err(GrandLineError::Db404),
@@ -145,12 +167,14 @@ where
 
 /// Automatically implement for EntityX.
 #[async_trait]
-impl<T, M, F, O, R> EntityXAsyncImpl<M, F, O, R> for T
+impl<T, M, A, F, O, G> EntityXAsyncImpl<M, A, F, O, G> for T
 where
-    T: EntityX<M, F, O, R> + EntityXImpl<M, F, O, R> + 'static,
+    T: EntityX<M, A, F, O, G> + 'static,
+    M: FromQueryResult + Send + Sync + 'static,
+    A: ActiveModelTrait<Entity = T> + 'static,
     M: FromQueryResult + Send + Sync + 'static,
     F: Filter<T> + 'static,
     O: OrderBy<T> + 'static,
-    R: FromQueryResult + Send + Sync + 'static,
+    G: FromQueryResult + Send + Sync + 'static,
 {
 }

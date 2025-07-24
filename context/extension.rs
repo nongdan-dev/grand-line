@@ -1,9 +1,8 @@
 use crate::*;
 use async_graphql::{
-    extensions::{Extension, ExtensionContext, ExtensionFactory, NextExecute, NextPrepareRequest},
     Request, Response, ServerError, ServerResult,
+    extensions::{Extension, ExtensionContext, ExtensionFactory, NextExecute, NextPrepareRequest},
 };
-use std::sync::Arc;
 
 /// Extension to insert GrandLineContext on each request, then cleanup at the end of each request.
 pub struct GrandLineExtension;

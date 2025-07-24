@@ -4,17 +4,26 @@ use sea_orm::prelude::*;
 use sea_orm::*;
 
 /// Abstract extra entity methods implementation.
-pub trait EntityXImpl<M, F, O, R>
+pub trait EntityXImpl<M, A, F, O, G>
 where
-    Self: EntityX<M, F, O, R>,
+    Self: EntityX<M, A, F, O, G>,
     M: FromQueryResult + Send + Sync,
+    A: ActiveModelTrait<Entity = Self>,
     F: Filter<Self>,
     O: OrderBy<Self>,
-    R: FromQueryResult + Send + Sync,
+    G: FromQueryResult + Send + Sync,
 {
-    /// Convert primary id string into condition to use in abstract methods.
-    fn by_id(id: &str) -> Condition {
-        Condition::all().add(Self::id().eq(id))
+    /// Shortcut condition id eq.
+    fn condition_id(id: &str) -> Condition {
+        Condition::all().add(Self::config_col_id().eq(id))
+    }
+    /// Shortcut condition deleted_at is not null, if there is deleted_at.
+    fn condition_exclude_deleted() -> Condition {
+        let mut c = Condition::all();
+        if let Some(col) = Self::config_col_deleted_at() {
+            c = c.add(col.is_null())
+        }
+        c
     }
 
     /// Get look ahead key with alias-aware.
@@ -48,21 +57,43 @@ where
         arr.reverse();
         arr.join(".")
     }
+}
 
-    /// Select only id for the graphql delete response.
-    fn gql_select_id(ctx: &Context<'_>, q: Select<Self>) -> Selector<SelectModel<R>> {
-        let _ = ctx;
-        q.select_only().column(Self::id()).into_model::<R>()
+/// Automatically implement for EntityX.
+impl<T, M, A, F, O, G> EntityXImpl<M, A, F, O, G> for T
+where
+    T: EntityX<M, A, F, O, G>,
+    M: FromQueryResult + Send + Sync,
+    A: ActiveModelTrait<Entity = T>,
+    F: Filter<T>,
+    O: OrderBy<T>,
+    G: FromQueryResult + Send + Sync,
+{
+}
+
+/// Abstract extra entity internal methods implementation.
+pub(crate) trait EntityXInternalImpl<M, A, F, O, G>
+where
+    Self: EntityX<M, A, F, O, G>,
+    A: ActiveModelTrait<Entity = Self>,
+    M: FromQueryResult + Send + Sync,
+    F: Filter<Self>,
+    O: OrderBy<Self>,
+    G: FromQueryResult + Send + Sync,
+{
+    fn internal_find_by_id(id: &str) -> Select<Self> {
+        Self::find().filter(Self::condition_id(id))
     }
 }
 
 /// Automatically implement for EntityX.
-impl<T, M, F, O, R> EntityXImpl<M, F, O, R> for T
+impl<T, M, A, F, O, G> EntityXInternalImpl<M, A, F, O, G> for T
 where
-    T: EntityX<M, F, O, R>,
+    T: EntityX<M, A, F, O, G>,
+    A: ActiveModelTrait<Entity = T>,
     M: FromQueryResult + Send + Sync,
     F: Filter<T>,
     O: OrderBy<T>,
-    R: FromQueryResult + Send + Sync,
+    G: FromQueryResult + Send + Sync,
 {
 }

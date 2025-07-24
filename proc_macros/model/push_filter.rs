@@ -4,11 +4,7 @@ use syn::Field;
 pub fn push_filter(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<TokenStream2>) {
     push(f, struk, query, "eq");
     push(f, struk, query, "ne");
-    let (opt, uw_str) = unwrap_option_str(f.ty.to_token_stream());
-    if opt {
-        push(f, struk, query, "is_null");
-        push(f, struk, query, "is_not_null");
-    }
+    let (_, uw_str) = unwrap_option_str(f.ty.to_token_stream());
     if uw_str == "bool" {
         return;
     }
@@ -35,44 +31,54 @@ fn push(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<TokenStream2>,
     // sea_orm generated Column::Name.op(v)
     let column = pascal!(f.ident.to_token_stream());
     let op = ts2!(op_str);
+    let mut gql_op = str!(op_str);
     // unwrap Option<type>
     // the type can be generic such as Box<type>
-    let (_, mut uw) = unwrap_option(f.ty.to_token_stream());
+    let (opt, mut ty) = unwrap_option(f.ty.to_token_stream());
     // handle special operators
-    if op_str == "is_null" || op_str == "is_not_null" {
-        uw = quote!(bool);
-    }
-    let mut as_op_str = str!(op_str);
     if op_str == "is_in" || op_str == "is_not_in" {
-        as_op_str = op_str.replace("is_", "");
-        uw = quote!(Vec<#uw>);
+        gql_op = op_str.replace("is_", "");
+        ty = quote!(Vec<#ty>);
     }
     // struct struct_field_some_op
     // graphql structField_someOp
     let mut name = f.ident.to_token_stream();
     let mut gql_name = camel_str!(name);
     if op_str != "eq" {
-        name = snake!(name, as_op_str);
-        gql_name = str!(gql_name, "_", camel_str!(as_op_str));
+        name = snake!(name, gql_op);
+        gql_name = str!(gql_name, "_", camel_str!(gql_op));
     }
-    // push
+    // push struk
+    ty = if opt && (op_str == "eq" || op_str == "ne") {
+        quote!(Undefined<#ty>)
+    } else {
+        quote!(Option<#ty>)
+    };
     struk.push(quote! {
         #[graphql(name=#gql_name)]
-        pub #name: Option<#uw>,
+        pub #name: #ty,
     });
-    if op_str == "is_null" || op_str == "is_not_null" {
-        query.push(quote! {
-            if let Some(v) = this.#name {
-                if v {
-                    c = c.add(Column::#column.#op());
-                }
-            }
+    // push query
+    let q = if opt && (op_str == "eq" || op_str == "ne") {
+        let op_null = ts2!(if op_str == "eq" {
+            "is_null"
+        } else {
+            "is_not_null"
         });
+        quote! {
+            if matches!(this.#name, Undefined::Null) {
+                c = c.add(Column::#column.#op_null());
+            }
+            if let Undefined::Value(v) = this.#name {
+                c = c.add(Column::#column.#op(v));
+            }
+        }
     } else {
-        query.push(quote! {
+        quote! {
             if let Some(v) = this.#name {
                 c = c.add(Column::#column.#op(v));
             }
-        });
-    }
+        }
+    };
+    query.push(q);
 }

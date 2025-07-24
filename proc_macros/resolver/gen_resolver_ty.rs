@@ -5,7 +5,7 @@ use syn::{
 };
 
 #[derive(Default)]
-pub struct GenResolver {
+pub struct GenResolverTy {
     pub ty: TokenStream2,
     pub name: TokenStream2,
     pub gql_name: String,
@@ -15,7 +15,7 @@ pub struct GenResolver {
     pub no_tx: bool,
 }
 
-impl GenResolver {
+impl GenResolverTy {
     pub fn init(&mut self, a: &MacroAttr, ty_suffix: &str, name_suffix: &str) {
         if self.gql_name == "resolver" {
             if name_suffix == "" {
@@ -29,7 +29,7 @@ impl GenResolver {
     }
 }
 
-impl Parse for GenResolver {
+impl Parse for GenResolverTy {
     fn parse(s: ParseStream) -> Result<Self> {
         let ifn = s.parse::<ItemFn>()?;
         let gql_name = str!(ifn.sig.ident);
@@ -44,7 +44,7 @@ impl Parse for GenResolver {
         let body = ifn.block.stmts;
         let body = quote!(#(#body)*);
 
-        let r = GenResolver {
+        let r = GenResolverTy {
             gql_name,
             inputs,
             output,
@@ -54,4 +54,56 @@ impl Parse for GenResolver {
 
         Ok(r)
     }
+}
+
+pub fn gen_resolver_ty(g: GenResolverTy) -> TokenStream {
+    let GenResolverTy {
+        ty,
+        name,
+        gql_name,
+        mut inputs,
+        mut output,
+        mut body,
+        no_tx,
+        ..
+    } = g;
+
+    inputs = quote!(ctx: &async_graphql::Context<'_>, #inputs);
+    output = quote!(Result<#output, Box<dyn Error + Send + Sync>>);
+
+    body = quote! {
+        Ok({ #body })
+    };
+
+    if !no_tx {
+        body = quote! {
+            let gl = GrandLineContext::from(ctx);
+            let _tx = gl.tx().await?;
+            let tx = _tx.as_ref();
+            #body
+        };
+    }
+
+    let r = quote! {
+        use sea_orm::*;
+        use sea_orm::prelude::*;
+        use sea_orm::entity::prelude::*;
+
+        #[derive(Default)]
+        pub struct #ty;
+
+        #[async_graphql::Object]
+        impl #ty {
+            // TODO: copy #[graphql...] and comments from the original field
+            #[graphql(name=#gql_name)]
+            async fn #name(&self, #inputs) -> #output {
+                #body
+            }
+        }
+    };
+
+    #[cfg(feature = "debug_macro")]
+    debug_macro(&gql_name, r.clone());
+
+    r.into()
 }

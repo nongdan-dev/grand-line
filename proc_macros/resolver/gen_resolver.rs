@@ -1,50 +1,70 @@
 use crate::prelude::*;
 
-pub fn gen_resolver(g: GenResolver) -> TokenStream {
-    let GenResolver {
-        ty,
-        name,
-        gql_name,
-        inputs,
-        output,
-        mut body,
-        no_tx,
-        ..
-    } = g;
+pub trait GenResolver
+where
+    Self: DebugPanic,
+{
+    fn name(&self) -> TokenStream2;
+    fn gql_name(&self) -> String;
+    fn inputs(&self) -> TokenStream2;
+    fn output(&self) -> TokenStream2;
+    fn body(&self) -> TokenStream2;
 
-    body = quote! {
-        Ok({ #body })
-    };
-
-    if !no_tx {
-        body = quote! {
-            let gl = GrandLineContext::from(ctx);
-            let _tx = gl.tx().await?;
-            let tx = _tx.as_ref();
-            #body
-        };
+    fn no_tx(&self) -> bool {
+        false
+    }
+    fn no_ctx(&self) -> bool {
+        false
+    }
+    fn no_async(&self) -> bool {
+        false
     }
 
-    quote! {
-        use sea_orm::*;
-        use sea_orm::prelude::*;
-        use sea_orm::entity::prelude::*;
+    fn gen_resolver(&self) -> TokenStream2 {
+        let name = self.name();
+        let gql_name = self.gql_name();
+        let mut inputs = self.inputs();
+        let output = self.output();
+        let mut body = self.body();
+        let no_tx = self.no_tx();
+        let no_ctx = self.no_ctx();
+        let no_async = self.no_async();
 
-        #[derive(Default)]
-        pub struct #ty;
+        if !no_tx {
+            if no_async || no_ctx {
+                self.panic("tx requires async and ctx");
+            }
+            body = quote! {
+                let gl = GrandLineContext::from(ctx);
+                let _tx = gl.tx().await?;
+                let tx = _tx.as_ref();
+                #body
+            };
+        }
 
-        #[async_graphql::Object]
-        impl #ty {
+        if !no_ctx {
+            inputs = quote!(ctx: &async_graphql::Context<'_>, #inputs);
+        }
+
+        let mut async_keyword = ts2!();
+        let mut async_output = output.clone();
+        if !no_async {
+            body = quote! {
+                let r: #output = {
+                    #body
+                };
+                Ok(r)
+            };
+            async_keyword = quote!(async);
+            async_output = quote!(Result<#output, Box<dyn Error + Send + Sync>>);
+        }
+
+        quote! {
             // TODO: copy #[graphql...] and comments from the original field
             #[graphql(name=#gql_name)]
-            async fn #name(
-                &self,
-                ctx: &async_graphql::Context<'_>,
-                #inputs
-            ) -> Result<#output, Box<dyn Error + Send + Sync>> {
+            #async_keyword fn #name(&self, #inputs) -> #async_output {
                 #body
             }
         }
     }
-    .into()
 }

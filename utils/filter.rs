@@ -8,8 +8,44 @@ where
     T: EntityTrait,
 {
     /// Combine filter and filter_extra to use in abstract methods.
-    /// Should will be generated in the macro.
-    fn combine(a: Self, b: Self) -> Self;
+    /// Should be generated in the #[model] macro.
+    fn config_and(a: Self, b: Self) -> Self;
+    /// Check if there is deleted_at in this filter, without the combination of and/or/not.
+    /// Should be generated in the macro if there is deleted_at.
+    fn config_has_deleted_at(&self) -> bool {
+        false
+    }
+    /// Get and to use in abstract methods.
+    /// Should be generated in the #[model] macro.
+    fn and(&self) -> Option<Vec<Self>>;
+    /// Get or to use in abstract methods.
+    /// Should be generated in the #[model] macro.
+    fn or(&self) -> Option<Vec<Self>>;
+    /// Get not to use in abstract methods.
+    /// Should be generated in the #[model] macro.
+    fn not(&self) -> Option<Self>;
+    /// Check if there is deleted_at in this filter, with the combination of and/or/not.
+    fn has_deleted_at(&self) -> bool {
+        if self.config_has_deleted_at() {
+            return true;
+        }
+        if let Some(and) = self.and() {
+            if and.iter().any(|f| f.has_deleted_at()) {
+                return true;
+            }
+        }
+        if let Some(or) = self.or() {
+            if or.iter().any(|f| f.has_deleted_at()) {
+                return true;
+            }
+        }
+        if let Some(not) = self.not() {
+            if not.has_deleted_at() {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 /// Automatically implement Chainable for Filter
@@ -23,16 +59,18 @@ where
     }
 }
 
-/// Automatically implement combine for Option<Filter>.
+/// Automatically implement for Option<Filter>.
 pub trait FilterImpl<T>
 where
     T: EntityTrait,
 {
     /// Helper to combine filter and filter_extra.
     fn combine(self, filter_extra: Self) -> Self;
+    /// Check if there is deleted_at in this filter.
+    fn has_deleted_at(self) -> bool;
 }
 
-/// Automatically implement combine for Option<Filter>.
+/// Automatically implement for Option<Filter>.
 impl<T, F> FilterImpl<T> for Option<F>
 where
     T: EntityTrait,
@@ -40,10 +78,13 @@ where
 {
     fn combine(self, filter_extra: Self) -> Self {
         match (self, filter_extra) {
-            (Some(a), Some(b)) => Some(F::combine(a, b)),
+            (Some(a), Some(b)) => Some(F::config_and(a, b)),
             (Some(a), None) => Some(a),
             (None, Some(b)) => Some(b),
             (None, None) => None,
         }
+    }
+    fn has_deleted_at(self) -> bool {
+        self.map(|ref f| f.has_deleted_at()).unwrap_or_default()
     }
 }

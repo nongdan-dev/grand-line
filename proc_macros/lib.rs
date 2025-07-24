@@ -13,6 +13,11 @@ mod prelude {
     pub use proc_macro::TokenStream;
     pub use proc_macro2::TokenStream as TokenStream2;
     pub use quote::*;
+    #[allow(unused_imports)]
+    pub use std::{
+        collections::{HashMap, HashSet},
+        fmt::Display,
+    };
 }
 
 use crate::prelude::*;
@@ -135,18 +140,28 @@ pub fn active_model(item: TokenStream) -> TokenStream {
 
 /// Helper to quickly create an active model with concise syntax
 /// and convert all string literals into String automatically.
-/// It will also wrap the active model with Entity::active_create
+/// It will also wrap the active model with Entity::config_active_create
 /// to get default values on this operation
 #[proc_macro]
 pub fn active_create(item: TokenStream) -> TokenStream {
-    gen_struct(item, "ActiveModel", "ActiveValue::Set", "active_create")
+    gen_struct(
+        item,
+        "ActiveModel",
+        "ActiveValue::Set",
+        "config_active_create",
+    )
 }
 
 /// Helper to quickly create active model with concise syntax
 /// and convert all string literals into String automatically.
-/// It will also wrap the active model with Entity::active_update
+/// It will also wrap the active model with Entity::config_active_update
 /// to get default values on this operation
 #[proc_macro]
 pub fn active_update(item: TokenStream) -> TokenStream {
-    gen_struct(item, "ActiveModel", "ActiveValue::Set", "active_update")
+    gen_struct(
+        item,
+        "ActiveModel",
+        "ActiveValue::Set",
+        "config_active_update",
+    )
 }

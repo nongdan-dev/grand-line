@@ -8,6 +8,9 @@ name = "grand_line_proc_macros"
 path = "lib.rs"
 proc-macro = true
 
+[features]
+debug_macro = []
+
 [dependencies]
 grand-line-macros = { path = "../macros" }
 heck = { version = "0.5.0" }
@@ -18,3 +21,6 @@ serde_json = { version = "1.0.141" }
 strum = { version = "0.27.2" }
 strum_macros = { version = "0.27.2" }
 syn = { version = "2.0.104", features = ["full"] }
+
+[dev-dependencies]
+prettyplease = { version = "0.2.35" }

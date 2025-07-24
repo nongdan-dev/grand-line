@@ -1,6 +1,6 @@
 use strum_macros::{Display, EnumString};
 
-#[derive(Clone, Debug, Copy, Eq, PartialEq, Display, EnumString)]
+#[derive(Clone, Debug, Eq, PartialEq, Display, EnumString)]
 pub enum RelationTy {
     #[strum(serialize = "belongs_to")]
     BelongsTo,

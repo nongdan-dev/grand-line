@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-pub fn check_crud_io(a: &MacroAttr, g: &GenResolver) {
+pub fn check_crud_io(a: &MacroAttr, g: &GenResolverTy) {
     if !a.resolver_inputs && str!(g.inputs) != "" {
         panic!(
             "{} inputs must be empty unless resolver_inputs=true, found `{}`",
