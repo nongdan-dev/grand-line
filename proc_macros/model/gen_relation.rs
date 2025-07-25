@@ -5,6 +5,8 @@ pub struct GenRelation {
     pub model: String,
     pub ty: RelationTy,
     pub f: Field,
+    pub a: Attr,
+    pub attrs: Vec<Attr>,
 }
 
 impl GenRelation {

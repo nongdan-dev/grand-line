@@ -9,6 +9,7 @@ mod prelude {
     pub use crate::resolver_ty::*;
     pub use crate::utils::*;
     pub use grand_line_macros::*;
+    pub use grand_line_proc_proc_macros::*;
     pub use heck::*;
     pub use proc_macro::TokenStream;
     pub use proc_macro2::TokenStream as TokenStream2;

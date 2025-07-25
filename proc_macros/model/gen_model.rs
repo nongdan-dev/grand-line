@@ -2,7 +2,7 @@ use crate::prelude::*;
 use syn::{Fields, ItemStruct, parse_macro_input};
 
 pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let attr = parse_macro_input!(attr as AttrParseX<ModelAttr>);
+    let attr = parse_macro_input!(attr as AttrParse);
     let mut struk = parse_macro_input!(item as ItemStruct);
     let model = str!(struk.ident);
     let ref mut fields = match struk.fields {
@@ -16,7 +16,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         no_by_id,
         limit_default,
         limit_max,
-    } = attr.attr(&model, "model");
+    } = attr.into_with_validate::<ModelAttr>(&model, "model");
     // ------------------------------------------------------------------------
     // insert built-in fields: id, created_at, updated_at...
     fields.named.insert(
@@ -66,15 +66,25 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         .clone()
         .into_iter()
         .filter(|f| {
+            let f = f.clone();
+            let attrs = Attr::from_field(&model, &f);
+            let map = attrs
+                .clone()
+                .into_iter()
+                .map(|a| (a.attr.clone(), a))
+                .collect::<HashMap<_, _>>();
             let relation = RelationTy::all()
                 .iter()
-                .find(|r| has_attr(f, &str!(r)))
+                .find(|r| map.contains_key(&str!(r)))
                 .map(|r| r.to_owned());
             if let Some(ty) = relation {
+                let a = map.get(&str!(ty)).unwrap().clone();
                 virtuals.push(Box::new(GenRelation {
                     model: model.clone(),
                     ty,
-                    f: f.clone(),
+                    f,
+                    a,
+                    attrs,
                 }));
                 return false;
             }
@@ -158,9 +168,9 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         use sea_orm::entity::prelude::*;
 
         #[derive(
-            Default,
-            Clone,
             Debug,
+            Clone,
+            Default,
             DeriveEntityModel,
             GrandLineModel,
         )]
@@ -181,9 +191,9 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         pub type #active_model = ActiveModel;
 
         #[derive(
-            Default,
-            Clone,
             Debug,
+            Clone,
+            Default,
             FromQueryResult,
         )]
         pub struct #gql {

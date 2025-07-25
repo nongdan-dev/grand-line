@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use field_names::FieldNames;
 
-#[derive(FieldNames)]
+#[derive(Debug, Clone, Default, FieldNames)]
 pub struct ModelAttr {
     pub no_created_at: bool,
     pub no_updated_at: bool,
@@ -10,11 +10,9 @@ pub struct ModelAttr {
     pub limit_default: u64,
     pub limit_max: u64,
 }
-
 impl From<Attr> for ModelAttr {
     fn from(a: Attr) -> Self {
         let f = Self::FIELDS;
-        a.validate(f.to_vec());
         Self {
             no_created_at: a.bool(f[0]),
             no_updated_at: a.bool(f[1]),
@@ -23,5 +21,10 @@ impl From<Attr> for ModelAttr {
             limit_default: a.parse_opt(f[4]).unwrap_or(10),
             limit_max: a.parse_opt(f[5]).unwrap_or(100),
         }
+    }
+}
+impl AttrValidate for ModelAttr {
+    fn attr_fields(_: &Attr) -> Vec<String> {
+        Self::FIELDS.iter().map(|f| str!(f)).collect()
     }
 }

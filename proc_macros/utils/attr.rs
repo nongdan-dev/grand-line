@@ -1,8 +1,9 @@
-use std::{any::type_name, marker::PhantomData, str::FromStr};
+use std::{any::type_name, str::FromStr};
 
 use crate::prelude::*;
 use syn::{Attribute, Field};
 
+#[derive(Debug, Clone)]
 pub struct Attr {
     pub debug: String,
     pub attr: String,
@@ -10,6 +11,7 @@ pub struct Attr {
     pub model: String,
 }
 
+#[allow(dead_code)]
 impl Attr {
     pub fn new(debug: &str, attr: &str, args: Vec<(String, String)>, model: &str) -> Self {
         let mut a = Self {
@@ -48,25 +50,15 @@ impl Attr {
         Self::new(debug, &attr, args, &model)
     }
     pub fn from_field(debug: &str, f: &Field) -> Vec<Self> {
+        let debug = strf!("{}.{}", debug, f.ident.to_token_stream());
         f.attrs
             .iter()
-            .map(|a| Self::from_syn(debug, a))
+            .map(|a| Self::from_syn(&debug, a))
             .collect::<Vec<_>>()
     }
 
-    pub fn validate(&self, fields: Vec<&str>) {
-        let map = fields.iter().map(|k| str!(k)).collect::<HashSet<_>>();
-        for (k, _) in self.args.clone() {
-            if !map.contains(&k) {
-                self.panic_key(&k, "not included in this attribute")
-            }
-        }
-    }
-    pub fn validate_with_model(&self, fields: Vec<&str>) {
-        let mut fields = fields;
-        let model = self.model_must();
-        fields.push(&model);
-        self.validate(fields);
+    pub fn has(&self, k: &str) -> bool {
+        self.args.contains_key(k)
     }
 
     pub fn model_must(&self) -> String {
@@ -75,13 +67,9 @@ impl Attr {
             self.panic(&strf!("missing model #[{}(Model, ...)]", self.attr));
         }
         if model != pascal_str!(model) {
-            self.panic(&strf!("{} is not Model pascal case", model));
+            self.panic(&strf!("{} not pascal case Model", model));
         }
         model
-    }
-
-    pub fn has(&self, k: &str) -> bool {
-        self.args.contains_key(k)
     }
 
     pub fn bool(&self, k: &str) -> bool {
@@ -96,7 +84,7 @@ impl Attr {
     pub fn bool_must(&self, k: &str) -> bool {
         match self.bool_opt(k) {
             Some(v) => v,
-            None => self.panic_key_not_found(k),
+            None => self.panic_key(k, "not found"),
         }
     }
 
@@ -109,7 +97,7 @@ impl Attr {
     pub fn str_must(&self, k: &str) -> String {
         match self.str_opt(k) {
             Some(v) => v,
-            None => self.panic_key_not_found(k),
+            None => self.panic_key(k, "not found"),
         }
     }
 
@@ -126,7 +114,7 @@ impl Attr {
         match self.args.get(k) {
             Some(v) => match v.parse::<T>() {
                 Ok(v) => Some(v),
-                Err(_) => self.panic_key(k, strf!("failed to parse as {}", type_name::<T>())),
+                Err(_) => self.panic_key(k, &strf!("failed to parse as {}", type_name::<T>())),
             },
             None => None,
         }
@@ -137,15 +125,25 @@ impl Attr {
     {
         match self.parse_opt(k) {
             Some(v) => v,
-            None => self.panic_key_not_found(k),
+            None => self.panic_key(k, "not found"),
         }
     }
 
-    pub fn panic_key(&self, k: &str, e: impl Display) -> ! {
+    pub fn panic_key(&self, k: &str, e: &str) -> ! {
         self.panic(&strf!("key={} {}", k, e))
     }
-    fn panic_key_not_found(&self, k: &str) -> ! {
-        self.panic_key(k, "not found")
+
+    pub fn into_with_validate<T>(self) -> T
+    where
+        T: From<Self> + AttrValidate,
+    {
+        let map = T::attr_fields(&self).into_iter().collect::<HashSet<_>>();
+        for (k, _) in self.args.clone() {
+            if !map.contains(&k) {
+                self.panic_key(&k, "not included in this attribute")
+            }
+        }
+        self.into()
     }
 }
 
@@ -155,25 +153,6 @@ impl DebugPanic for Attr {
     }
 }
 
-pub struct AttrX<T>
-where
-    T: From<Attr>,
-{
-    pub inner: Attr,
-    _attr: PhantomData<T>,
-}
-
-impl<T> AttrX<T>
-where
-    T: From<Attr>,
-{
-    pub fn new(debug: &str, attr: &str, args: Vec<(String, String)>, model: &str) -> Self {
-        Self {
-            inner: Attr::new(debug, attr, args, model),
-            _attr: PhantomData,
-        }
-    }
-    pub fn attr(self) -> T {
-        Into::<T>::into(self.inner)
-    }
+pub trait AttrValidate {
+    fn attr_fields(a: &Attr) -> Vec<String>;
 }

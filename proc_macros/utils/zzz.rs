@@ -8,15 +8,6 @@ fn eq_key(m: &ParseNestedMeta<'_>, key: impl Display) -> bool {
     m.path.get_ident().map(|i| str!(i)).unwrap_or_default() == str!(key)
 }
 
-pub fn has_attr(field: &Field, attr: impl Display) -> bool {
-    for a in field.attrs.clone().into_iter() {
-        if eq_attr(&a, &attr) {
-            return true;
-        }
-    }
-    false
-}
-
 pub fn has_attr_key(field: &Field, attr: impl Display, key: impl Display) -> bool {
     for a in field.attrs.clone().into_iter() {
         if eq_attr(&a, &attr) {

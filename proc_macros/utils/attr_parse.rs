@@ -1,14 +1,24 @@
 use crate::prelude::*;
-use std::marker::PhantomData;
 use syn::{
     Meta, Result, Token,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
 };
 
+#[derive(Debug, Clone)]
 pub struct AttrParse {
     pub args: Vec<(String, String)>,
     pub model: String,
+}
+
+#[allow(dead_code)]
+impl AttrParse {
+    pub fn into_with_validate<T>(self, debug: &str, attr: &str) -> T
+    where
+        T: From<Attr> + AttrValidate,
+    {
+        Attr::new(debug, attr, self.args, &self.model).into_with_validate()
+    }
 }
 
 impl Parse for AttrParse {
@@ -37,38 +47,5 @@ impl Parse for AttrParse {
             first = false;
         }
         Ok(Self { args, model })
-    }
-}
-
-pub struct AttrParseX<T>
-where
-    T: From<Attr>,
-{
-    pub inner: AttrParse,
-    _attr: PhantomData<T>,
-}
-
-impl<T> AttrParseX<T>
-where
-    T: From<Attr>,
-{
-    pub fn to_map(self, debug: &str, attr: &str) -> AttrX<T> {
-        AttrX::new(debug, attr, self.inner.args, &self.inner.model)
-    }
-    pub fn attr(self, debug: &str, attr: &str) -> T {
-        self.to_map(debug, attr).attr()
-    }
-}
-
-impl<T> Parse for AttrParseX<T>
-where
-    T: From<Attr>,
-{
-    fn parse(s: ParseStream) -> Result<Self> {
-        let r = Self {
-            inner: AttrParse::parse(s)?,
-            _attr: PhantomData,
-        };
-        Ok(r)
     }
 }
