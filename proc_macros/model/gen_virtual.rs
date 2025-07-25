@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 pub trait GenVirtual
 where
-    Self: GenResolver,
+    Self: GenResolverFn,
 {
     fn sql_dep(&self) -> String;
 }

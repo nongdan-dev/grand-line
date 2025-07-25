@@ -1,12 +1,12 @@
 mod crud;
 mod model;
-mod resolver;
+mod resolver_ty;
 mod utils;
 
 mod prelude {
     pub use crate::crud::*;
     pub use crate::model::*;
-    pub use crate::resolver::*;
+    pub use crate::resolver_ty::*;
     pub use crate::utils::*;
     pub use grand_line_macros::*;
     pub use heck::*;

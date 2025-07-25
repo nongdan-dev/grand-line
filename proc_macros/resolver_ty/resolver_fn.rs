@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-pub trait GenResolver
+pub trait GenResolverFn
 where
     Self: DebugPanic,
 {
@@ -20,7 +20,7 @@ where
         false
     }
 
-    fn gen_resolver(&self) -> TokenStream2 {
+    fn gen_resolver_fn(&self) -> TokenStream2 {
         let name = self.name();
         let gql_name = self.gql_name();
         let mut inputs = self.inputs();
@@ -31,8 +31,8 @@ where
         let no_async = self.no_async();
 
         if !no_tx {
-            if no_async || no_ctx {
-                self.panic("tx requires async and ctx");
+            if no_ctx || no_async {
+                self.panic("tx requires ctx, async");
             }
             body = quote! {
                 let gl = GrandLineContext::from(ctx);

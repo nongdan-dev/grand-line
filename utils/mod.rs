@@ -1,6 +1,5 @@
 mod chainable;
 mod conditionable;
-mod config;
 mod entity;
 mod entity_async_impl;
 mod entity_impl;
@@ -13,7 +12,6 @@ mod select_impl;
 mod selectable;
 pub use chainable::*;
 pub use conditionable::*;
-pub use config::*;
 pub use entity::*;
 pub use entity_async_impl::*;
 pub use entity_impl::*;

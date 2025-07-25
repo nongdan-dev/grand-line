@@ -2,13 +2,21 @@ use crate::prelude::*;
 use syn::{Fields, ItemStruct, parse_macro_input};
 
 pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let mut a = parse_macro_input!(attr as MacroAttr);
+    let attr = parse_macro_input!(attr as AttrParseX<ModelAttr>);
     let mut struk = parse_macro_input!(item as ItemStruct);
-    a.model = str!(struk.ident);
+    let model = str!(struk.ident);
     let ref mut fields = match struk.fields {
         Fields::Named(f) => f,
-        _ => panic!("{} struct fields must be Fields::Named", a.model),
+        _ => panic!("{} struct fields must be Fields::Named", model),
     };
+    let ModelAttr {
+        no_created_at,
+        no_updated_at,
+        no_deleted_at,
+        no_by_id,
+        limit_default,
+        limit_max,
+    } = attr.attr(&model, "model");
     // ------------------------------------------------------------------------
     // insert built-in fields: id, created_at, updated_at...
     fields.named.insert(
@@ -18,32 +26,32 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             pub id: String
         },
     );
-    if !a.no_created_at {
+    if !no_created_at {
         fields.named.push(field! {
             pub created_at: DateTimeUtc
         });
-        if !a.no_by_id {
+        if !no_by_id {
             fields.named.push(field! {
                 pub created_by_id: Option<String>
             });
         }
     }
-    if !a.no_updated_at {
+    if !no_updated_at {
         fields.named.push(field! {
             pub updated_at: Option<DateTimeUtc>
         });
-        if !a.no_by_id {
+        if !no_by_id {
             fields.named.push(field! {
                 pub updated_by_id: Option<String>
             });
         }
     }
     let mut config_col_deleted_at = quote!(None);
-    if !a.no_deleted_at {
+    if !no_deleted_at {
         fields.named.push(field! {
             pub deleted_at: Option<DateTimeUtc>
         });
-        if !a.no_by_id {
+        if !no_by_id {
             fields.named.push(field! {
                 pub deleted_by_id: Option<String>
             });
@@ -64,7 +72,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 .map(|r| r.to_owned());
             if let Some(ty) = relation {
                 virtuals.push(Box::new(GenRelation {
-                    model: a.model.clone(),
+                    model: model.clone(),
                     ty,
                     f: f.clone(),
                 }));
@@ -117,7 +125,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     push_filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
 
     for f in virtuals.iter() {
-        gql_resolver.push(f.gen_resolver());
+        gql_resolver.push(f.gen_resolver_fn());
     }
 
     let am_id = quote! {
@@ -125,7 +133,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             am.id = Set(ulid::Ulid::new().to_string());
         }
     };
-    let am_created_at = if a.no_created_at {
+    let am_created_at = if no_created_at {
         ts2!()
     } else {
         quote! {
@@ -134,7 +142,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
     };
-    let am_updated_at = if a.no_updated_at {
+    let am_updated_at = if no_updated_at {
         ts2!()
     } else {
         quote! {
@@ -218,7 +226,9 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             fn config_gql_col(field: &str) -> Option<Column> {
                 GQL_COLUMNS.get(field).copied()
             }
-            // TODO: config_limit via model attr
+            fn config_limit() -> (u64, u64) {
+                (#limit_default, #limit_max)
+            }
         }
 
         #[input]
@@ -273,7 +283,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     #[cfg(feature = "debug_macro")]
-    debug_macro(&a.model, r.clone());
+    debug_macro(&model, r.clone());
 
     r.into()
 }

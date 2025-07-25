@@ -16,9 +16,9 @@ where
     G: FromQueryResult + Send + Sync + 'static,
 {
     /// Helper to check if exists by condition.
-    async fn exists<C>(db: &C, c: Condition) -> Res<bool>
+    async fn exists<D>(db: &D, c: Condition) -> Res<bool>
     where
-        C: ConnectionTrait,
+        D: ConnectionTrait,
     {
         let v = Self::find()
             .filter(c)
@@ -33,17 +33,17 @@ where
         }
     }
     /// Helper to check if exists by id.
-    async fn exists_by_id<C>(db: &C, id: &str) -> Res<bool>
+    async fn exists_by_id<D>(db: &D, id: &str) -> Res<bool>
     where
-        C: ConnectionTrait,
+        D: ConnectionTrait,
     {
         Self::exists(db, Self::condition_id(id)).await
     }
 
     /// Helper to check if exists by condition and return error if not.
-    async fn must_exists<C>(db: &C, c: Condition) -> Res<()>
+    async fn must_exists<D>(db: &D, c: Condition) -> Res<()>
     where
-        C: ConnectionTrait,
+        D: ConnectionTrait,
     {
         match Self::exists(db, c).await? {
             true => Ok(()),
@@ -51,17 +51,17 @@ where
         }
     }
     /// Helper to check if exists by id and return error if not.
-    async fn must_exists_by_id<C>(db: &C, id: &str) -> Res<()>
+    async fn must_exists_by_id<D>(db: &D, id: &str) -> Res<()>
     where
-        C: ConnectionTrait,
+        D: ConnectionTrait,
     {
         Self::must_exists(db, Self::condition_id(id)).await
     }
 
     /// Helper to find by id and return error if not.
-    async fn must_find_by_id<C>(db: &C, id: &str) -> Res<M>
+    async fn must_find_by_id<D>(db: &D, id: &str) -> Res<M>
     where
-        C: ConnectionTrait,
+        D: ConnectionTrait,
     {
         match Self::find().filter(Self::condition_id(id)).one(db).await? {
             Some(v) => Ok(v),
@@ -91,9 +91,9 @@ where
     }
 
     /// Helper to use in resolver body of the macro search.
-    async fn gql_search<C>(
+    async fn gql_search<D>(
         ctx: &Context<'_>,
-        db: &C,
+        db: &D,
         condition: Option<Condition>,
         filter: Option<F>,
         filter_extra: Option<F>,
@@ -102,7 +102,7 @@ where
         page: Option<Pagination>,
     ) -> Res<Vec<G>>
     where
-        C: ConnectionTrait,
+        D: ConnectionTrait,
     {
         let mut q = filter.combine(filter_extra).select();
         if let Some(c) = condition {
@@ -122,9 +122,9 @@ where
     }
 
     /// Helper to use in resolver body of the macro count.
-    async fn gql_count<C>(db: &C, filter: Option<F>, filter_extra: Option<F>) -> Res<u64>
+    async fn gql_count<D>(db: &D, filter: Option<F>, filter_extra: Option<F>) -> Res<u64>
     where
-        C: ConnectionTrait,
+        D: ConnectionTrait,
     {
         let q = filter.combine(filter_extra).select();
         let r = PaginatorTrait::count(q, db).await?;
@@ -132,9 +132,9 @@ where
     }
 
     /// Helper to use in resolver body of the macro detail.
-    async fn gql_detail<C>(ctx: &Context<'_>, db: &C, id: &str) -> Res<Option<G>>
+    async fn gql_detail<D>(ctx: &Context<'_>, db: &D, id: &str) -> Res<Option<G>>
     where
-        C: ConnectionTrait,
+        D: ConnectionTrait,
     {
         let r = Self::internal_find_by_id(id)
             .gql_select(ctx)
@@ -145,9 +145,9 @@ where
     }
 
     /// Helper to use in resolver body of the macro delete.
-    async fn gql_delete<C>(db: &C, id: &str) -> Res<G>
+    async fn gql_delete<D>(db: &D, id: &str) -> Res<G>
     where
-        C: ConnectionTrait,
+        D: ConnectionTrait,
     {
         let c = Self::condition_id(id);
         let r = Self::find()

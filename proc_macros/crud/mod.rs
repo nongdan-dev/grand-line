@@ -1,4 +1,5 @@
 mod check_crud_io;
+mod crud_attr;
 mod gen_count;
 mod gen_create;
 mod gen_delete;
@@ -6,6 +7,7 @@ mod gen_detail;
 mod gen_search;
 mod gen_update;
 pub use check_crud_io::*;
+pub use crud_attr::*;
 pub use gen_count::*;
 pub use gen_create::*;
 pub use gen_delete::*;

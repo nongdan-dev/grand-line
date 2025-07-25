@@ -12,6 +12,16 @@ where
     O: OrderBy<Self>,
     G: FromQueryResult + Send + Sync,
 {
+    /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
+    /// We need to have this method instead to get default values on create.
+    /// This can be used together with the macro grand_line::active_create.
+    /// Should be generated in the #[model] macro.
+    fn config_active_create(am: A) -> A;
+    /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
+    /// We need to have this method instead to get default values on update.
+    /// This can be used together with the macro grand_line::active_update.
+    /// Should be generated in the #[model] macro.
+    fn config_active_update(am: A) -> A;
     /// Get primary id column to use in abstract methods.
     /// Should be generated in the #[model] macro.
     fn config_col_id() -> Self::Column;
@@ -23,19 +33,6 @@ where
     /// Should be generated in the #[model] macro.
     fn config_gql_col(field: &str) -> Option<Self::Column>;
     /// Get default and max limit configuration.
-    /// Should be generated in the macro if there are macro attributes:
-    /// limit_default = 100, limit_max = 1000
-    fn config_limit() -> (u64, u64) {
-        CONFIG.limit()
-    }
-    /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
-    /// We need to have this method instead to get default values on create.
-    /// This can be used together with the macro grand_line::active_create.
     /// Should be generated in the #[model] macro.
-    fn config_active_create(am: A) -> A;
-    /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
-    /// We need to have this method instead to get default values on update.
-    /// This can be used together with the macro grand_line::active_update.
-    /// Should be generated in the #[model] macro.
-    fn config_active_update(am: A) -> A;
+    fn config_limit() -> (u64, u64);
 }

@@ -138,7 +138,7 @@ impl DebugPanic for GenRelation {
     }
 }
 
-impl GenResolver for GenRelation {
+impl GenResolverFn for GenRelation {
     fn name(&self) -> TokenStream2 {
         self.f.ident.to_token_stream()
     }

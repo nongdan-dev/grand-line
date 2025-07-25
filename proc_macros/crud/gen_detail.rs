@@ -2,26 +2,27 @@ use crate::prelude::*;
 use syn::parse_macro_input;
 
 pub fn gen_detail(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let a = parse_macro_input!(attr as MacroAttr);
-    let mut g = parse_macro_input!(item as GenResolverTy);
-    g.init(&a, "Query", "Detail");
-    check_crud_io(&a, &g);
+    let a = parse_macro_input!(attr as AttrParseX<CrudAttr>);
+    let r = parse_macro_input!(item as ResolverTyItem);
+    let a = a.attr(&r.gql_name, "detail");
+    let (mut r, ty, name) = r.init("query", "detail", &a.model);
+    check_crud_io(&a, &r);
 
     if !a.resolver_inputs {
-        g.inputs = quote!(id: String);
+        r.inputs = quote!(id: String);
     }
 
     if !a.resolver_output {
         let output = ty_gql(&a.model);
-        g.output = quote!(Option<#output>);
+        r.output = quote!(Option<#output>);
 
-        let body = g.body;
+        let body = r.body;
         let model = ts2!(a.model);
-        g.body = quote! {
+        r.body = quote! {
             #body
             #model::gql_detail(ctx, tx, &id).await?
         }
     }
 
-    gen_resolver_ty(g)
+    ResolverTy::g(ty, name, a.resolver_attr, r)
 }

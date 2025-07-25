@@ -11,7 +11,7 @@ where
     /// Should be generated in the #[model] macro.
     fn config_and(a: Self, b: Self) -> Self;
     /// Check if there is deleted_at in this filter, without the combination of and/or/not.
-    /// Should be generated in the macro if there is deleted_at.
+    /// Should be generated in the #[model] macro if there is deleted_at.
     fn config_has_deleted_at(&self) -> bool {
         false
     }
