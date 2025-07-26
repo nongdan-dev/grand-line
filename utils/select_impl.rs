@@ -1,6 +1,4 @@
-use crate::*;
-use sea_orm::prelude::*;
-use sea_orm::*;
+use crate::prelude::*;
 
 /// Abstract extra Select methods implementation.
 pub trait SelectXImpl<T, M, A, F, O, G>

@@ -1,8 +1,5 @@
-use crate::*;
+use crate::prelude::*;
 use async_graphql::Context;
-use async_trait::async_trait;
-use sea_orm::prelude::*;
-use sea_orm::*;
 
 /// Abstract extra Select async methods implementation.
 #[async_trait]

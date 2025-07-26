@@ -1,9 +1,8 @@
-use crate::*;
-use async_trait::async_trait;
-use sea_orm::*;
+use crate::prelude::*;
+use async_graphql::Context;
 
 #[async_trait]
-pub trait GrandLineContextDb {
+pub(crate) trait GrandLineContextDb {
     /// Get or create a sea_orm transaction.
     /// The GrandLineExtension will automatically commit this transaction
     /// if the request executed successfully or rollback if there is an error.
@@ -39,7 +38,7 @@ impl GrandLineContextDb for GrandLineContext {
                     tx.commit().await?;
                     Ok(())
                 }
-                Err(_) => Err(GrandLineError::TxCommit),
+                Err(_) => err_server!(TxCommit),
             },
             None => Ok(()),
         }
@@ -52,9 +51,20 @@ impl GrandLineContextDb for GrandLineContext {
                     tx.rollback().await?;
                     Ok(())
                 }
-                Err(_) => Err(GrandLineError::TxRollback),
+                Err(_) => err_server!(TxRollback),
             },
             None => Ok(()),
         }
     }
 }
+
+#[async_trait]
+pub trait ContextXDb: ContextX {
+    #[inline(always)]
+    async fn tx(&self) -> Res<Arc<DatabaseTransaction>> {
+        self.grand_line_context().tx().await
+    }
+}
+
+#[async_trait]
+impl ContextXDb for Context<'_> {}

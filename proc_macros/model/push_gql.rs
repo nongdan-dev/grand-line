@@ -15,7 +15,7 @@ pub fn push_gql(
     let (opt, uw) = unwrap_option(ty.to_token_stream());
 
     struk.push(quote! {
-        #name: Option<#uw>,
+        pub #name: Option<#uw>,
     });
 
     let res = if opt {
@@ -26,7 +26,7 @@ pub fn push_gql(
     resolver.push(quote! {
         // TODO: copy #[graphql...] and comments from the original field
         #[graphql(name=#gql_name)]
-        async fn #name(&self) -> #ty {
+        pub async fn #name(&self) -> #ty {
             let v = self.#name.clone();
             #res
         }

@@ -1,7 +1,5 @@
-use crate::*;
+use crate::prelude::*;
 use async_graphql::{Context, QueryPathSegment};
-use sea_orm::prelude::*;
-use sea_orm::*;
 
 /// Abstract extra entity methods implementation.
 pub trait EntityXImpl<M, A, F, O, G>

@@ -1,4 +1,4 @@
-use crate::*;
+use crate::prelude::*;
 
 /// Pagination async_graphql input struct to use in search query.
 #[input]

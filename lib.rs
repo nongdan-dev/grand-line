@@ -3,11 +3,13 @@ mod utils;
 pub use context::*;
 pub use utils::*;
 
+pub use grand_line_macros::am_value;
 pub use grand_line_proc_macros::{
     GrandLineModel, active_create, active_model, active_update, count, create, delete, detail,
     enunn, filter, filter_some, input, model, mutation, order_by, order_by_some, query, search,
     update,
 };
+pub use grand_line_proc_proc_macros::PartialEqString;
 
 pub use async_graphql;
 pub use async_trait;
@@ -26,12 +28,18 @@ mod common_alias {
     pub use std::{
         collections::{HashMap, HashSet},
         error::Error,
-        sync::Arc,
-        sync::LazyLock,
+        sync::{Arc, LazyLock},
     };
     pub use tokio::sync::Mutex;
 }
 pub use common_alias::*;
+
+pub(crate) mod prelude {
+    pub use crate::*;
+    pub use async_trait::async_trait;
+    pub use sea_orm::prelude::*;
+    pub use sea_orm::*;
+}
 
 #[cfg(feature = "axum")]
 pub use async_graphql_axum;

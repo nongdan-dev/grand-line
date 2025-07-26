@@ -1,5 +1,4 @@
-use crate::*;
-use sea_orm::*;
+use crate::prelude::*;
 
 /// Helper trait to combine filter and filter_extra.
 pub trait Filter<T>

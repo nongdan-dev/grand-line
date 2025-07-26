@@ -67,8 +67,7 @@ impl GenRelation {
         let err_str = strf!("{} must be included in the look ahead select", id);
         quote! {
             let id = self.#id.as_ref().ok_or(#err_str)?;
-            let gl = GrandLineContext::from(ctx);
-            let _tx = gl.tx().await?;
+            let _tx = ctx.tx().await?;
             let tx = _tx.as_ref();
             #r
         }

@@ -98,6 +98,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let alias = struk.ident;
     struk.ident = format_ident!("Model");
     struk.fields = Fields::Named(fields.clone());
+    let module = snake!(alias);
     let sql = ty_sql(&alias);
     let gql = ty_gql(&alias);
     let column = ty_column(&alias);
@@ -163,133 +164,140 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     let r = quote! {
-        use sea_orm::*;
-        use sea_orm::prelude::*;
-        use sea_orm::entity::prelude::*;
+        pub mod #module {
+            use super::*;
+            use sea_orm::*;
+            use sea_orm::prelude::*;
+            use sea_orm::entity::prelude::*;
 
-        #[derive(
-            Debug,
-            Clone,
-            Default,
-            DeriveEntityModel,
-            GrandLineModel,
-        )]
-        #[sea_orm(table_name=#sql_alias)]
-        #struk
+            #[derive(
+                Debug,
+                Clone,
+                Default,
+                DeriveEntityModel,
+                GrandLineModel,
+            )]
+            #[sea_orm(table_name=#sql_alias)]
+            #struk
 
-        impl ActiveModelBehavior for ActiveModel {
-        }
+            impl ActiveModelBehavior for ActiveModel {
+            }
 
-        #[derive(Debug, EnumIter, DeriveRelation)]
-        pub enum Relation {
-            // TODO:
-        }
+            #[derive(Debug, EnumIter, DeriveRelation)]
+            pub enum Relation {
+                // TODO:
+            }
 
-        pub type #sql = Model;
-        pub type #alias = Entity;
-        pub type #column = Column;
-        pub type #active_model = ActiveModel;
+            #[derive(
+                Debug,
+                Clone,
+                Default,
+                FromQueryResult,
+            )]
+            pub struct #gql {
+                #(#gql_struk)*
+            }
+            #[async_graphql::Object(name=#gql_alias)]
+            impl #gql {
+                #(#gql_resolver)*
+            }
+            impl From<Model> for #gql {
+                fn from(v: Model) -> Self {
+                    #gql {
+                        #(#gql_into)*
+                        ..Default::default()
+                    }
+                }
+            }
 
-        #[derive(
-            Debug,
-            Clone,
-            Default,
-            FromQueryResult,
-        )]
-        pub struct #gql {
-            #(#gql_struk)*
-        }
-        #[async_graphql::Object(name=#gql_alias)]
-        impl #gql {
-            #(#gql_resolver)*
-        }
-        impl From<#sql> for #gql {
-            fn from(v: #sql) -> Self {
-                #gql {
-                    #(#gql_into)*
-                    ..Default::default()
+            static GQL_COLUMNS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {
+                let mut m = HashMap::new();
+                #(#gql_columns)*
+                m
+            });
+            impl EntityX<Model, ActiveModel, #filter, #order_by, #gql> for Entity {
+                fn config_active_create(mut am: ActiveModel) -> ActiveModel {
+                    #am_id
+                    #am_created_at
+                    am
+                }
+                fn config_active_update(mut am: ActiveModel) -> ActiveModel {
+                    #am_updated_at
+                    am
+                }
+                fn config_col_id() -> Column {
+                    Column::Id
+                }
+                fn config_col_deleted_at() -> Option<Column> {
+                    #config_col_deleted_at
+                }
+                fn config_gql_col(field: &str) -> Option<Column> {
+                    GQL_COLUMNS.get(field).copied()
+                }
+                fn config_limit() -> (u64, u64) {
+                    (#limit_default, #limit_max)
+                }
+            }
+
+            #[input]
+            pub struct #filter {
+                #(#filter_struk)*
+            }
+            impl Filter<Entity> for #filter {
+                fn config_and(a: Self, b: Self) -> Self {
+                    Self {
+                        and: Some(vec![a, b]),
+                        ..Default::default()
+                    }
+                }
+                fn config_has_deleted_at(&self) -> bool {
+                    todo!("TODO:")
+                }
+                fn and(&self) -> Option<Vec<Self>> {
+                    self.and.clone()
+                }
+                fn or(&self) -> Option<Vec<Self>> {
+                    self.or.clone()
+                }
+                fn not(&self) -> Option<Self> {
+                    self.not.clone().map(|b| *b)
+                }
+            }
+            impl Conditionable for #filter {
+                fn condition(&self) -> Condition {
+                    let this = self.clone();
+                    let mut c = Condition::all();
+                    #(#filter_query)*
+                    c
+                }
+            }
+
+            #[enunn]
+            pub enum #order_by {
+                #(#order_by_struk)*
+            }
+            impl OrderBy<Entity> for #order_by {
+                fn config_default() -> Self {
+                    Self::IdDesc
+                }
+            }
+            impl Chainable<Entity> for #order_by {
+                fn chain(&self, q: Select<Entity>) -> Select<Entity> {
+                    match *self {
+                        #(#order_by_query)*
+                    }
                 }
             }
         }
-
-        static GQL_COLUMNS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {
-            let mut m = HashMap::new();
-            #(#gql_columns)*
-            m
-        });
-        impl EntityX<Model, #active_model, #filter, #order_by, #gql> for Entity {
-            fn config_active_create(mut am: ActiveModel) -> ActiveModel {
-                #am_id
-                #am_created_at
-                am
-            }
-            fn config_active_update(mut am: ActiveModel) -> ActiveModel {
-                #am_updated_at
-                am
-            }
-            fn config_col_id() -> Column {
-                Column::Id
-            }
-            fn config_col_deleted_at() -> Option<Column> {
-                #config_col_deleted_at
-            }
-            fn config_gql_col(field: &str) -> Option<Column> {
-                GQL_COLUMNS.get(field).copied()
-            }
-            fn config_limit() -> (u64, u64) {
-                (#limit_default, #limit_max)
-            }
-        }
-
-        #[input]
-        pub struct #filter {
-            #(#filter_struk)*
-        }
-        impl Filter<Entity> for #filter {
-            fn config_and(a: Self, b: Self) -> Self {
-                Self {
-                    and: Some(vec![a, b]),
-                    ..Default::default()
-                }
-            }
-            fn config_has_deleted_at(&self) -> bool {
-                todo!("TODO:")
-            }
-            fn and(&self) -> Option<Vec<Self>> {
-                self.and.clone()
-            }
-            fn or(&self) -> Option<Vec<Self>> {
-                self.or.clone()
-            }
-            fn not(&self) -> Option<Self> {
-                self.not.clone().map(|b| *b)
-            }
-        }
-        impl Conditionable for #filter {
-            fn condition(&self) -> Condition {
-                let this = self.clone();
-                let mut c = Condition::all();
-                #(#filter_query)*
-                c
-            }
-        }
-
-        #[enunn]
-        pub enum #order_by {
-            #(#order_by_struk)*
-        }
-        impl OrderBy<Entity> for #order_by {
-            fn config_default() -> Self {
-                Self::IdDesc
-            }
-        }
-        impl Chainable<Entity> for #order_by {
-            fn chain(&self, q: Select<Entity>) -> Select<Entity> {
-                match *self {
-                    #(#order_by_query)*
-                }
-            }
-        }
+        pub use #module::{
+            Model as #sql,
+            Entity as #alias,
+            Column as #column,
+            ActiveModel as #active_model,
+            #gql,
+            #filter,
+            #order_by,
+        };
     };
 
     #[cfg(feature = "debug_macro")]

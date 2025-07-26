@@ -1,6 +1,4 @@
-use crate::*;
-use sea_orm::prelude::*;
-use sea_orm::*;
+use crate::prelude::*;
 
 /// Helper trait to abstract extra methods into sea_orm entity.
 pub trait EntityX<M, A, F, O, G>

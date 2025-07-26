@@ -1,5 +1,4 @@
-use crate::*;
-use sea_orm::*;
+use crate::prelude::*;
 
 /// Helper trait to chain sea_orm Select of different types like Filter, OrderBy...
 pub trait Chainable<T>

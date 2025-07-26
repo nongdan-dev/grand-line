@@ -1,5 +1,4 @@
-use crate::*;
-use sea_orm::*;
+use crate::prelude::*;
 
 /// Helper trait to combine order_by and order_by_default with an initial value if all are empty.
 pub trait OrderBy<T>

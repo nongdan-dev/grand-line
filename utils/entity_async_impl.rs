@@ -1,8 +1,5 @@
-use crate::*;
+use crate::prelude::*;
 use async_graphql::Context;
-use async_trait::async_trait;
-use sea_orm::prelude::*;
-use sea_orm::*;
 
 /// Abstract extra entity async methods implementation.
 #[async_trait]
@@ -47,7 +44,7 @@ where
     {
         match Self::exists(db, c).await? {
             true => Ok(()),
-            false => Err(GrandLineError::Db404),
+            false => err_client!(Db404),
         }
     }
     /// Helper to check if exists by id and return error if not.
@@ -65,7 +62,7 @@ where
     {
         match Self::find().filter(Self::condition_id(id)).one(db).await? {
             Some(v) => Ok(v),
-            None => Err(GrandLineError::Db404),
+            None => err_client!(Db404),
         }
     }
 
@@ -77,7 +74,7 @@ where
 
         let f = ctx.look_ahead().selection_fields();
         if f.len() != 1 {
-            return Err(GrandLineError::LookAhead);
+            return err_server!(LookAhead);
         }
 
         let r = f[0]
@@ -160,7 +157,7 @@ where
                 Self::delete_many().filter(c).exec(db).await?;
                 Ok(r)
             }
-            None => Err(GrandLineError::Db404),
+            None => err_client!(Db404),
         }
     }
 }

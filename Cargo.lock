@@ -917,6 +917,7 @@ dependencies = [
  "chrono",
  "grand-line-macros",
  "grand-line-proc-macros",
+ "grand-line-proc-proc-macros",
  "sea-orm",
  "serde",
  "serde_json",

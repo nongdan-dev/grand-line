@@ -35,8 +35,7 @@ where
                 self.panic("tx requires ctx, async");
             }
             body = quote! {
-                let gl = GrandLineContext::from(ctx);
-                let _tx = gl.tx().await?;
+                let _tx = ctx.tx().await?;
                 let tx = _tx.as_ref();
                 #body
             };
@@ -56,6 +55,7 @@ where
                 Ok(r)
             };
             async_keyword = quote!(async);
+            // TODO: use our error enum to only return client error
             async_output = quote!(Result<#output, Box<dyn Error + Send + Sync>>);
         }
 

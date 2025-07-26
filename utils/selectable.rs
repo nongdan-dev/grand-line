@@ -1,5 +1,4 @@
-use crate::*;
-use sea_orm::*;
+use crate::prelude::*;
 
 /// Helper trait to create sea_orm Select from types like Filter, OrderBy...
 pub trait Selectable<E: EntityTrait> {
