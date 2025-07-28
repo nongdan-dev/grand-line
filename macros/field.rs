@@ -1,3 +1,4 @@
+/// Internal macro utils to create a new struct field from token stream.
 #[macro_export]
 macro_rules! field {
     ($($v:tt)*) => {{

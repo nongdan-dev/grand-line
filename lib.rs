@@ -24,18 +24,10 @@ mod re_exports {
     pub use ulid;
 
     #[cfg(feature = "axum")]
-    pub use async_graphql_axum;
-    #[cfg(feature = "axum")]
-    pub use axum;
-    #[cfg(feature = "axum")]
-    pub use tower;
-    #[cfg(feature = "axum")]
-    pub use tower_http;
+    pub use {async_graphql_axum, axum, tower, tower_http};
 
     #[cfg(feature = "tracing")]
-    pub use tracing;
-    #[cfg(feature = "tracing")]
-    pub use tracing_subscriber;
+    pub use {tracing, tracing_subscriber};
 
     pub use grand_line_proc_proc_macros::PartialEqString;
 

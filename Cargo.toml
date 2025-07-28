@@ -47,13 +47,13 @@ chrono = { version = "0.4.41", default-features = false, features = ["now", "ser
 grand-line-macros = { path = "macros" }
 grand-line-proc-macros = { path = "proc_macros" }
 grand-line-proc-proc-macros = { path = "proc_proc_macros" }
-sea-orm = { version = "1.1.13", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
+sea-orm = { version = "1.1.14", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
 serde = { version = "1.0.219", default-features = false, features = ["derive", "std"] }
 serde_json = { version = "1.0.141", default-features = false }
 serde_with = { version = "3.14.0", default-features = false, features = ["macros"] }
 sqlx = { version = "0.8.6", default-features = false, features = ["chrono", "json", "macros", "migrate", "runtime-tokio-rustls", "rust_decimal"] }
 thiserror = { version = "2.0.12" }
-tokio = { version = "1.46.1", default-features = false, features = ["full"] }
+tokio = { version = "1.47.0", default-features = false, features = ["full"] }
 tower = { version = "0.5.2", default-features = false, optional = true }
 tower-http = { version = "0.6.6", default-features = false, optional = true, features = ["normalize-path"] }
 tracing = { version = "0.1.41", optional = true }

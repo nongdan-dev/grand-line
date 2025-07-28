@@ -36,6 +36,7 @@ field_names = { version = "0.2.0" }
 grand-line-macros = { path = "../macros" }
 grand-line-proc-proc-macros = { path = "../proc_proc_macros" }
 heck = { version = "0.5.0" }
+maplit = { version = "1.0.2" }
 prettyplease = { version = "0.2.36", optional = true }
 proc-macro2 = { version = "1.0.95" }
 quote = { version = "1.0.40" }

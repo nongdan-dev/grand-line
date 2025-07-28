@@ -1,3 +1,4 @@
+/// Internal macro utils to quickly construct client error result.
 #[macro_export]
 macro_rules! err_client {
     ($($v:tt)*) => {
@@ -5,6 +6,7 @@ macro_rules! err_client {
     };
 }
 
+/// Internal macro utils to quickly construct server error result.
 #[macro_export]
 macro_rules! err_server {
     ($($v:tt)*) => {

@@ -1,4 +1,4 @@
-/// Internal macro utils to handle strings and casings
+/// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! str {
     ($($s:expr),*) => {{
@@ -8,7 +8,7 @@ macro_rules! str {
     }};
 }
 
-/// Internal macro utils to handle strings and casings
+/// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! strf {
     ($($s:tt)*) => {
@@ -16,7 +16,7 @@ macro_rules! strf {
     };
 }
 
-/// Internal macro utils to handle strings and casings
+/// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! ts2 {
     ($($s:expr),*) => {
@@ -24,7 +24,7 @@ macro_rules! ts2 {
     };
 }
 
-/// Internal macro utils to handle strings and casings
+/// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! ts2f {
     ($($s:tt)*) => {
@@ -32,7 +32,7 @@ macro_rules! ts2f {
     };
 }
 
-/// Internal macro utils to handle strings and casings
+/// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! pascal_str {
     ($($s:expr),*) => {
@@ -40,7 +40,7 @@ macro_rules! pascal_str {
     };
 }
 
-/// Internal macro utils to handle strings and casings
+/// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! pascal {
     ($($s:expr),*) => {
@@ -48,7 +48,7 @@ macro_rules! pascal {
     };
 }
 
-/// Internal macro utils to handle strings and casings
+/// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! camel_str {
     ($s:expr $(, $ss:expr)*) => {
@@ -56,7 +56,7 @@ macro_rules! camel_str {
     };
 }
 
-/// Internal macro utils to handle strings and casings
+/// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! camel {
     ($s:expr $(, $ss:expr)*) => {
@@ -64,7 +64,7 @@ macro_rules! camel {
     };
 }
 
-/// Internal macro utils to handle strings and casings
+/// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! snake_str {
     ($s:expr $(, $ss:expr)*) => {
@@ -72,7 +72,7 @@ macro_rules! snake_str {
     };
 }
 
-/// Internal macro utils to handle strings and casings
+/// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! snake {
     ($s:expr $(, $ss:expr)*) => {

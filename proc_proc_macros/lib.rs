@@ -6,6 +6,7 @@ mod prelude {
     pub use grand_line_macros::*;
 
     pub use heck::*;
+    pub use maplit::*;
     pub use proc_macro::TokenStream;
     pub use proc_macro2::TokenStream as TokenStream2;
     pub use quote::*;

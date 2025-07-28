@@ -13,6 +13,7 @@ mod prelude {
     pub use grand_line_proc_proc_macros::*;
 
     pub use heck::*;
+    pub use maplit::*;
     pub use proc_macro::TokenStream;
     pub use proc_macro2::TokenStream as TokenStream2;
     pub use quote::*;
@@ -37,11 +38,14 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
     attributes(
         // get and move them to the graphql output type
         graphql,
-        // our attrs
+        // config
+        default,
+        // virtuals
         belongs_to,
         has_one,
         has_many,
         many_to_many,
+        resolver,
     )
 )]
 pub fn grand_line_model(item: TokenStream) -> TokenStream {

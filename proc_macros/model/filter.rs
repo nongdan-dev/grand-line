@@ -21,12 +21,18 @@ pub fn push_filter(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<Tok
     if uw_str != "String" {
         return;
     }
-    push(f, struk, query, "like");
-    push(f, struk, query, "not_like");
+    #[cfg(not(feature = "postgres"))]
+    {
+        push(f, struk, query, "like");
+        push(f, struk, query, "not_like");
+    }
+    #[cfg(feature = "postgres")]
+    {
+        push(f, struk, query, "ilike");
+        push(f, struk, query, "not_ilike");
+    }
     push(f, struk, query, "starts_with");
     push(f, struk, query, "ends_with");
-    #[cfg(feature = "postgres")]
-    push(f, struk, query, "ilike");
 }
 
 fn push(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<TokenStream2>, op_str: &str) {
@@ -44,16 +50,23 @@ fn push(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<TokenStream2>,
     }
     // struct struct_field_some_op
     // graphql structField_someOp
+    let pg = hashmap! {
+        "ilike" => "iLike",
+        "not_ilike" => "notILike",
+    };
     let mut name = f.ident.to_token_stream();
     let mut gql_name = camel_str!(name);
-    if op_str == "ilike" {
-        gql_name = str!("iLike");
-    } else if op_str != "eq" {
+    if op_str != "eq" {
         name = snake!(name, gql_op);
-        gql_name = str!(gql_name, "_", camel_str!(gql_op));
+        let gql_op_camel = pg
+            .get(op_str)
+            .map(|v| str!(v))
+            .unwrap_or_else(|| camel_str!(gql_op));
+        gql_name = str!(gql_name, "_", gql_op_camel);
     }
     // push struk
-    ty = if opt && (op_str == "eq" || op_str == "ne") {
+    let opt_eq_ne = opt && (op_str == "eq" || op_str == "ne");
+    ty = if opt_eq_ne {
         quote!(Undefined<#ty>)
     } else {
         quote!(Option<#ty>)
@@ -63,7 +76,7 @@ fn push(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<TokenStream2>,
         pub #name: #ty,
     });
     // push query
-    let q = if opt && (op_str == "eq" || op_str == "ne") {
+    let q = if opt_eq_ne {
         let op_null = ts2!(if op_str == "eq" {
             "is_null"
         } else {
@@ -77,7 +90,7 @@ fn push(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<TokenStream2>,
                 c = c.add(Column::#col.#op(v));
             }
         }
-    } else if op_str == "ilike" {
+    } else if pg.contains_key(op_str) {
         quote! {
             if let Some(v) = this.#name {
                 use sea_orm::sea_query::extension::postgres::PgExpr;

@@ -32,33 +32,33 @@ impl RelationAttr {
     pub fn key_str(&self) -> String {
         let k = "key";
         let v = self.a.str(k);
-        let dv = match self.a.attr == RelationTy::BelongsTo {
+        let v = v.unwrap_or_else(|| match self.a.attr == RelationTy::BelongsTo {
             true => snake_str!(self.a.field_name(), "id"),
             false => snake_str!(self.a.field_model(), "id"),
-        };
-        v.unwrap_or(dv)
+        });
+        v
     }
     pub fn through(&self) -> TokenStream2 {
         let k = "through";
         let v = self.a.str(k);
-        let dv = match self.a.attr == RelationTy::ManyToMany {
+        let v = v.unwrap_or_else(|| match self.a.attr == RelationTy::ManyToMany {
             true => pascal_str!(self.a.field_model(), "in", self.a.field_ty()),
             false => self.panic_framework_bug(k),
-        };
-        ts2!(v.unwrap_or(dv))
+        });
+        ts2!(v)
     }
     pub fn other_key(&self) -> TokenStream2 {
         let k = "other_key";
         let v = self.a.str(k);
-        let dv = match self.a.attr == RelationTy::ManyToMany {
+        let v = v.unwrap_or_else(|| match self.a.attr == RelationTy::ManyToMany {
             true => snake_str!(self.a.field_ty(), "id"),
             false => self.panic_framework_bug(k),
-        };
-        ts2!(v.unwrap_or(dv))
+        });
+        ts2!(v)
     }
 
     fn panic_framework_bug(&self, k: &str) -> ! {
-        let err = strf!("trying to get {} in {}", k, self.a.attr);
+        let err = strf!("trying to get `{}` in `{}`", k, self.a.attr);
         self.a.panic_framework_bug(&err)
     }
 }
