@@ -25,11 +25,13 @@ pub fn push_filter(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<Tok
     push(f, struk, query, "not_like");
     push(f, struk, query, "starts_with");
     push(f, struk, query, "ends_with");
+    #[cfg(feature = "postgres")]
+    push(f, struk, query, "ilike");
 }
 
 fn push(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<TokenStream2>, op_str: &str) {
     // sea_orm generated Column::Name.op(v)
-    let column = pascal!(f.ident.to_token_stream());
+    let col = pascal!(f.ident.to_token_stream());
     let op = ts2!(op_str);
     let mut gql_op = str!(op_str);
     // unwrap Option<type>
@@ -44,7 +46,9 @@ fn push(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<TokenStream2>,
     // graphql structField_someOp
     let mut name = f.ident.to_token_stream();
     let mut gql_name = camel_str!(name);
-    if op_str != "eq" {
+    if op_str == "ilike" {
+        gql_name = str!("iLike");
+    } else if op_str != "eq" {
         name = snake!(name, gql_op);
         gql_name = str!(gql_name, "_", camel_str!(gql_op));
     }
@@ -67,16 +71,23 @@ fn push(f: &Field, struk: &mut Vec<TokenStream2>, query: &mut Vec<TokenStream2>,
         });
         quote! {
             if matches!(this.#name, Undefined::Null) {
-                c = c.add(Column::#column.#op_null());
+                c = c.add(Column::#col.#op_null());
             }
             if let Undefined::Value(v) = this.#name {
-                c = c.add(Column::#column.#op(v));
+                c = c.add(Column::#col.#op(v));
+            }
+        }
+    } else if op_str == "ilike" {
+        quote! {
+            if let Some(v) = this.#name {
+                use sea_orm::sea_query::extension::postgres::PgExpr;
+                c = c.add(Expr::col(Column::#col).#op(v));
             }
         }
     } else {
         quote! {
             if let Some(v) = this.#name {
-                c = c.add(Column::#column.#op(v));
+                c = c.add(Column::#col.#op(v));
             }
         }
     };
