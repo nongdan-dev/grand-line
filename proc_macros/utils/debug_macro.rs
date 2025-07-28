@@ -1,27 +1,48 @@
 use crate::prelude::*;
 use std::env;
-use std::fs::File as FsFile;
-use std::io::Write;
-use std::path::PathBuf;
-use std::process::Command;
 
 pub fn debug_macro(name: &str, ts: TokenStream2) {
     if env::var("DEBUG_MACRO").unwrap_or_default() != "1" {
         return;
     }
 
-    let content = str!(ts);
+    #[cfg(feature = "debug_macro_cli")]
+    {
+        use colored::{Colorize, control::SHOULD_COLORIZE};
+        use syn::{File, parse2};
 
-    let path = PathBuf::from(strf!("target/grand-line/{}.rs", name));
-    let _ = std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        SHOULD_COLORIZE.set_override(true);
+        println!("==============================================================================");
+        println!("{}", name.bold());
+        println!();
 
-    let mut file = FsFile::create(&path).unwrap();
-    let _ = writeln!(file, "{}", content).unwrap();
+        let code = match parse2::<File>(ts.clone()) {
+            Ok(v) => prettyplease::unparse(&v),
+            _ => str!(ts),
+        };
+        println!("{}", code.bright_black());
+    }
 
-    let _ = Command::new("rustfmt")
-        .arg("--edition")
-        .arg("2024")
-        .arg(&path)
-        .status()
-        .unwrap();
+    #[cfg(feature = "debug_macro_file")]
+    {
+        use std::fs::File;
+        use std::io::Write;
+        use std::path::PathBuf;
+        use std::process::Command;
+
+        let content = str!(ts);
+
+        let path = PathBuf::from(strf!("target/grand-line/{}.rs", name));
+        let _ = std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+
+        let mut file = File::create(&path).unwrap();
+        let _ = writeln!(file, "{}", content).unwrap();
+
+        let _ = Command::new("rustfmt")
+            .arg("--edition")
+            .arg("2024")
+            .arg(&path)
+            .status()
+            .unwrap();
+    }
 }

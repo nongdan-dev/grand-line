@@ -1,5 +1,7 @@
+/// To quickly get the active value from active model.
+/// This is useful to get default data on field such as id before insert/update.
 #[macro_export]
-macro_rules! am_value {
+macro_rules! active_value {
     ($am:ident.$k:ident) => {
         $am.$k
             .try_as_ref()

@@ -11,12 +11,32 @@ edition = "2024"
 path = "lib.rs"
 
 [features]
+default = ["axum"]
 sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
 mysql = ["sea-orm/sqlx-mysql", "sqlx/mysql"]
 postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres"]
 axum = ["dep:axum", "dep:async-graphql-axum", "dep:tower", "dep:tower-http"]
 tracing = ["dep:tracing", "dep:tracing-subscriber", "async-graphql/tracing"]
-debug_macro = ["grand-line-proc-macros/debug_macro"]
+# do not re export dependencies
+no_re_exports = []
+# debug macro flags
+debug_macro_cli = ["grand-line-proc-macros/debug_macro_cli"]
+debug_macro_file = ["grand-line-proc-macros/debug_macro_file"]
+# model flags
+no_created_at = ["grand-line-proc-macros/no_created_at"]
+no_updated_at = ["grand-line-proc-macros/no_updated_at"]
+no_deleted_at = ["grand-line-proc-macros/no_deleted_at"]
+no_by_id = ["grand-line-proc-macros/no_by_id"]
+# resolver flags
+resolver_inputs = ["grand-line-proc-macros/resolver_inputs"]
+resolver_output = ["grand-line-proc-macros/resolver_output"]
+no_tx = ["grand-line-proc-macros/no_tx"]
+no_ctx = ["grand-line-proc-macros/no_ctx"]
+no_async = ["grand-line-proc-macros/no_async"]
+# limit flags
+limit_x2 = ["grand-line-proc-macros/limit_x2"]
+limit_x5 = ["grand-line-proc-macros/limit_x5"]
+limit_x10 = ["grand-line-proc-macros/limit_x10"]
 
 [dependencies]
 async-graphql = { version = "7.0.17", default-features = false, features = ["chrono", "chrono-duration", "chrono-tz", "dataloader", "decimal", "string_number", "boxed-trait"] }

@@ -26,7 +26,7 @@ where
             .await?;
         match v {
             Some(_) => Ok(true),
-            _ => Ok(false),
+            None => Ok(false),
         }
     }
     /// Helper to check if exists by id.

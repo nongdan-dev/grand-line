@@ -24,7 +24,7 @@ where
         let name = self.name();
         let gql_name = self.gql_name();
         let mut inputs = self.inputs();
-        let output = self.output();
+        let mut output = self.output();
         let mut body = self.body();
         let no_tx = self.no_tx();
         let no_ctx = self.no_ctx();
@@ -46,7 +46,6 @@ where
         }
 
         let mut async_keyword = ts2!();
-        let mut async_output = output.clone();
         if !no_async {
             body = quote! {
                 let r: #output = {
@@ -54,15 +53,15 @@ where
                 };
                 Ok(r)
             };
-            async_keyword = quote!(async);
             // TODO: use our error enum to only return client error
-            async_output = quote!(Result<#output, Box<dyn Error + Send + Sync>>);
+            output = quote!(Result<#output, Box<dyn Error + Send + Sync>>);
+            async_keyword = quote!(async);
         }
 
         quote! {
             // TODO: copy #[graphql...] and comments from the original field
             #[graphql(name=#gql_name)]
-            #async_keyword fn #name(&self, #inputs) -> #async_output {
+            #async_keyword fn #name(&self, #inputs) -> #output {
                 #body
             }
         }

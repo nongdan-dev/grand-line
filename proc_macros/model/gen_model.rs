@@ -4,11 +4,6 @@ use syn::{Fields, ItemStruct, parse_macro_input};
 pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as AttrParse);
     let mut struk = parse_macro_input!(item as ItemStruct);
-    let model = str!(struk.ident);
-    let ref mut fields = match struk.fields {
-        Fields::Named(f) => f,
-        _ => panic!("{} struct fields must be Fields::Named", model),
-    };
     let ModelAttr {
         no_created_at,
         no_updated_at,
@@ -16,10 +11,15 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         no_by_id,
         limit_default,
         limit_max,
-    } = attr.into_with_validate::<ModelAttr>(&model, "model");
+    } = attr.into_inner::<ModelAttr>("model");
     // ------------------------------------------------------------------------
     // insert built-in fields: id, created_at, updated_at...
-    fields.named.insert(
+    let model_str = str!(struk.ident);
+    let mut fields = match struk.fields {
+        Fields::Named(f) => f.named.into_iter().collect::<Vec<_>>(),
+        _ => panic!("{} struct fields must be Fields::Named", model_str),
+    };
+    fields.insert(
         0,
         field! {
             #[sea_orm(primary_key, column_type="String(StringLen::N(26))", auto_increment=false)]
@@ -27,88 +27,80 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         },
     );
     if !no_created_at {
-        fields.named.push(field! {
+        fields.push(field! {
             pub created_at: DateTimeUtc
         });
         if !no_by_id {
-            fields.named.push(field! {
+            fields.push(field! {
                 pub created_by_id: Option<String>
             });
         }
     }
     if !no_updated_at {
-        fields.named.push(field! {
+        fields.push(field! {
             pub updated_at: Option<DateTimeUtc>
         });
         if !no_by_id {
-            fields.named.push(field! {
+            fields.push(field! {
                 pub updated_by_id: Option<String>
             });
         }
     }
     let mut config_col_deleted_at = quote!(None);
     if !no_deleted_at {
-        fields.named.push(field! {
+        fields.push(field! {
             pub deleted_at: Option<DateTimeUtc>
         });
         if !no_by_id {
-            fields.named.push(field! {
+            fields.push(field! {
                 pub deleted_by_id: Option<String>
             });
         }
         config_col_deleted_at = quote!(Some(Column::DeletedAt))
     }
     // ------------------------------------------------------------------------
-    // extract virtual fields such as relation and so on...
-    let mut virtuals = Vec::<Box<dyn GenVirtual>>::new();
-    fields.named = fields
-        .named
-        .clone()
-        .into_iter()
-        .filter(|f| {
-            let f = f.clone();
-            let attrs = Attr::from_field(&model, &f);
-            let map = attrs
-                .clone()
-                .into_iter()
-                .map(|a| (a.attr.clone(), a))
-                .collect::<HashMap<_, _>>();
-            let relation = RelationTy::all()
-                .iter()
-                .find(|r| map.contains_key(&str!(r)))
-                .map(|r| r.to_owned());
-            if let Some(ty) = relation {
-                let a = map.get(&str!(ty)).unwrap().clone();
-                virtuals.push(Box::new(GenRelation {
-                    model: model.clone(),
-                    ty,
-                    f,
-                    a,
-                    attrs,
-                }));
-                return false;
-            }
-            // TODO: other kinds of virtual
-            true
-        })
-        .collect();
+    // parse macro attributes, extract and validate
+    let (fields, gfields, vfields) = extract_and_validate_fields(&model_str, &fields);
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
     // get the original model name in snake case for sql table, non-plural
-    let alias = struk.ident;
+    let model = ts2!(model_str);
     struk.ident = format_ident!("Model");
-    struk.fields = Fields::Named(fields.clone());
-    let module = snake!(alias);
-    let sql = ty_sql(&alias);
-    let gql = ty_gql(&alias);
-    let column = ty_column(&alias);
-    let active_model = ty_active_model(&alias);
-    let gql_alias = str!(alias);
-    let sql_alias = snake_str!(alias);
+    struk.fields = Fields::Named(fields);
+    let module = snake!(model);
+    let sql = ty_sql(&model);
+    let gql = ty_gql(&model);
+    let column = ty_column(&model);
+    let active_model = ty_active_model(&model);
+    let gql_alias = str!(model);
+    let sql_alias = snake_str!(model);
+    // ------------------------------------------------------------------------
+    // generate virtual resolvers
+    let mut virtuals = Vec::<Box<dyn GenVirtual>>::new();
+    for attrs in vfields {
+        let map = attrs
+            .clone()
+            .into_iter()
+            .map(|a| (a.attr.clone(), a))
+            .collect::<HashMap<_, _>>();
+        let relation = RelationTy::all()
+            .iter()
+            .find(|r| map.contains_key(&str!(r)))
+            .map(|r| r.to_owned());
+        if let Some(ty) = relation {
+            let a = map.get(&str!(ty)).unwrap().clone();
+            virtuals.push(Box::new(GenRelation {
+                model: model_str.clone(),
+                ty,
+                a: RelationAttr::new(a),
+            }));
+        }
+        // TODO: other kinds of virtual
+    }
     // ------------------------------------------------------------------------
     // filter / order_by fields
-    let filter = ty_filter(&alias);
-    let order_by = ty_order_by(&alias);
+    let filter = ty_filter(&model);
+    let order_by = ty_order_by(&model);
     let mut gql_struk = vec![];
     let mut gql_resolver = vec![];
     let mut gql_into = vec![];
@@ -117,28 +109,24 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut filter_query = vec![];
     let mut order_by_struk = vec![];
     let mut order_by_query = vec![];
-    for f in fields
-        .named
-        .iter()
-        .filter(|f| !has_attr_key(&f, "graphql", "skip"))
-    {
+    for (f, _) in gfields {
         push_gql(
-            f,
+            &f,
             &virtuals,
             &mut gql_struk,
             &mut gql_resolver,
             &mut gql_into,
             &mut gql_columns,
         );
-        push_filter(f, &mut filter_struk, &mut filter_query);
-        push_order_by(f, &mut order_by_struk, &mut order_by_query);
+        push_filter(&f, &mut filter_struk, &mut filter_query);
+        push_order_by(&f, &mut order_by_struk, &mut order_by_query);
     }
     push_filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
-
     for f in virtuals.iter() {
         gql_resolver.push(f.gen_resolver_fn());
     }
-
+    // ------------------------------------------------------------------------
+    // active model utils
     let am_id = quote! {
         if !matches!(am.id, Set(_)) {
             am.id = Set(ulid::Ulid::new().to_string());
@@ -291,7 +279,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
         pub use #module::{
             Model as #sql,
-            Entity as #alias,
+            Entity as #model,
             Column as #column,
             ActiveModel as #active_model,
             #gql,
@@ -301,7 +289,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     #[cfg(feature = "debug_macro")]
-    debug_macro(&model, r.clone());
+    debug_macro(&model_str, r.clone());
 
     r.into()
 }

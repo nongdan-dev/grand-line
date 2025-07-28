@@ -470,6 +470,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "colored"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fde0e0ec90c9dfb3b4b1a0891a7dcd0e2bffde2f7efed5fe7c9bb00e5bfb915e"
+dependencies = [
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -940,14 +949,14 @@ version = "0.0.0"
 name = "grand-line-proc-macros"
 version = "0.0.0"
 dependencies = [
+ "colored",
  "field_names",
  "grand-line-macros",
  "grand-line-proc-proc-macros",
  "heck 0.5.0",
+ "prettyplease",
  "proc-macro2",
  "quote",
- "serde",
- "serde_json",
  "strum 0.27.2",
  "strum_macros 0.27.2",
  "syn 2.0.104",
@@ -957,6 +966,9 @@ dependencies = [
 name = "grand-line-proc-proc-macros"
 version = "0.0.0"
 dependencies = [
+ "grand-line-macros",
+ "heck 0.5.0",
+ "proc-macro2",
  "quote",
  "syn 2.0.104",
 ]
@@ -1758,6 +1770,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
 dependencies = [
  "zerocopy",
+]
+
+[[package]]
+name = "prettyplease"
+version = "0.2.36"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff24dfcda44452b9816fff4cd4227e1bb73ff5a2f1bc1105aa92fb8565ce44d2"
+dependencies = [
+ "proc-macro2",
+ "syn 2.0.104",
 ]
 
 [[package]]

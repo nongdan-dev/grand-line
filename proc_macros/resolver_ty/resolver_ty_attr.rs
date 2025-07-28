@@ -9,12 +9,11 @@ pub struct ResolverTyAttr {
 }
 impl From<Attr> for ResolverTyAttr {
     fn from(a: Attr) -> Self {
-        let f = Self::FIELDS;
-        Self {
-            no_tx: a.bool(f[0]),
-            no_ctx: a.bool(f[1]),
-            no_async: a.bool(f[2]),
-        }
+        attr_unwrap!(Self {
+            no_tx: bool,
+            no_ctx: bool,
+            no_async: bool,
+        })
     }
 }
 impl AttrValidate for ResolverTyAttr {

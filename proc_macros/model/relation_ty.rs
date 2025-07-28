@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use strum_macros::{Display, EnumString};
 
-#[derive(Debug, Clone, Eq, PartialEq, Display, PartialEqString, EnumString)]
+#[derive(Debug, Clone, Eq, PartialEq, Display, EnumString, PartialEqString)]
 pub enum RelationTy {
     #[strum(serialize = "belongs_to")]
     BelongsTo,

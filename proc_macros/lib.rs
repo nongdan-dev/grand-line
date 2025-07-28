@@ -3,6 +3,7 @@ mod model;
 mod resolver_ty;
 mod utils;
 
+#[allow(unused_imports)]
 mod prelude {
     pub use crate::crud::*;
     pub use crate::model::*;
@@ -10,11 +11,11 @@ mod prelude {
     pub use crate::utils::*;
     pub use grand_line_macros::*;
     pub use grand_line_proc_proc_macros::*;
+
     pub use heck::*;
     pub use proc_macro::TokenStream;
     pub use proc_macro2::TokenStream as TokenStream2;
     pub use quote::*;
-    #[allow(unused_imports)]
     pub use std::{
         collections::{HashMap, HashSet},
         fmt::Display,

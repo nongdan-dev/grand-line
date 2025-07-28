@@ -12,15 +12,14 @@ pub struct ModelAttr {
 }
 impl From<Attr> for ModelAttr {
     fn from(a: Attr) -> Self {
-        let f = Self::FIELDS;
-        Self {
-            no_created_at: a.bool(f[0]),
-            no_updated_at: a.bool(f[1]),
-            no_deleted_at: a.bool(f[2]),
-            no_by_id: a.bool(f[3]),
-            limit_default: a.parse_opt(f[4]).unwrap_or(10),
-            limit_max: a.parse_opt(f[5]).unwrap_or(100),
-        }
+        attr_unwrap!(Self {
+            no_created_at: bool,
+            no_updated_at: bool,
+            no_deleted_at: bool,
+            no_by_id: bool,
+            limit_default: parse,
+            limit_max: parse,
+        })
     }
 }
 impl AttrValidate for ModelAttr {
