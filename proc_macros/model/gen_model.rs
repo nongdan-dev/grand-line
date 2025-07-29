@@ -60,7 +60,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     // ------------------------------------------------------------------------
     // parse macro attributes, extract and validate
-    let (fields, gfields, vfields) = extract_and_validate_fields(&model_str, &fields);
+    let (vfields, exprs, gfields, fields) = extract_and_validate_fields(&model_str, &fields);
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
     // get the original model name in snake case for sql table, non-plural
@@ -85,13 +85,13 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             .collect::<HashMap<_, _>>();
         let relation = RelationTy::all()
             .iter()
-            .find(|r| map.contains_key(&str!(r)))
+            .find(|r| map.contains_key(&r.to_string()))
             .map(|r| r.to_owned());
         if let Some(ty) = relation {
-            let a = map.get(&str!(ty)).unwrap().clone();
+            let a = map.get(&ty).unwrap().clone();
             virtuals.push(Box::new(GenRelation {
                 model: model_str.clone(),
-                ty,
+                ty: ty.parse().unwrap(),
                 a: RelationAttr::new(a),
             }));
         }
@@ -101,27 +101,19 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // filter / order_by fields
     let filter = ty_filter(&model);
     let order_by = ty_order_by(&model);
-    let mut gql_struk = vec![];
-    let mut gql_resolver = vec![];
-    let mut gql_into = vec![];
-    let mut gql_columns = vec![];
-    let mut filter_struk = vec![];
-    let mut filter_query = vec![];
-    let mut order_by_struk = vec![];
-    let mut order_by_query = vec![];
-    for (f, _) in gfields {
-        push_gql(
-            &f,
-            &virtuals,
-            &mut gql_struk,
-            &mut gql_resolver,
-            &mut gql_into,
-            &mut gql_columns,
-        );
+    let (mut filter_struk, mut filter_query) = (vec![], vec![]);
+    let (mut order_by_struk, mut order_by_query) = (vec![], vec![]);
+    let (mut gql_struk, mut gql_resolver, mut gql_into, mut gql_select, mut gql_select_as) =
+        (vec![], vec![], vec![], vec![], vec![]);
+    for (f, attrs) in gfields {
         push_filter(&f, &mut filter_struk, &mut filter_query);
         push_order_by(&f, &mut order_by_struk, &mut order_by_query);
     }
     push_filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
+
+    // ------------------------------------------------------------------------
+    // gql fields
+    let (mut gql_struk, mut gql_resolver, gql_into, gql_select) = gql_fields(&gfields, &virtuals);
     for f in virtuals.iter() {
         gql_resolver.push(f.gen_resolver_fn());
     }
@@ -198,9 +190,9 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
-            static GQL_COLUMNS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {
+            static GQL_SELECT: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {
                 let mut m = HashMap::new();
-                #(#gql_columns)*
+                #(#gql_select)*
                 m
             });
             impl EntityX<Model, ActiveModel, #filter, #order_by, #gql> for Entity {
@@ -219,9 +211,12 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn config_col_deleted_at() -> Option<Column> {
                     #config_col_deleted_at
                 }
-                fn config_gql_col(field: &str) -> Option<Column> {
-                    GQL_COLUMNS.get(field).copied()
+                fn config_gql_select(field: &str) -> Option<Column> {
+                    GQL_SELECT.get(field).copied()
                 }
+                // fn config_gql_select_as(field: &str) -> Option<Box<dyn ColumnAsExpr>> {
+                //     GQL_SELECT_AS.get(field).copied()
+                // }
                 fn config_limit() -> (u64, u64) {
                     (#limit_default, #limit_max)
                 }

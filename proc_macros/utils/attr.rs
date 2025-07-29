@@ -1,11 +1,11 @@
 use crate::prelude::*;
 use std::{any::type_name, str::FromStr};
 use syn::{
-    Attribute, Field,
+    Attribute, Field, parenthesized,
     token::{Eq, Paren},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Attr {
     /// In proc macro this is empty.
     /// In field, this will be `Model.field`.
@@ -16,9 +16,11 @@ pub struct Attr {
     pub args: HashMap<String, (String, AttrTy)>,
     /// Only in proc macro like #crud[Model, ...].
     /// The first path will be the model name.
-    pub first_path: String,
+    pub first_path: Option<String>,
     /// Only in field.
-    pub field: Option<(String, Field)>,
+    pub field: Option<(String, Attribute, Field)>,
+    /// Only in attribute #[sql_expr(...)].
+    pub sql_expr: Option<String>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -30,18 +32,14 @@ pub enum AttrTy {
 
 #[allow(dead_code)]
 impl Attr {
-    fn new(
-        debug: &str,
-        attr: &str,
-        args: Vec<(String, (String, AttrTy))>,
-        first_path: &str,
-    ) -> Self {
+    fn new(debug: &str, attr: &str, args: Vec<(String, (String, AttrTy))>) -> Self {
         let mut a = Self {
             debug: str!(debug),
             attr: str!(attr),
             args: HashMap::new(),
-            first_path: str!(first_path),
+            first_path: None,
             field: None,
+            sql_expr: None,
         };
         for (k, v) in args {
             if a.args.contains_key(&k) {
@@ -53,7 +51,9 @@ impl Attr {
     }
 
     pub fn from_proc_macro(name: &str, a: AttrParse) -> Self {
-        Self::new("", name, a.args, &a.first_path)
+        let mut r = Self::new("", name, a.args);
+        r.first_path = a.first_path;
+        r
     }
 
     pub fn from_field(model: &str, f: &Field) -> Vec<Self> {
@@ -62,10 +62,37 @@ impl Attr {
             .map(|a| Self::from_field_attr(model, f, a))
             .collect::<Vec<_>>()
     }
-    fn from_field_attr(model: &str, field: &Field, a: &Attribute) -> Self {
+    fn from_field_attr(model: &str, f: &Field, a: &Attribute) -> Self {
+        let attr = str!(a.path().to_token_stream());
+        let debug = strf!("`{}.{}`", model, f.ident.to_token_stream());
+        let field = Some((str!(model), a.clone(), f.clone()));
+        if attr == VirtualTy::SqlExpr {
+            let sql_expr = a
+                .meta
+                .to_token_stream()
+                .to_string()
+                .trim()
+                .strip_prefix("sql_expr")
+                .expect("sql_expr: must starts with sql_expr")
+                .trim()
+                .strip_prefix("(")
+                .expect("sql_expr: must starts with (")
+                .strip_suffix(")")
+                .expect("sql_expr: must end with )")
+                .trim()
+                .to_string();
+            return Self {
+                debug,
+                attr,
+                args: HashMap::new(),
+                first_path: None,
+                field,
+                sql_expr: Some(sql_expr),
+            };
+        }
         let mut args = Vec::<(String, (String, AttrTy))>::new();
         let mut first = true;
-        let mut first_path = str!();
+        let mut first_path = None;
         let _ = a.parse_nested_meta(|m| {
             let k = str!(m.path.get_ident().unwrap());
             let (v, ty);
@@ -73,24 +100,25 @@ impl Attr {
                 v = str!(m.value()?);
                 ty = AttrTy::NameValue;
             } else if m.input.peek(Paren) {
-                v = str!("TODO:");
+                let nested;
+                parenthesized!(nested in m.input);
+                v = str!(nested.parse::<TokenStream2>()?);
                 ty = AttrTy::List;
             } else {
                 v = str!();
                 ty = AttrTy::Path;
             }
             if first && ty == AttrTy::Path {
-                first_path = k.clone();
+                first_path = Some(k.clone());
             }
             args.push((k, (v, ty)));
             first = false;
             Ok(())
         });
-        let debug = strf!("`{}.{}`", model, field.ident.to_token_stream());
-        let attr = str!(a.path().to_token_stream());
-        let mut a = Self::new(&debug, &attr, args, &first_path);
-        a.field = Some((str!(model), field.clone()));
-        a
+        let mut r = Self::new(&debug, &attr, args);
+        r.first_path = first_path;
+        r.field = field;
+        r
     }
 
     pub fn is(&self, attr: &str) -> bool {
@@ -101,19 +129,22 @@ impl Attr {
     }
 
     pub fn model_from_first_path(&self) -> String {
-        let model = self.first_path.clone();
-        if model == "" {
-            let err = strf!("missing model `#[{}(Model, ...)]`", self.attr);
-            self.panic(&err);
+        match self.first_path.clone() {
+            Some(v) => {
+                if v != pascal_str!(v) {
+                    let err = strf!("model `{}` is not pascal case", v);
+                    self.panic(&err);
+                }
+                v
+            }
+            None => {
+                let err = strf!("missing model `#[{}(Model, ...)]`", self.attr);
+                self.panic(&err);
+            }
         }
-        if model != pascal_str!(model) {
-            let err = strf!("model `{}` is not pascal case", model);
-            self.panic(&err);
-        }
-        model
     }
 
-    pub fn field(&self) -> (String, Field) {
+    fn field(&self) -> (String, Attribute, Field) {
         match self.field.clone() {
             Some(v) => v,
             None => self.panic_framework_bug("field none"),
@@ -122,11 +153,14 @@ impl Attr {
     pub fn field_model(&self) -> String {
         self.field().0
     }
+    pub fn field_attr(&self) -> Attribute {
+        self.field().1
+    }
     pub fn field_name(&self) -> String {
-        str!(self.field().1.ident.to_token_stream())
+        str!(self.field().2.ident.to_token_stream())
     }
     pub fn field_ty(&self) -> String {
-        str!(self.field().1.ty.to_token_stream())
+        str!(self.field().2.ty.to_token_stream())
     }
 
     pub fn bool(&self, k: &str) -> Option<bool> {

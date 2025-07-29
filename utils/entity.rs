@@ -29,7 +29,11 @@ where
     /// Get sql column from gql field to look ahead
     /// to select only columns from requested fields in the graphql context.
     /// Should be generated in the #[model] macro.
-    fn config_gql_col(field: &str) -> Option<Self::Column>;
+    fn config_gql_select(field: &str) -> Option<Self::Column>;
+    /// Get sql select as from gql field to look ahead
+    /// to select only columns from requested fields in the graphql context.
+    /// Should be generated in the #[model] macro.
+    // fn config_gql_select_as(field: &str) -> Option<Box<dyn ColumnAsExpr>>;
     /// Get default and max limit configuration.
     /// Should be generated in the #[model] macro.
     fn config_limit() -> (u64, u64);

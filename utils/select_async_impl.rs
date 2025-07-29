@@ -29,9 +29,13 @@ where
     G: FromQueryResult + Send + Sync + 'static,
 {
     async fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<G>>> {
-        let mut q = self.select_only();
-        for c in T::gql_look_ahead(ctx).await? {
-            q = q.select_column(c);
+        let mut q = self;
+        let cols = T::gql_look_ahead(ctx).await?;
+        if cols.len() > 0 {
+            q = q.select_only();
+            for c in cols {
+                q = q.select_column(c);
+            }
         }
         let r = q.into_model::<G>();
         Ok(r)

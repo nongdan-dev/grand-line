@@ -79,7 +79,7 @@ where
 
         let r = f[0]
             .selection_set()
-            .filter_map(|f| Self::config_gql_col(&f.name().to_string()))
+            .filter_map(|f| Self::config_gql_select(&f.name().to_string()))
             .map(|c| (c.to_string(), c))
             .collect::<HashMap<_, _>>()
             .into_values()

@@ -12,6 +12,8 @@ path = "lib.rs"
 
 [features]
 default = ["axum"]
+test_default = ["default", "sqlite"]
+# externals
 sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
 mysql = ["sea-orm/sqlx-mysql", "sqlx/mysql"]
 postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres", "grand-line-proc-macros/postgres"]

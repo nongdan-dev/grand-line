@@ -2,6 +2,14 @@ fmt:
 	cargo fmt \
 	&& dprint fmt;
 
+check:
+	make fmt \
+	&& cargo check;
+
+test:
+	make check \
+	&& cargo test --features test_default;
+
 update:
 	cargo update --dry-run \
 	&& cargo install-update -a \
