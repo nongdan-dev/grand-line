@@ -67,7 +67,14 @@ where
     }
 
     /// Look ahead for sql columns from requested fields in the graphql context.
-    async fn gql_look_ahead(ctx: &Context<'_>) -> Res<Vec<Self::Column>> {
+    async fn gql_look_ahead(
+        ctx: &Context<'_>,
+    ) -> Res<
+        Vec<(
+            Option<Self::Column>,
+            Option<(&'static str, sea_query::SimpleExpr)>,
+        )>,
+    > {
         let k = Self::gql_look_ahead_key(ctx);
         // TODO: cache in the gl context to handle case like: 1000 response nested etc...
         println!("gql_look_ahead k={}", k);
@@ -79,11 +86,18 @@ where
 
         let r = f[0]
             .selection_set()
-            .filter_map(|f| Self::config_gql_select(&f.name().to_string()))
-            .map(|c| (c.to_string(), c))
+            .filter_map(|f| {
+                let name = f.name().to_string();
+                match Self::config_gql_select(&name) {
+                    (None, None) => None,
+                    (o1, o2) => Some((name, o1, o2)),
+                }
+            })
+            .map(|(f, o1, o2)| (f, (o1, o2)))
             .collect::<HashMap<_, _>>()
             .into_values()
             .collect::<Vec<_>>();
+
         Ok(r)
     }
 

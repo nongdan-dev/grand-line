@@ -2,7 +2,7 @@ use crate::prelude::*;
 use syn::Field;
 
 pub fn gql_fields(
-    fields: &Vec<Field>,
+    gfields: &Vec<(Field, Vec<Attr>)>,
     virtuals: &Vec<Box<dyn GenVirtual>>,
 ) -> (
     Vec<TokenStream2>,
@@ -11,7 +11,7 @@ pub fn gql_fields(
     Vec<TokenStream2>,
 ) {
     let (mut struk, mut resolver, mut into, mut select) = (vec![], vec![], vec![], vec![]);
-    for f in fields {
+    for (f, _) in gfields {
         let name = f.ident.to_token_stream();
         let gql_name = camel_str!(name);
         let ty = f.ty.to_token_stream();
@@ -67,10 +67,13 @@ pub fn gql_exprs(
             .iter()
             .find(|a| a.attr == VirtualTy::SqlExpr)
             .expect("select_as attr == VirtualTy::SqlExpr");
-        let (name, ty) = (ts2!(a.field_name()), ts2!(a.field_ty()));
+        let name_str = a.field_name();
+        let name = ts2!(name_str);
+        let ty = ts2!(a.field_ty());
         push_struk_resolver(&name, &ty, &mut struk, &mut resolver);
-        let sql_expr = a.sql_expr.as_ref().expect("select_as sql_expr unwrap");
-        select_as.push(ts2!(sql_expr));
+        let gql_name = camel_str!(name);
+        let sql_expr = ts2!(a.sql_expr.as_ref().expect("select_as sql_expr unwrap"));
+        select_as.push(quote!(m.insert(#gql_name, (#name_str, #sql_expr));));
     }
 
     (struk, resolver, select_as)

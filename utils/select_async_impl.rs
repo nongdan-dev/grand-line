@@ -33,8 +33,15 @@ where
         let cols = T::gql_look_ahead(ctx).await?;
         if cols.len() > 0 {
             q = q.select_only();
-            for c in cols {
-                q = q.select_column(c);
+            for (c, f) in cols {
+                match c {
+                    None => {}
+                    Some(c) => q = q.select_column(c),
+                };
+                match f {
+                    None => {}
+                    Some((f, e)) => q = q.column_as(e, f),
+                };
             }
         }
         let r = q.into_model::<G>();

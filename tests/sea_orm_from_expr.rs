@@ -23,11 +23,6 @@ mod tests {
             .extension(GrandLineExtension)
             .data(Arc::new(db.clone()))
             .finish();
-        let GQL_SELECT_AS: LazyLock<HashMap<&'static str, Box<dyn ColumnAsExpr>>> =
-            LazyLock::new(|| {
-                let mut m = HashMap::new();
-                m
-            });
 
         let backend = db.get_database_backend();
         let schema = sea_orm::Schema::new(backend);
