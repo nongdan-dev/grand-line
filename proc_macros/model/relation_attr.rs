@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct RelationAttr {
     pub a: Attr,
 }

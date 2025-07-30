@@ -3,36 +3,50 @@ use crate::prelude::*;
 /// Pagination async_graphql input struct to use in search query.
 #[input]
 pub struct Pagination {
-    pub limit: Option<u64>,
     pub offset: Option<u64>,
+    pub limit: Option<u64>,
+}
+
+/// Pagination after unwrap option into inner.
+pub struct PaginationInner {
+    pub offset: u64,
+    pub limit: u64,
+}
+
+/// Pagination limit config.
+pub struct ConfigLimit {
+    pub default: u64,
+    pub max: u64,
 }
 
 /// Helper trait to get offset and limit from pagination, with default and max limit.
-pub trait PaginationWith {
+pub trait ToPaginationInner {
     /// Helper to get offset and limit from pagination, with default and max limit.
-    fn with(self, limit_default: u64, limit_max: u64) -> (u64, u64);
+    fn inner(self, c: ConfigLimit) -> PaginationInner;
 }
 
-/// Automatically implement PaginationWith for Pagination.
-impl PaginationWith for Pagination {
-    fn with(self, limit_default: u64, limit_max: u64) -> (u64, u64) {
-        (
-            if let Some(o) = self.offset { o } else { 0 },
-            if let Some(l) = self.limit {
-                if l > limit_max { limit_max } else { l }
-            } else {
-                limit_default
-            },
-        )
+/// Automatically implement ToPaginationInner for Pagination.
+impl ToPaginationInner for Pagination {
+    fn inner(self, c: ConfigLimit) -> PaginationInner {
+        PaginationInner {
+            offset: self.offset.unwrap_or_default(),
+            limit: self
+                .limit
+                .map(|l| if l > c.max { c.max } else { l })
+                .unwrap_or(c.default),
+        }
     }
 }
 
-/// Automatically implement PaginationWith for Option<Pagination>.
-impl PaginationWith for Option<Pagination> {
-    fn with(self, limit_default: u64, limit_max: u64) -> (u64, u64) {
+/// Automatically implement ToPaginationInner for Option<Pagination>.
+impl ToPaginationInner for Option<Pagination> {
+    fn inner(self, c: ConfigLimit) -> PaginationInner {
         match self {
-            Some(p) => p.with(limit_default, limit_max),
-            None => (0, limit_default),
+            Some(p) => p.inner(c),
+            None => PaginationInner {
+                offset: 0,
+                limit: c.default,
+            },
         }
     }
 }

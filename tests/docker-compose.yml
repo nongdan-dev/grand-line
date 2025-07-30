@@ -1,0 +1,22 @@
+version: 'latest'
+
+services:
+  grand_line_test_postgres:
+    image: postgres:latest
+    container_name: grand_line_test_postgres
+    environment:
+      POSTGRES_DB: test_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test_pwd
+    ports:
+      - "5432:5432"
+  grand_line_test_mysql:
+    image: mysql:latest
+    container_name: grand_line_test_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: test_pwd
+      MYSQL_DATABASE: test_db
+      MYSQL_USER: test
+      MYSQL_PASSWORD: test_pwd
+    ports:
+      - "3306:3306"

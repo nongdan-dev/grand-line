@@ -2,6 +2,22 @@ fmt:
 	cargo fmt \
 	&& dprint fmt;
 
+check:
+	make fmt \
+	&& cargo check;
+
+test:
+	make check \
+	&& cargo test --features serial_db;
+
+test_mysql:
+	make check \
+	&& cargo test --no-default-features --features mysql serial_db;
+
+test_sqlite:
+	make check \
+	&& cargo test --no-default-features --features sqlite;
+
 update:
 	cargo update --dry-run \
 	&& cargo install-update -a \

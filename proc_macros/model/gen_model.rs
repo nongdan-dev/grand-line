@@ -60,7 +60,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     // ------------------------------------------------------------------------
     // parse macro attributes, extract and validate
-    let (fields, gfields, vfields) = extract_and_validate_fields(&model_str, &fields);
+    let (vfields, exprs, gfields, fields) = extract_and_validate_fields(&model_str, &fields);
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
     // get the original model name in snake case for sql table, non-plural
@@ -85,13 +85,13 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             .collect::<HashMap<_, _>>();
         let relation = RelationTy::all()
             .iter()
-            .find(|r| map.contains_key(&str!(r)))
+            .find(|r| map.contains_key(&r.to_string()))
             .map(|r| r.to_owned());
         if let Some(ty) = relation {
-            let a = map.get(&str!(ty)).unwrap().clone();
+            let a = map.get(&ty).unwrap().clone();
             virtuals.push(Box::new(GenRelation {
                 model: model_str.clone(),
-                ty,
+                ty: ty.parse().unwrap(),
                 a: RelationAttr::new(a),
             }));
         }
@@ -101,27 +101,20 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // filter / order_by fields
     let filter = ty_filter(&model);
     let order_by = ty_order_by(&model);
-    let mut gql_struk = vec![];
-    let mut gql_resolver = vec![];
-    let mut gql_into = vec![];
-    let mut gql_columns = vec![];
-    let mut filter_struk = vec![];
-    let mut filter_query = vec![];
-    let mut order_by_struk = vec![];
-    let mut order_by_query = vec![];
-    for (f, _) in gfields {
-        push_gql(
-            &f,
-            &virtuals,
-            &mut gql_struk,
-            &mut gql_resolver,
-            &mut gql_into,
-            &mut gql_columns,
-        );
-        push_filter(&f, &mut filter_struk, &mut filter_query);
-        push_order_by(&f, &mut order_by_struk, &mut order_by_query);
+    let (mut filter_struk, mut filter_query) = (vec![], vec![]);
+    let (mut order_by_struk, mut order_by_query) = (vec![], vec![]);
+    for (f, _) in &gfields {
+        push_filter(f, &mut filter_struk, &mut filter_query);
+        push_order_by(f, &mut order_by_struk, &mut order_by_query);
     }
     push_filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
+
+    // ------------------------------------------------------------------------
+    // gql fields
+    let (mut gql_struk, mut gql_resolver, gql_into, gql_select) = gql_fields(&gfields, &virtuals);
+    let (gql_struk2, gql_resolver2, gql_select_as) = gql_exprs(&exprs);
+    gql_struk.extend(gql_struk2);
+    gql_resolver.extend(gql_resolver2);
     for f in virtuals.iter() {
         gql_resolver.push(f.gen_resolver_fn());
     }
@@ -198,9 +191,16 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
-            static GQL_COLUMNS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {
+            type GqlSelect = LazyLock<HashMap<&'static str, Column>>;
+            static GQL_SELECT: GqlSelect = LazyLock::new(|| {
                 let mut m = HashMap::new();
-                #(#gql_columns)*
+                #(#gql_select)*
+                m
+            });
+            type GqlSelectAs = LazyLock<HashMap<&'static str, (&'static str, sea_query::SimpleExpr)>>;
+            static GQL_SELECT_AS: GqlSelectAs = LazyLock::new(|| {
+                let mut m = HashMap::new();
+                #(#gql_select_as)*
                 m
             });
             impl EntityX<Model, ActiveModel, #filter, #order_by, #gql> for Entity {
@@ -219,11 +219,19 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn config_col_deleted_at() -> Option<Column> {
                     #config_col_deleted_at
                 }
-                fn config_gql_col(field: &str) -> Option<Column> {
-                    GQL_COLUMNS.get(field).copied()
+                fn config_gql_select(field: &str) -> (Option<Self::Column>, Option<(String, sea_query::SimpleExpr)>) {
+                    let o1 = GQL_SELECT.get(field);
+                    if o1.is_some() {
+                        return (o1.copied(), None);
+                    }
+                    let o2 = GQL_SELECT_AS.get(field).map(|s| (s.0.to_string(), s.1.clone()));
+                    (None, o2)
                 }
-                fn config_limit() -> (u64, u64) {
-                    (#limit_default, #limit_max)
+                fn config_limit() -> ConfigLimit {
+                    ConfigLimit {
+                        default: #limit_default,
+                        max: #limit_max,
+                    }
                 }
             }
 

@@ -6,13 +6,14 @@ use syn::{
     token::Comma,
 };
 
-/// Only in proc macro.
+/// Only in proc macro. For example with `#[proc_macro(k, k1=v1, k2=v2)]`
+/// it will only pass the nested `k, k1=v1, k2=v2` part to this impl.
 #[derive(Debug, Clone)]
 pub struct AttrParse {
     pub args: Vec<(String, (String, AttrTy))>,
     /// Only in proc macro #crud[Model, ...].
     /// The first path will be the model name.
-    pub first_path: String,
+    pub first_path: Option<String>,
 }
 
 impl AttrParse {
@@ -28,7 +29,7 @@ impl Parse for AttrParse {
     fn parse(s: ParseStream) -> Result<Self> {
         let mut args = Vec::new();
         let mut first = true;
-        let mut first_path = str!();
+        let mut first_path = None;
         for m in Punctuated::<Meta, Comma>::parse_terminated(s)? {
             let (k, v, ty);
             match m {
@@ -49,7 +50,7 @@ impl Parse for AttrParse {
                 }
             }
             if first && ty == AttrTy::Path {
-                first_path = k.clone();
+                first_path = Some(k.clone());
             }
             args.push((k, (v, ty)));
             first = false;

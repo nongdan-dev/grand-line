@@ -5,21 +5,22 @@ mod utils;
 
 #[allow(unused_imports)]
 mod prelude {
-    pub use crate::crud::*;
-    pub use crate::model::*;
-    pub use crate::resolver_ty::*;
-    pub use crate::utils::*;
-    pub use grand_line_macros::*;
-    pub use grand_line_proc_proc_macros::*;
-
-    pub use heck::*;
-    pub use maplit::*;
-    pub use proc_macro::TokenStream;
-    pub use proc_macro2::TokenStream as TokenStream2;
-    pub use quote::*;
-    pub use std::{
-        collections::{HashMap, HashSet},
-        fmt::Display,
+    pub use {
+        crate::crud::*,
+        crate::model::*,
+        crate::resolver_ty::*,
+        crate::utils::*,
+        grand_line_macros::*,
+        grand_line_proc_proc_macros::*,
+        heck::*,
+        maplit::*,
+        proc_macro::TokenStream,
+        proc_macro2::TokenStream as TokenStream2,
+        quote::*,
+        std::{
+            collections::{HashMap, HashSet},
+            fmt::Display,
+        },
     };
 }
 
@@ -45,6 +46,7 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
         has_one,
         has_many,
         many_to_many,
+        sql_expr,
         resolver,
     )
 )]

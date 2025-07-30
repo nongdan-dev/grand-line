@@ -11,7 +11,8 @@ edition = "2024"
 path = "lib.rs"
 
 [features]
-default = ["axum"]
+default = ["axum", "postgres"]
+# externals
 sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
 mysql = ["sea-orm/sqlx-mysql", "sqlx/mysql"]
 postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres", "grand-line-proc-macros/postgres"]
@@ -37,11 +38,13 @@ no_async = ["grand-line-proc-macros/no_async"]
 limit_x2 = ["grand-line-proc-macros/limit_x2"]
 limit_x5 = ["grand-line-proc-macros/limit_x5"]
 limit_x10 = ["grand-line-proc-macros/limit_x10"]
+# tests
+serial_db = []
 
 [dependencies]
 async-graphql = { version = "7.0.17", default-features = false, features = ["chrono", "chrono-duration", "chrono-tz", "dataloader", "decimal", "string_number", "boxed-trait"] }
 async-graphql-axum = { version = "7.0.17", default-features = false, optional = true }
-async-trait = { version = "0.1.88" }
+async-trait = "0.1.88"
 axum = { version = "0.8.4", default-features = false, optional = true, features = ["default", "http2", "tokio", "multipart"] }
 chrono = { version = "0.4.41", default-features = false, features = ["now", "serde"] }
 grand-line-macros = { path = "macros" }
@@ -52,10 +55,14 @@ serde = { version = "1.0.219", default-features = false, features = ["derive", "
 serde_json = { version = "1.0.141", default-features = false }
 serde_with = { version = "3.14.0", default-features = false, features = ["macros"] }
 sqlx = { version = "0.8.6", default-features = false, features = ["chrono", "json", "macros", "migrate", "runtime-tokio-rustls", "rust_decimal"] }
-thiserror = { version = "2.0.12" }
+thiserror = "2.0.12"
 tokio = { version = "1.47.0", default-features = false, features = ["full"] }
 tower = { version = "0.5.2", default-features = false, optional = true }
 tower-http = { version = "0.6.6", default-features = false, optional = true, features = ["normalize-path"] }
 tracing = { version = "0.1.41", optional = true }
 tracing-subscriber = { version = "0.3.19", optional = true }
 ulid = { version = "1.2.1", default-features = false, features = ["std"] }
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
+serial_test = "3.2.0"
