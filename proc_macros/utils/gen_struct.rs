@@ -2,6 +2,14 @@ use crate::prelude::*;
 use syn::{Expr, ExprStruct, Lit, parse_macro_input};
 
 pub fn gen_struct(item: TokenStream, suf: &str, fw: &str, rw: &str) -> TokenStream {
+    let mut item = Into::<TokenStream2>::into(item)
+        .to_string()
+        .trim()
+        .to_owned();
+    if !item.ends_with("}") {
+        item = item + "{}";
+    }
+    let item = Into::<TokenStream>::into(ts2!(item));
     let item = parse_macro_input!(item as ExprStruct);
 
     let model = item.path.get_ident().to_token_stream();

@@ -24,7 +24,6 @@ resolver_inputs = []
 resolver_output = []
 no_tx = []
 no_ctx = []
-no_async = []
 # limit flags
 limit_x2 = []
 limit_x5 = []

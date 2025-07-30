@@ -3,11 +3,10 @@ mod utils;
 pub use context::*;
 pub use utils::*;
 
-pub use grand_line_macros::active_value;
+pub use grand_line_macros::am_value;
 pub use grand_line_proc_macros::{
-    GrandLineModel, active_create, active_model, active_update, count, create, delete, detail,
-    enunn, filter, filter_some, input, model, mutation, order_by, order_by_some, query, search,
-    update,
+    GrandLineModel, active_model, am_create, am_update, count, create, delete, detail, enunn,
+    filter, filter_some, input, model, mutation, order_by, order_by_some, query, search, update,
 };
 
 mod re_exports {

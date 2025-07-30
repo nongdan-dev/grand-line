@@ -12,14 +12,14 @@ where
 {
     /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
     /// We need to have this method instead to get default values on create.
-    /// This can be used together with the macro grand_line::active_create.
+    /// This can be used together with the macro grand_line::am_create.
     /// Should be generated in the #[model] macro.
-    fn config_active_create(am: A) -> A;
+    fn config_am_create(am: A) -> A;
     /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
     /// We need to have this method instead to get default values on update.
-    /// This can be used together with the macro grand_line::active_update.
+    /// This can be used together with the macro grand_line::am_update.
     /// Should be generated in the #[model] macro.
-    fn config_active_update(am: A) -> A;
+    fn config_am_update(am: A) -> A;
     /// Get primary id column to use in abstract methods.
     /// Should be generated in the #[model] macro.
     fn config_col_id() -> Self::Column;

@@ -72,7 +72,4 @@ impl GenResolverFn for ResolverTy {
     fn no_ctx(&self) -> bool {
         self.attr.no_ctx
     }
-    fn no_async(&self) -> bool {
-        self.attr.no_async
-    }
 }

@@ -16,9 +16,6 @@ where
     fn no_ctx(&self) -> bool {
         false
     }
-    fn no_async(&self) -> bool {
-        false
-    }
 
     fn gen_resolver_fn(&self) -> TokenStream2 {
         let name = self.name();
@@ -28,11 +25,10 @@ where
         let mut body = self.body();
         let no_tx = self.no_tx();
         let no_ctx = self.no_ctx();
-        let no_async = self.no_async();
 
         if !no_tx {
-            if no_ctx || no_async {
-                self.panic("tx requires ctx, async");
+            if no_ctx {
+                self.panic("tx requires ctx");
             }
             body = quote! {
                 let _tx = ctx.tx().await?;
@@ -45,23 +41,19 @@ where
             inputs = quote!(ctx: &async_graphql::Context<'_>, #inputs);
         }
 
-        let mut async_keyword = ts2!();
-        if !no_async {
-            body = quote! {
-                let r: #output = {
-                    #body
-                };
-                Ok(r)
+        body = quote! {
+            let r: #output = {
+                #body
             };
-            // TODO: use our error enum to only return client error
-            output = quote!(Result<#output, Box<dyn Error + Send + Sync>>);
-            async_keyword = quote!(async);
-        }
+            Ok(r)
+        };
+        // TODO: use our error enum to only return client error
+        output = quote!(Result<#output, Box<dyn Error + Send + Sync>>);
 
         quote! {
             // TODO: copy #[graphql...] and comments from the original field
             #[graphql(name=#gql_name)]
-            #async_keyword fn #name(&self, #inputs) -> #output {
+            async fn #name(&self, #inputs) -> #output {
                 #body
             }
         }

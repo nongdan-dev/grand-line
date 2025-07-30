@@ -5,14 +5,12 @@ use field_names::FieldNames;
 pub struct ResolverTyAttr {
     pub no_tx: bool,
     pub no_ctx: bool,
-    pub no_async: bool,
 }
 impl From<Attr> for ResolverTyAttr {
     fn from(a: Attr) -> Self {
         attr_unwrap!(Self {
             no_tx: bool,
             no_ctx: bool,
-            no_async: bool,
         })
     }
 }

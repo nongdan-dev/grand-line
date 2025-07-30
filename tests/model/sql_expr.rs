@@ -9,18 +9,17 @@ pub struct Data {
     b: i64,
 }
 #[detail(Data)]
-fn sqlExpr() {}
+fn resolver() {}
 
 #[tokio::test]
-#[cfg_attr(feature = "serial_db", serial(db))]
+#[cfg_attr(feature = "serial", serial)]
 async fn default() -> Result<(), Box<dyn Error>> {
     let db = db_1(Data).await?;
-    let gql = schema_q::<SqlExprQuery>(&db);
-    let d = active_create!(Data { a: 1 }).insert(&db).await?;
+    let d = am_create!(Data { a: 1 }).insert(&db).await?;
 
     let q = r#"
     query test($id: ID!) {
-        sqlExpr(id: $id) {
+        dataDetail(id: $id) {
             b
         }
     }
@@ -28,16 +27,13 @@ async fn default() -> Result<(), Box<dyn Error>> {
     let v = value!({
         "id": d.id,
     });
-    let req = request(q, v);
-    let res = gql.execute(req).await;
-    assert!(res.errors.is_empty(), "{:#?}", res.errors);
-
     let expected = value!({
-        "sqlExpr": {
+        "dataDetail": {
             "b": 1001,
         },
     });
-    pretty_eq!(res.data, expected);
 
+    let s = schema_q::<DataDetailQuery>(&db);
+    exec_assert(s, q, v, expected).await?;
     Ok(())
 }

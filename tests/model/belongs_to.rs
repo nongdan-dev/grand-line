@@ -16,14 +16,11 @@ pub struct Profile {
 fn resolver() {}
 
 #[tokio::test]
-#[cfg_attr(feature = "serial_db", serial(db))]
+#[cfg_attr(feature = "serial", serial)]
 async fn default() -> Result<(), Box<dyn Error>> {
     let db = db_2(User, Profile).await?;
-    let gql = schema_q::<ProfileDetailQuery>(&db);
-    let u = active_create!(User { name: "Olivia" }).insert(&db).await?;
-    let f = active_create!(Profile { user_id: u.id })
-        .insert(&db)
-        .await?;
+    let u = am_create!(User { name: "Olivia" }).insert(&db).await?;
+    let f = am_create!(Profile { user_id: u.id }).insert(&db).await?;
 
     let q = r#"
     query test($id: ID!) {
@@ -37,10 +34,6 @@ async fn default() -> Result<(), Box<dyn Error>> {
     let v = value!({
         "id": f.id,
     });
-    let req = request(q, v);
-    let res = gql.execute(req).await;
-    assert!(res.errors.is_empty(), "{:#?}", res.errors);
-
     let expected = value!({
         "profileDetail": {
             "user": {
@@ -48,7 +41,8 @@ async fn default() -> Result<(), Box<dyn Error>> {
             },
         },
     });
-    pretty_eq!(res.data, expected);
 
+    let s = schema_q::<ProfileDetailQuery>(&db);
+    exec_assert(s, q, v, expected).await?;
     Ok(())
 }

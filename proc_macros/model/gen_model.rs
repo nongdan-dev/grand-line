@@ -85,8 +85,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             .collect::<HashMap<_, _>>();
         let relation = RelationTy::all()
             .iter()
-            .find(|r| map.contains_key(&r.to_string()))
-            .map(|r| r.to_owned());
+            .find(|r| map.contains_key(&str!(r)))
+            .map(|r| str!(r));
         if let Some(ty) = relation {
             let a = map.get(&ty).unwrap().clone();
             virtuals.push(Box::new(GenRelation {
@@ -204,12 +204,12 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 m
             });
             impl EntityX<Model, ActiveModel, #filter, #order_by, #gql> for Entity {
-                fn config_active_create(mut am: ActiveModel) -> ActiveModel {
+                fn config_am_create(mut am: ActiveModel) -> ActiveModel {
                     #am_id
                     #am_created_at
                     am
                 }
-                fn config_active_update(mut am: ActiveModel) -> ActiveModel {
+                fn config_am_update(mut am: ActiveModel) -> ActiveModel {
                     #am_updated_at
                     am
                 }

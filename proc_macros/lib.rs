@@ -148,28 +148,18 @@ pub fn active_model(item: TokenStream) -> TokenStream {
 
 /// Helper to quickly create an active model with concise syntax
 /// and convert all string literals into String automatically.
-/// It will also wrap the active model with Entity::config_active_create
+/// It will also wrap the active model with Entity::config_am_create
 /// to get default values on this operation
 #[proc_macro]
-pub fn active_create(item: TokenStream) -> TokenStream {
-    gen_struct(
-        item,
-        "ActiveModel",
-        "ActiveValue::Set",
-        "config_active_create",
-    )
+pub fn am_create(item: TokenStream) -> TokenStream {
+    gen_struct(item, "ActiveModel", "ActiveValue::Set", "config_am_create")
 }
 
 /// Helper to quickly create active model with concise syntax
 /// and convert all string literals into String automatically.
-/// It will also wrap the active model with Entity::config_active_update
+/// It will also wrap the active model with Entity::config_am_update
 /// to get default values on this operation
 #[proc_macro]
-pub fn active_update(item: TokenStream) -> TokenStream {
-    gen_struct(
-        item,
-        "ActiveModel",
-        "ActiveValue::Set",
-        "config_active_update",
-    )
+pub fn am_update(item: TokenStream) -> TokenStream {
+    gen_struct(item, "ActiveModel", "ActiveValue::Set", "config_am_update")
 }

@@ -38,7 +38,7 @@ where
     }
 
     /// Helper to check if exists by condition and return error if not.
-    async fn must_exists<D>(db: &D, c: Condition) -> Res<()>
+    async fn try_exists<D>(db: &D, c: Condition) -> Res<()>
     where
         D: ConnectionTrait,
     {
@@ -48,15 +48,15 @@ where
         }
     }
     /// Helper to check if exists by id and return error if not.
-    async fn must_exists_by_id<D>(db: &D, id: &str) -> Res<()>
+    async fn try_exists_by_id<D>(db: &D, id: &str) -> Res<()>
     where
         D: ConnectionTrait,
     {
-        Self::must_exists(db, Self::condition_id(id)).await
+        Self::try_exists(db, Self::condition_id(id)).await
     }
 
     /// Helper to find by id and return error if not.
-    async fn must_find_by_id<D>(db: &D, id: &str) -> Res<M>
+    async fn try_find_by_id<D>(db: &D, id: &str) -> Res<M>
     where
         D: ConnectionTrait,
     {

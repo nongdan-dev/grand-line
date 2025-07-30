@@ -15,8 +15,8 @@ pub fn check_crud_io(a: &CrudAttr, r: &ResolverTyItem) {
                 r.gql_name, r.output,
             );
         }
-        if ra.no_tx || ra.no_ctx || ra.no_async {
-            panic!("{} output requires tx, ctx, async", r.gql_name);
+        if ra.no_tx || ra.no_ctx {
+            panic!("{} output requires tx, ctx", r.gql_name);
         }
     }
     if a.resolver_inputs && a.resolver_output {
@@ -26,8 +26,8 @@ pub fn check_crud_io(a: &CrudAttr, r: &ResolverTyItem) {
         );
     }
     if !ra.no_tx {
-        if ra.no_ctx || ra.no_async {
-            panic!("{} tx requires ctx, async", r.gql_name);
+        if ra.no_ctx {
+            panic!("{} tx requires ctx", r.gql_name);
         }
     }
 }

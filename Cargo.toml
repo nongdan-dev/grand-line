@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "macros", "proc_macros"]
+members = [".", "macros", "proc_macros", "proc_proc_macros"]
 resolver = "2"
 
 [package]
@@ -33,13 +33,12 @@ resolver_inputs = ["grand-line-proc-macros/resolver_inputs"]
 resolver_output = ["grand-line-proc-macros/resolver_output"]
 no_tx = ["grand-line-proc-macros/no_tx"]
 no_ctx = ["grand-line-proc-macros/no_ctx"]
-no_async = ["grand-line-proc-macros/no_async"]
 # limit flags
 limit_x2 = ["grand-line-proc-macros/limit_x2"]
 limit_x5 = ["grand-line-proc-macros/limit_x5"]
 limit_x10 = ["grand-line-proc-macros/limit_x10"]
 # tests
-serial_db = []
+serial = []
 
 [dependencies]
 async-graphql = { version = "7.0.17", default-features = false, features = ["chrono", "chrono-duration", "chrono-tz", "dataloader", "decimal", "string_number", "boxed-trait"] }
