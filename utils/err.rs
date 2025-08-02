@@ -12,11 +12,14 @@ pub enum ErrServer {
     TxCommit,
     #[error("rollback error: transaction is still in use elsewhere")]
     TxRollback,
-    #[error("look ahead selection fields list length must be 1")]
+    #[error("look ahead selection fields list length should be 1")]
     LookAhead,
 
     #[error("server error: {0}")]
     New(String),
+
+    #[error("FRAMEWORK BUG: id is not found in the model columns")]
+    BugId404,
 }
 
 #[derive(Error, Debug)]

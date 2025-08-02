@@ -34,7 +34,8 @@ where
     where
         D: ConnectionTrait,
     {
-        Self::exists(db, Self::condition_id(id)).await
+        let c = Self::condition_id(id)?;
+        Self::exists(db, c).await
     }
 
     /// Helper to check if exists by condition and return error if not.
@@ -52,7 +53,8 @@ where
     where
         D: ConnectionTrait,
     {
-        Self::try_exists(db, Self::condition_id(id)).await
+        let c = Self::condition_id(id)?;
+        Self::try_exists(db, c).await
     }
 
     /// Helper to find by id and return error if not.
@@ -60,7 +62,7 @@ where
     where
         D: ConnectionTrait,
     {
-        match Self::find().filter(Self::condition_id(id)).one(db).await? {
+        match Self::internal_find_by_id(id)?.one(db).await? {
             Some(v) => Ok(v),
             None => err_client!(Db404),
         }
@@ -71,8 +73,9 @@ where
         ctx: &Context<'_>,
     ) -> Res<
         Vec<(
-            Option<Vec<Self::Column>>,
-            Option<(String, sea_query::SimpleExpr)>,
+            &'static str,
+            Option<Self::Column>,
+            Option<sea_query::SimpleExpr>,
         )>,
     > {
         let k = Self::gql_look_ahead_key(ctx);
@@ -84,18 +87,23 @@ where
             return err_server!(LookAhead);
         }
 
+        let sql_cols = Self::config_sql_cols();
+        let sql_exprs = Self::config_sql_exprs();
+        let gql_select = Self::config_gql_select();
+
         let r = f[0]
             .selection_set()
-            .filter_map(|f| {
-                let name = f.name().to_string();
-                match Self::config_gql_select(&name) {
+            .filter_map(|f| gql_select.get(f.name().to_string().as_str()))
+            .flat_map(|c| c.iter().copied())
+            .collect::<HashSet<_>>()
+            .iter()
+            .filter_map(|c| {
+                let (col, expr) = (sql_cols.get(c), sql_exprs.get(c));
+                match (col, expr) {
                     (None, None) => None,
-                    (o1, o2) => Some((name, o1, o2)),
+                    _ => Some((*c, col.copied(), expr.cloned())),
                 }
             })
-            .map(|(f, o1, o2)| (f, (o1, o2)))
-            .collect::<HashMap<_, _>>()
-            .into_values()
             .collect::<Vec<_>>();
 
         Ok(r)
@@ -146,7 +154,7 @@ where
     where
         D: ConnectionTrait,
     {
-        let r = Self::internal_find_by_id(id)
+        let r = Self::internal_find_by_id(id)?
             .gql_select(ctx)
             .await?
             .one(db)
@@ -159,10 +167,10 @@ where
     where
         D: ConnectionTrait,
     {
-        let c = Self::condition_id(id);
+        let c = Self::condition_id(id)?;
         let r = Self::find()
             .filter(c.clone())
-            .gql_select_id()
+            .gql_select_id()?
             .one(db)
             .await?;
         match r {

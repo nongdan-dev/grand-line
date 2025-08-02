@@ -33,18 +33,14 @@ where
         let cols = T::gql_look_ahead(ctx).await?;
         if cols.len() > 0 {
             q = q.select_only();
-            for (c, f) in cols {
-                match c {
+            for (c, col, expr) in cols {
+                match col {
                     None => {}
-                    Some(cols) => {
-                        for c in cols {
-                            q = q.select_column(c)
-                        }
-                    }
+                    Some(col) => q = q.select_column(col),
                 }
-                match f {
+                match expr {
                     None => {}
-                    Some((f, e)) => q = q.column_as(e, f),
+                    Some(expr) => q = q.column_as(expr, c),
                 }
             }
         }

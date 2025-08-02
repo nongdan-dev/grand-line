@@ -21,10 +21,11 @@ async fn default() -> Result<(), Box<dyn Error>> {
             u: &UserGql,
             _: &Context<'_>,
         ) -> Result<String, Box<dyn Error + Send + Sync>> {
+            let err = "should be selected from database already";
             let full_name = vec![
-                u.try_first_name()?,
-                u.try_middle_name()?,
-                u.try_last_name()?,
+                u.first_name.clone().ok_or_else(|| err)?,
+                u.middle_name.clone().ok_or_else(|| err)?,
+                u.last_name.clone().ok_or_else(|| err)?,
             ]
             .join(" ");
             Ok(full_name)
@@ -61,6 +62,64 @@ async fn default() -> Result<(), Box<dyn Error>> {
     });
 
     let s = schema_q::<UserDetailQuery>(&db);
+    exec_assert(s, q, v, expected).await?;
+    Ok(())
+}
+
+#[tokio::test]
+#[cfg_attr(feature = "serial", serial)]
+async fn sql_expr() -> Result<(), Box<dyn Error>> {
+    mod test {
+        use super::*;
+
+        #[model]
+        pub struct Data {
+            a: i64,
+            #[sql_expr(Expr::col(Column::A).add(1000))]
+            b: i64,
+            #[sql_expr(Expr::col(Column::A).add(2000))]
+            c: i64,
+            #[resolver(sql_dep=a+b+c)]
+            d: i64,
+        }
+
+        async fn resolve_d(
+            u: &DataGql,
+            _: &Context<'_>,
+        ) -> Result<i64, Box<dyn Error + Send + Sync>> {
+            let err = "should be selected from database already";
+            let a = u.a.ok_or_else(|| err)?;
+            let b = u.b.ok_or_else(|| err)?;
+            let c = u.c.ok_or_else(|| err)?;
+            let d = a + b + c;
+            Ok(d)
+        }
+
+        #[detail(Data)]
+        fn resolver() {}
+    }
+    use test::*;
+
+    let db = db_1(Data).await?;
+    let d = am_create!(Data { a: 1 }).insert(&db).await?;
+
+    let q = r#"
+    query test($id: ID!) {
+        dataDetail(id: $id) {
+            d
+        }
+    }
+    "#;
+    let v = value!({
+        "id": d.id,
+    });
+    let expected = value!({
+        "dataDetail": {
+            "d": 3003,
+        },
+    });
+
+    let s = schema_q::<DataDetailQuery>(&db);
     exec_assert(s, q, v, expected).await?;
     Ok(())
 }

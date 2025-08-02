@@ -12,8 +12,8 @@ where
     G: FromQueryResult + Send + Sync,
 {
     /// Shortcut condition id eq.
-    fn condition_id(id: &str) -> Condition {
-        Condition::all().add(Self::config_col_id().eq(id))
+    fn condition_id(id: &str) -> Res<Condition> {
+        Self::config_col_id().map(|c| Condition::all().add(c.eq(id)))
     }
     /// Shortcut condition deleted_at is not null, if there is deleted_at.
     fn condition_exclude_deleted() -> Condition {
@@ -79,8 +79,8 @@ where
     O: OrderBy<Self>,
     G: FromQueryResult + Send + Sync,
 {
-    fn internal_find_by_id(id: &str) -> Select<Self> {
-        Self::find().filter(Self::condition_id(id))
+    fn internal_find_by_id(id: &str) -> Res<Select<Self>> {
+        Self::condition_id(id).map(|c| Self::find().filter(c))
     }
 }
 

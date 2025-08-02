@@ -20,7 +20,7 @@ where
     }
 
     /// Select only id for the graphql delete response.
-    fn gql_select_id(self) -> Selector<SelectModel<G>>;
+    fn gql_select_id(self) -> Res<Selector<SelectModel<G>>>;
 }
 
 /// Automatically implement for Select<T>.
@@ -33,9 +33,7 @@ where
     O: OrderBy<T>,
     G: FromQueryResult + Send + Sync,
 {
-    fn gql_select_id(self) -> Selector<SelectModel<G>> {
-        self.select_only()
-            .column(T::config_col_id())
-            .into_model::<G>()
+    fn gql_select_id(self) -> Res<Selector<SelectModel<G>>> {
+        T::config_col_id().map(|c| self.select_only().column(c).into_model::<G>())
     }
 }

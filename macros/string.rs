@@ -21,7 +21,7 @@ macro_rules! strf {
 macro_rules! ts2 {
     ($($s:expr),*) => {
         str!($($s),*).parse::<TokenStream2>()
-            .unwrap_or_else(|e| bug!("failed to parse token stream from string: {}", e))
+            .unwrap_or_else(|e| panic_with_location!("failed to parse token stream from string: {}", e))
     };
 }
 

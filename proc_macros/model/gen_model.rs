@@ -46,7 +46,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             });
         }
     }
-    let mut config_col_deleted_at = quote!(None);
     if !no_deleted_at {
         fields.push(field! {
             pub deleted_at: Option<DateTimeUtc>
@@ -56,7 +55,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 pub deleted_by_id: Option<String>
             });
         }
-        config_col_deleted_at = quote!(Some(Column::DeletedAt))
     }
     // ------------------------------------------------------------------------
     // parse macro attributes, extract and validate fields
@@ -112,11 +110,12 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // ------------------------------------------------------------------------
     // gql fields
-    let (mut gql_struk, mut gql_resolver, gql_try_unwrap, gql_into) = gql_fields(&gfields);
-    let gql_select = gql_virtuals(&vgens);
-    let (gql_struk2, gql_resolver2, gql_select_as) = gql_exprs(&exprs);
+    let (mut gql_struk, mut gql_resolver, gql_into, sql_cols) = gql_fields(&gfields);
+    let mut gql_select = gql_select(&vgens);
+    let (gql_struk2, gql_resolver2, gql_select2, sql_exprs) = gql_exprs(&exprs);
     gql_struk.extend(gql_struk2);
     gql_resolver.extend(gql_resolver2);
+    gql_select.extend(gql_select2);
     for f in vgens.iter() {
         gql_resolver.push(f.gen_resolver_fn());
     }
@@ -180,9 +179,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             pub struct #gql {
                 #(#gql_struk)*
             }
-            impl #gql {
-                #(#gql_try_unwrap)*
-            }
             #[async_graphql::Object(name=#gql_alias)]
             impl #gql {
                 #(#gql_resolver)*
@@ -196,17 +192,29 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
-            static GQL_SELECT: LazyLock<HashMap<&'static str, Vec<Column>>> = LazyLock::new(|| {
+            static SQL_COLS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {
+                let mut m = HashMap::new();
+                #(#sql_cols)*
+                m
+            });
+            static SQL_EXPRS: LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> = LazyLock::new(|| {
+                let mut m = HashMap::new();
+                #(#sql_exprs)*
+                m
+            });
+            static GQL_SELECT: LazyLock<HashMap<&'static str, Vec<&'static str>>> = LazyLock::new(|| {
                 let mut m = HashMap::new();
                 #(#gql_select)*
                 m
             });
-            static GQL_SELECT_AS: LazyLock<HashMap<&'static str, (&'static str, sea_query::SimpleExpr)>> = LazyLock::new(|| {
-                let mut m = HashMap::new();
-                #(#gql_select_as)*
-                m
-            });
+
             impl EntityX<Model, ActiveModel, #filter, #order_by, #gql> for Entity {
+                fn config_limit() -> ConfigLimit {
+                    ConfigLimit {
+                        default: #limit_default,
+                        max: #limit_max,
+                    }
+                }
                 fn config_am_create(mut am: ActiveModel) -> ActiveModel {
                     #am_id
                     #am_created_at
@@ -216,25 +224,14 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                     #am_updated_at
                     am
                 }
-                fn config_col_id() -> Column {
-                    Column::Id
+                fn config_sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>> {
+                    &SQL_COLS
                 }
-                fn config_col_deleted_at() -> Option<Column> {
-                    #config_col_deleted_at
+                fn config_sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> {
+                    &SQL_EXPRS
                 }
-                fn config_gql_select(field: &str) -> (Option<Vec<Column>>, Option<(String, sea_query::SimpleExpr)>) {
-                    let o1 = GQL_SELECT.get(field);
-                    if o1.is_some() {
-                        return (o1.cloned(), None);
-                    }
-                    let o2 = GQL_SELECT_AS.get(field).map(|s| (s.0.to_string(), s.1.clone()));
-                    (None, o2)
-                }
-                fn config_limit() -> ConfigLimit {
-                    ConfigLimit {
-                        default: #limit_default,
-                        max: #limit_max,
-                    }
+                fn config_gql_select() -> &'static LazyLock<HashMap<&'static str, Vec<&'static str>>> {
+                    &GQL_SELECT
                 }
             }
 

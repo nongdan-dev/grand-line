@@ -10,6 +10,9 @@ where
     O: OrderBy<Self>,
     G: FromQueryResult + Send + Sync,
 {
+    /// Get default and max limit configuration.
+    /// Should be generated in the #[model] macro.
+    fn config_limit() -> ConfigLimit;
     /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
     /// We need to have this method instead to get default values on create.
     /// This can be used together with the macro grand_line::am_create.
@@ -20,22 +23,26 @@ where
     /// This can be used together with the macro grand_line::am_update.
     /// Should be generated in the #[model] macro.
     fn config_am_update(am: A) -> A;
+    /// Get sql columns map with rust snake field name to use in abstract methods.
+    /// Should be generated in the #[model] macro.
+    fn config_sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>>;
+    /// Get sql exprs map with rust snake field name to use in abstract methods.
+    /// Should be generated in the #[model] macro.
+    fn config_sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>>;
+    /// Get sql columns and exprs from gql field to look ahead
+    /// to select only requested fields in the graphql context.
+    /// Should be generated in the #[model] macro.
+    fn config_gql_select() -> &'static LazyLock<HashMap<&'static str, Vec<&'static str>>>;
+
     /// Get primary id column to use in abstract methods.
-    /// Should be generated in the #[model] macro.
-    fn config_col_id() -> Self::Column;
+    fn config_col_id() -> Res<Self::Column> {
+        Self::config_sql_cols()
+            .get("id")
+            .cloned()
+            .ok_or_else(|| ErrServer::BugId404.into())
+    }
     /// Get deleted at column to use in abstract methods.
-    /// Should be generated in the #[model] macro.
-    fn config_col_deleted_at() -> Option<Self::Column>;
-    /// Get sql column from gql field to look ahead
-    /// to select only columns from requested fields in the graphql context.
-    /// Should be generated in the #[model] macro.
-    fn config_gql_select(
-        field: &str,
-    ) -> (
-        Option<Vec<Self::Column>>,
-        Option<(String, sea_query::SimpleExpr)>,
-    );
-    /// Get default and max limit configuration.
-    /// Should be generated in the #[model] macro.
-    fn config_limit() -> ConfigLimit;
+    fn config_col_deleted_at() -> Option<Self::Column> {
+        Self::config_sql_cols().get("deleted_at").cloned()
+    }
 }

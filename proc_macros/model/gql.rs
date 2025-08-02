@@ -9,7 +9,7 @@ pub fn gql_fields(
     Vec<TokenStream2>,
     Vec<TokenStream2>,
 ) {
-    let (mut struk, mut resolver, mut try_unwrap, mut into) = (vec![], vec![], vec![], vec![]);
+    let (mut struk, mut resolver, mut into, mut cols) = (vec![], vec![], vec![], vec![]);
 
     for (f, _) in gfields {
         let name = f.ident.to_token_stream();
@@ -17,21 +17,11 @@ pub fn gql_fields(
         let (opt, _) = unwrap_option_str(&ty);
         push_struk_resolver(&name, &ty, &mut struk, &mut resolver);
 
-        if !opt {
-            let try_name = ts2!("try_", name);
-            let msg_str = strf!(
-                "{} should already be selected from database using graphql look ahead",
-                name
-            );
-            try_unwrap.push(quote! {
-                pub fn #try_name(&self) -> Result<#ty, Box<dyn Error + Send + Sync>> {
-                    self
-                    .#name
-                    .clone()
-                    .ok_or(#msg_str.into())
-                }
-            });
-        }
+        let name_str = str!(name);
+        let col = pascal!(name);
+        cols.push(quote! {
+            m.insert(#name_str, Column::#col);
+        });
 
         into.push(if opt {
             quote! {
@@ -44,17 +34,16 @@ pub fn gql_fields(
         });
     }
 
-    (struk, resolver, try_unwrap, into)
+    (struk, resolver, into, cols)
 }
 
-pub fn gql_virtuals(virs: &Vec<Box<dyn VirtualGen>>) -> Vec<TokenStream2> {
+pub fn gql_select(virs: &Vec<Box<dyn VirtualGen>>) -> Vec<TokenStream2> {
     let mut select = vec![];
     for v in virs {
-        for sql in v.sql_dep() {
-            let gql = v.gql_name();
-            let col = pascal!(sql);
+        let gql_name = v.gql_name();
+        for name_str in v.sql_dep() {
             select.push(quote! {
-                m.entry(#gql).or_insert_with(Vec::new).push(Column::#col);
+                m.entry(#gql_name).or_insert_with(Vec::new).push(#name_str);
             });
         }
     }
@@ -63,8 +52,13 @@ pub fn gql_virtuals(virs: &Vec<Box<dyn VirtualGen>>) -> Vec<TokenStream2> {
 
 pub fn gql_exprs(
     exprs: &Vec<Vec<Attr>>,
-) -> (Vec<TokenStream2>, Vec<TokenStream2>, Vec<TokenStream2>) {
-    let (mut struk, mut resolver, mut select_as) = (vec![], vec![], vec![]);
+) -> (
+    Vec<TokenStream2>,
+    Vec<TokenStream2>,
+    Vec<TokenStream2>,
+    Vec<TokenStream2>,
+) {
+    let (mut struk, mut resolver, mut select, mut gql_exprs) = (vec![], vec![], vec![], vec![]);
 
     for e in exprs {
         let a = e
@@ -77,11 +71,16 @@ pub fn gql_exprs(
         push_struk_resolver(&name, &ty, &mut struk, &mut resolver);
 
         let gql_name = camel_str!(name);
+        select.push(quote! {
+            m.entry(#gql_name).or_insert_with(Vec::new).push(#name_str);
+        });
         let sql_expr = ts2!(a.raw());
-        select_as.push(quote!(m.insert(#gql_name, (#name_str, #sql_expr));));
+        gql_exprs.push(quote! {
+            m.insert(#name_str, #sql_expr);
+        });
     }
 
-    (struk, resolver, select_as)
+    (struk, resolver, select, gql_exprs)
 }
 
 fn push_struk_resolver(

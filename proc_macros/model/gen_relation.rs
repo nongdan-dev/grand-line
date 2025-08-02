@@ -39,9 +39,9 @@ impl GenRelation {
 
     fn body_utils(&self, r: TokenStream2) -> TokenStream2 {
         let id = ts2!(self.sql_dep_());
-        let try_id = ts2!("try_", id);
         quote! {
-            let id = self.#try_id()?;
+            // TODO: handle case: original id is nullable Option<String>
+            let id = self.#id.clone().ok_or_else(|| "should be selected from database already")?;
             let _tx = ctx.tx().await?;
             let tx = _tx.as_ref();
             #r
