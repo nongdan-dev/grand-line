@@ -10,10 +10,13 @@ mod prelude {
     pub use proc_macro::TokenStream;
     pub use proc_macro2::TokenStream as TokenStream2;
     pub use quote::*;
-    pub use std::{
-        collections::{HashMap, HashSet},
-        fmt::Display,
-    };
+
+    // common std
+    pub use std::fmt::Display;
+    // common std follow grand_line
+    pub use std::collections::{HashMap, HashSet};
+    pub use std::error::Error;
+    pub use std::sync::{Arc, LazyLock};
 }
 
 use crate::prelude::*;

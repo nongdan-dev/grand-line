@@ -44,7 +44,7 @@ impl ResolverTy {
     }
 }
 
-impl DebugPanic for ResolverTy {
+impl DebugPrefix for ResolverTy {
     fn debug(&self) -> String {
         self.item.gql_name.clone()
     }

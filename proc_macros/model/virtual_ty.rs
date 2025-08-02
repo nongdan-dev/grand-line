@@ -11,12 +11,13 @@ pub enum VirtualTy {
     Resolver,
 }
 impl VirtualTy {
-    pub fn all() -> Vec<String> {
-        let mut all = vec![VirtualTy::SqlExpr, VirtualTy::Resolver]
+    pub fn all() -> Vec<VirtualTy> {
+        let mut all = RelationTy::all()
             .iter()
-            .map(|v| v.to_string())
+            .map(|r| VirtualTy::Relation(r.clone()))
             .collect::<Vec<_>>();
-        all.extend(RelationTy::all());
+        all.push(VirtualTy::SqlExpr);
+        all.push(VirtualTy::Resolver);
         all
     }
 }
@@ -33,15 +34,12 @@ pub enum RelationTy {
     ManyToMany,
 }
 impl RelationTy {
-    pub fn all() -> Vec<String> {
+    pub fn all() -> Vec<RelationTy> {
         vec![
             RelationTy::BelongsTo,
             RelationTy::HasOne,
             RelationTy::HasMany,
             RelationTy::ManyToMany,
         ]
-        .iter()
-        .map(|v| v.to_string())
-        .collect()
     }
 }

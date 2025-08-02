@@ -22,7 +22,7 @@ pub fn gen_attr_unwrap(item: TokenStream) -> TokenStream {
 
     quote! {
         #struk {
-            #(#fields),*
+            #(#fields,)*
         }
     }
     .into()

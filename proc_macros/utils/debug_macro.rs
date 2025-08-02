@@ -25,7 +25,7 @@ pub fn debug_macro(name: &str, ts: TokenStream2) {
 
     #[cfg(feature = "debug_macro_file")]
     {
-        use std::fs::File;
+        use std::fs::{File, create_dir_all};
         use std::io::Write;
         use std::path::PathBuf;
         use std::process::Command;
@@ -33,16 +33,22 @@ pub fn debug_macro(name: &str, ts: TokenStream2) {
         let content = str!(ts);
 
         let path = PathBuf::from(strf!("target/grand-line/{}.rs", name));
-        let _ = std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let _ = create_dir_all(
+            path.parent()
+                .unwrap_or_else(|| panic_with_location!("path.parent: None")),
+        )
+        .unwrap_or_else(|e| panic_with_location!("create_dir_all: {}", e));
 
-        let mut file = File::create(&path).unwrap();
-        let _ = writeln!(file, "{}", content).unwrap();
+        let mut file =
+            File::create(&path).unwrap_or_else(|e| panic_with_location!("File::create: {}", e));
+        let _ = writeln!(file, "{}", content)
+            .unwrap_or_else(|e| panic_with_location!("writeln!: {}", e));
 
         let _ = Command::new("rustfmt")
             .arg("--edition")
             .arg("2024")
             .arg(&path)
             .status()
-            .unwrap();
+            .unwrap_or_else(|e| panic_with_location!("rustfmt: {}", e));
     }
 }

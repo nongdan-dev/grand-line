@@ -71,7 +71,7 @@ where
         ctx: &Context<'_>,
     ) -> Res<
         Vec<(
-            Option<Self::Column>,
+            Option<Vec<Self::Column>>,
             Option<(String, sea_query::SimpleExpr)>,
         )>,
     > {

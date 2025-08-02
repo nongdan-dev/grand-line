@@ -32,7 +32,7 @@ where
     fn config_gql_select(
         field: &str,
     ) -> (
-        Option<Self::Column>,
+        Option<Vec<Self::Column>>,
         Option<(String, sea_query::SimpleExpr)>,
     );
     /// Get default and max limit configuration.

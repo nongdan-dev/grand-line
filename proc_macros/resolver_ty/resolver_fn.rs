@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 pub trait GenResolverFn
 where
-    Self: DebugPanic,
+    Self: DebugPrefix,
 {
     fn name(&self) -> TokenStream2;
     fn gql_name(&self) -> String;
@@ -28,7 +28,7 @@ where
 
         if !no_tx {
             if no_ctx {
-                self.panic("tx requires ctx");
+                panic_with_location!(self.msg("tx requires ctx"));
             }
             body = quote! {
                 let _tx = ctx.tx().await?;

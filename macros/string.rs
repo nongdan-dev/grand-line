@@ -20,15 +20,8 @@ macro_rules! strf {
 #[macro_export]
 macro_rules! ts2 {
     ($($s:expr),*) => {
-        str!($($s),*).parse::<TokenStream2>().unwrap()
-    };
-}
-
-/// Internal macro utils to handle strings and casings.
-#[macro_export]
-macro_rules! ts2f {
-    ($($s:tt)*) => {
-        ts2!(strf!($($s)*))
+        str!($($s),*).parse::<TokenStream2>()
+            .unwrap_or_else(|e| bug!("failed to parse token stream from string: {}", e))
     };
 }
 
@@ -59,8 +52,8 @@ macro_rules! camel_str {
 /// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! camel {
-    ($s:expr $(, $ss:expr)*) => {
-        ts2!(camel_str!($s $(, $ss)*))
+    ($($s:expr),*) => {
+        ts2!(camel_str!($($s),*))
     };
 }
 
@@ -75,7 +68,29 @@ macro_rules! snake_str {
 /// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! snake {
-    ($s:expr $(, $ss:expr)*) => {
-        ts2!(snake_str!($s $(, $ss)*))
+    ($($s:expr),*) => {
+        ts2!(snake_str!($($s),*))
+    };
+}
+
+/// Internal macro utils to handle strings and casings.
+#[macro_export]
+macro_rules! bug {
+    ($s:expr) => {
+        bug!("{}", $s)
+    };
+    ($($s:tt)*) => {
+        panic_with_location!("SHOULD NOT HAPPEN, FRAMEWORK BUG: {}", strf!($($s)*))
+    };
+}
+
+/// Internal macro utils to handle strings and casings.
+#[macro_export]
+macro_rules! panic_with_location {
+    ($s:expr) => {
+        panic_with_location!("{}", $s)
+    };
+    ($($s:tt)*) => {
+        panic!("panic at {}:{}\n{}", file!(), line!(), strf!($($s)*))
     };
 }

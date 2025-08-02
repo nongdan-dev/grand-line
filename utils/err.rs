@@ -12,7 +12,7 @@ pub enum ErrServer {
     TxCommit,
     #[error("rollback error: transaction is still in use elsewhere")]
     TxRollback,
-    #[error("look ahead selection fields must be 1")]
+    #[error("look ahead selection fields list length must be 1")]
     LookAhead,
 
     #[error("server error: {0}")]

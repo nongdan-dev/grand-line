@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use field_names::FieldNames;
 
-#[derive(Debug, Clone, Default, FieldNames)]
+#[derive(FieldNames)]
 pub struct ModelAttr {
     pub no_created_at: bool,
     pub no_updated_at: bool,

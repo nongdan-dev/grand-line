@@ -87,6 +87,6 @@ async fn db() -> Result<DatabaseConnection, Box<dyn Error>> {
     }
     #[cfg(not(any(feature = "postgres", feature = "mysql", feature = "sqlite")))]
     {
-        panic!("must enable one of: postgres, mysql, sqlite")
+        misuse!("must enable one of: postgres, mysql, sqlite")
     }
 }

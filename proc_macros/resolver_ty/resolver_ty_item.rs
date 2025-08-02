@@ -21,10 +21,12 @@ impl ResolverTyItem {
     ) -> (Self, TokenStream2, TokenStream2) {
         if self.gql_name == "resolver" {
             if crud == "" {
-                panic!("resolver name must be different than the reserved keyword `resolver`");
+                panic_with_location!(
+                    "resolver name must be different than the reserved keyword `resolver`"
+                );
             }
             if crud_model == "" {
-                panic!("empty model name should be validated earlier");
+                panic_with_location!("empty model name should be validated earlier");
             }
             self.gql_name = camel_str!(crud_model, crud);
         }

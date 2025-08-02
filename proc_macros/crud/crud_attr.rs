@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use field_names::FieldNames;
 
-#[derive(Debug, Clone, Default, FieldNames)]
+#[derive(FieldNames)]
 pub struct CrudAttr {
     pub resolver_inputs: bool,
     pub resolver_output: bool,

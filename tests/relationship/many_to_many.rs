@@ -2,26 +2,32 @@
 mod test_utils;
 use test_utils::prelude::*;
 
-#[model]
-pub struct User {
-    #[many_to_many]
-    pub orgs: Org,
-}
-#[model]
-pub struct Org {
-    pub name: String,
-}
-#[model]
-pub struct UserInOrg {
-    pub user_id: String,
-    pub org_id: String,
-}
-#[detail(User)]
-fn resolver() {}
-
 #[tokio::test]
 #[cfg_attr(feature = "serial", serial)]
 async fn default() -> Result<(), Box<dyn Error>> {
+    mod test {
+        use super::*;
+
+        #[model]
+        pub struct User {
+            #[many_to_many]
+            pub orgs: Org,
+        }
+        #[model]
+        pub struct Org {
+            pub name: String,
+        }
+        #[model]
+        pub struct UserInOrg {
+            pub user_id: String,
+            pub org_id: String,
+        }
+
+        #[detail(User)]
+        fn resolver() {}
+    }
+    use test::*;
+
     let db = db_3(User, Org, UserInOrg).await?;
     let u = am_create!(User).insert(&db).await?;
     let o = am_create!(Org { name: "Fringe" }).insert(&db).await?;

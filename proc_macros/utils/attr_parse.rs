@@ -32,19 +32,20 @@ impl Parse for AttrParse {
         let mut first_path = None;
         for m in Punctuated::<Meta, Comma>::parse_terminated(s)? {
             let (k, v, ty);
+            let err = "failed to get ident from attr meta path";
             match m {
                 Meta::Path(m) => {
-                    k = str!(m.get_ident().unwrap());
+                    k = str!(m.get_ident().unwrap_or_else(|| bug!(err)));
                     v = str!();
                     ty = AttrTy::Path;
                 }
                 Meta::NameValue(m) => {
-                    k = str!(m.path.get_ident().unwrap());
+                    k = str!(m.path.get_ident().unwrap_or_else(|| bug!(err)));
                     v = str!(m.value.to_token_stream());
                     ty = AttrTy::NameValue;
                 }
                 Meta::List(m) => {
-                    k = str!(m.path.get_ident().unwrap());
+                    k = str!(m.path.get_ident().unwrap_or_else(|| bug!(err)));
                     v = str!(m.tokens);
                     ty = AttrTy::List;
                 }

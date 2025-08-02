@@ -31,12 +31,12 @@ mod re_exports {
     pub use grand_line_proc_proc_macros::PartialEqString;
 
     pub use async_graphql::MaybeUndefined as Undefined;
-    pub use std::{
-        collections::{HashMap, HashSet},
-        error::Error,
-        sync::{Arc, LazyLock},
-    };
     pub use tokio::sync::Mutex;
+
+    // common std
+    pub use std::collections::{HashMap, HashSet};
+    pub use std::error::Error;
+    pub use std::sync::{Arc, LazyLock};
 }
 
 #[cfg(not(feature = "no_re_exports"))]

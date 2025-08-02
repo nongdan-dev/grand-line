@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use field_names::FieldNames;
 
-#[derive(Debug, Clone, Default, FieldNames)]
+#[derive(FieldNames)]
 pub struct ResolverTyAttr {
     pub no_tx: bool,
     pub no_ctx: bool,

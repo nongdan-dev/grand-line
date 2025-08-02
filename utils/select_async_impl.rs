@@ -36,7 +36,11 @@ where
             for (c, f) in cols {
                 match c {
                     None => {}
-                    Some(c) => q = q.select_column(c),
+                    Some(cols) => {
+                        for c in cols {
+                            q = q.select_column(c)
+                        }
+                    }
                 }
                 match f {
                     None => {}

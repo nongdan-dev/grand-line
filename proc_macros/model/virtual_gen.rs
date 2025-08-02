@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
-pub trait GenVirtual
+pub trait VirtualGen
 where
     Self: GenResolverFn,
 {
-    fn sql_dep(&self) -> String;
+    fn sql_dep(&self) -> Vec<String>;
 }

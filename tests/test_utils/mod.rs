@@ -19,5 +19,11 @@ pub mod prelude {
 
     pub use async_graphql::{Schema, Value};
     pub use sea_orm::Schema as DbSchema;
+
+    // common std
+    pub use std::fmt::Display;
+    // common std follow grand_line
+    pub use std::collections::{HashMap, HashSet};
     pub use std::error::Error;
+    pub use std::sync::{Arc, LazyLock};
 }

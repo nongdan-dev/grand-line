@@ -17,7 +17,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let model_str = str!(struk.ident);
     let mut fields = match struk.fields {
         Fields::Named(f) => f.named.into_iter().collect::<Vec<_>>(),
-        _ => panic!("{} struct fields must be Fields::Named", model_str),
+        _ => panic_with_location!("{} struct fields must be Fields::Named", model_str),
     };
     fields.insert(
         0,
@@ -59,8 +59,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         config_col_deleted_at = quote!(Some(Column::DeletedAt))
     }
     // ------------------------------------------------------------------------
-    // parse macro attributes, extract and validate
-    let (vfields, exprs, gfields, fields) = extract_and_validate_fields(&model_str, &fields);
+    // parse macro attributes, extract and validate fields
+    let (virs, exprs, gfields, fields) = extract_and_validate_fields(&model_str, &fields);
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
     // get the original model name in snake case for sql table, non-plural
@@ -76,26 +76,27 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let sql_alias = snake_str!(model);
     // ------------------------------------------------------------------------
     // generate virtual resolvers
-    let mut virtuals = Vec::<Box<dyn GenVirtual>>::new();
-    for attrs in vfields {
+    let mut vgens = Vec::<Box<dyn VirtualGen>>::new();
+    for attrs in virs {
         let map = attrs
-            .clone()
             .into_iter()
             .map(|a| (a.attr.clone(), a))
             .collect::<HashMap<_, _>>();
-        let relation = RelationTy::all()
+        for (a, v) in VirtualTy::all()
             .iter()
-            .find(|r| map.contains_key(&str!(r)))
-            .map(|r| str!(r));
-        if let Some(ty) = relation {
-            let a = map.get(&ty).unwrap().clone();
-            virtuals.push(Box::new(GenRelation {
-                model: model_str.clone(),
-                ty: ty.parse().unwrap(),
-                a: RelationAttr::new(a),
-            }));
+            .filter_map(|v| map.get(&str!(v)).map(move |a| (a, v)))
+        {
+            vgens.push(match v {
+                VirtualTy::Relation(ty) => Box::new(GenRelation {
+                    ty: ty.clone(),
+                    a: RelationAttr::new(a.clone()),
+                }),
+                VirtualTy::Resolver => Box::new(GenResolver {
+                    a: a.clone().into_with_validate(),
+                }),
+                _ => bug!("invalid attr={} dyn VirtualGen", a.attr),
+            });
         }
-        // TODO: other kinds of virtual
     }
     // ------------------------------------------------------------------------
     // filter / order_by fields
@@ -111,11 +112,12 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // ------------------------------------------------------------------------
     // gql fields
-    let (mut gql_struk, mut gql_resolver, gql_into, gql_select) = gql_fields(&gfields, &virtuals);
+    let (mut gql_struk, mut gql_resolver, gql_try_unwrap, gql_into) = gql_fields(&gfields);
+    let gql_select = gql_virtuals(&vgens);
     let (gql_struk2, gql_resolver2, gql_select_as) = gql_exprs(&exprs);
     gql_struk.extend(gql_struk2);
     gql_resolver.extend(gql_resolver2);
-    for f in virtuals.iter() {
+    for f in vgens.iter() {
         gql_resolver.push(f.gen_resolver_fn());
     }
     // ------------------------------------------------------------------------
@@ -178,6 +180,9 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             pub struct #gql {
                 #(#gql_struk)*
             }
+            impl #gql {
+                #(#gql_try_unwrap)*
+            }
             #[async_graphql::Object(name=#gql_alias)]
             impl #gql {
                 #(#gql_resolver)*
@@ -191,14 +196,12 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
-            type GqlSelect = LazyLock<HashMap<&'static str, Column>>;
-            static GQL_SELECT: GqlSelect = LazyLock::new(|| {
+            static GQL_SELECT: LazyLock<HashMap<&'static str, Vec<Column>>> = LazyLock::new(|| {
                 let mut m = HashMap::new();
                 #(#gql_select)*
                 m
             });
-            type GqlSelectAs = LazyLock<HashMap<&'static str, (&'static str, sea_query::SimpleExpr)>>;
-            static GQL_SELECT_AS: GqlSelectAs = LazyLock::new(|| {
+            static GQL_SELECT_AS: LazyLock<HashMap<&'static str, (&'static str, sea_query::SimpleExpr)>> = LazyLock::new(|| {
                 let mut m = HashMap::new();
                 #(#gql_select_as)*
                 m
@@ -219,10 +222,10 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn config_col_deleted_at() -> Option<Column> {
                     #config_col_deleted_at
                 }
-                fn config_gql_select(field: &str) -> (Option<Self::Column>, Option<(String, sea_query::SimpleExpr)>) {
+                fn config_gql_select(field: &str) -> (Option<Vec<Column>>, Option<(String, sea_query::SimpleExpr)>) {
                     let o1 = GQL_SELECT.get(field);
                     if o1.is_some() {
-                        return (o1.copied(), None);
+                        return (o1.cloned(), None);
                     }
                     let o2 = GQL_SELECT_AS.get(field).map(|s| (s.0.to_string(), s.1.clone()));
                     (None, o2)

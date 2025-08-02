@@ -1,12 +1,19 @@
 use crate::prelude::*;
 
 pub struct GenRelation {
-    pub model: String,
     pub ty: RelationTy,
     pub a: RelationAttr,
 }
 
 impl GenRelation {
+    fn sql_dep_(&self) -> String {
+        match self.ty {
+            RelationTy::BelongsTo => self.a.key_str(),
+            RelationTy::HasOne => str!("id"),
+            RelationTy::HasMany => str!("id"),
+            RelationTy::ManyToMany => str!("id"),
+        }
+    }
     fn input_one(&self) -> TokenStream2 {
         ts2!()
     }
@@ -22,17 +29,19 @@ impl GenRelation {
     }
 
     fn output_one(&self) -> TokenStream2 {
-        ts2f!("Option<{}>", self.a.gql_to())
+        let to = self.a.gql_to();
+        quote!(Option<#to>)
     }
     fn output_many(&self) -> TokenStream2 {
-        ts2f!("Vec<{}>", self.a.gql_to())
+        let to = self.a.gql_to();
+        quote!(Vec<#to>)
     }
 
     fn body_utils(&self, r: TokenStream2) -> TokenStream2 {
-        let id = ts2!(self.sql_dep());
-        let err_str = strf!("{} must be included in the look ahead select", id);
+        let id = ts2!(self.sql_dep_());
+        let try_id = ts2!("try_", id);
         quote! {
-            let id = self.#id.as_ref().ok_or(#err_str)?;
+            let id = self.#try_id()?;
             let _tx = ctx.tx().await?;
             let tx = _tx.as_ref();
             #r
@@ -102,19 +111,14 @@ impl GenRelation {
     }
 }
 
-impl GenVirtual for GenRelation {
-    fn sql_dep(&self) -> String {
-        match self.ty {
-            RelationTy::BelongsTo => self.a.key_str(),
-            RelationTy::HasOne => str!("id"),
-            RelationTy::HasMany => str!("id"),
-            RelationTy::ManyToMany => str!("id"),
-        }
+impl VirtualGen for GenRelation {
+    fn sql_dep(&self) -> Vec<String> {
+        vec![self.sql_dep_()]
     }
 }
-impl DebugPanic for GenRelation {
+impl DebugPrefix for GenRelation {
     fn debug(&self) -> String {
-        self.model.clone()
+        self.a.inner.debug()
     }
 }
 
