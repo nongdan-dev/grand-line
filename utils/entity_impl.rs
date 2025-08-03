@@ -11,6 +11,17 @@ where
     O: OrderBy<Self>,
     G: FromQueryResult + Send + Sync,
 {
+    /// Get primary id column to use in abstract methods.
+    fn config_col_id() -> Res<Self::Column> {
+        Self::config_sql_cols()
+            .get("id")
+            .cloned()
+            .ok_or_else(|| ErrServer::BugId404.into())
+    }
+    /// Get deleted at column to use in abstract methods.
+    fn config_col_deleted_at() -> Option<Self::Column> {
+        Self::config_sql_cols().get("deleted_at").cloned()
+    }
     /// Shortcut condition id eq.
     fn condition_id(id: &str) -> Res<Condition> {
         Self::config_col_id().map(|c| Condition::all().add(c.eq(id)))

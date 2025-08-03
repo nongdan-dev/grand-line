@@ -1,8 +1,0 @@
-[package]
-name = "grand-line-macros"
-version = "0.0.0"
-edition = "2024"
-
-[lib]
-name = "grand_line_macros"
-path = "lib.rs"

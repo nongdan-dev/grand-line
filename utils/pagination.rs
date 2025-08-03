@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 /// Pagination async_graphql input struct to use in search query.
-#[input]
+#[gql_input]
 pub struct Pagination {
     pub offset: Option<u64>,
     pub limit: Option<u64>,

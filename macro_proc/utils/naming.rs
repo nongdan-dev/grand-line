@@ -1,0 +1,20 @@
+use crate::prelude::*;
+
+pub fn ty_sql(model: impl Display) -> Ts2 {
+    pascal!(model, "Sql")
+}
+pub fn ty_gql(model: impl Display) -> Ts2 {
+    pascal!(model, "Gql")
+}
+pub fn ty_column(model: impl Display) -> Ts2 {
+    pascal!(model, "Column")
+}
+pub fn ty_active_model(model: impl Display) -> Ts2 {
+    pascal!(model, "ActiveModel")
+}
+pub fn ty_filter(model: impl Display) -> Ts2 {
+    pascal!(model, "Filter")
+}
+pub fn ty_order_by(model: impl Display) -> Ts2 {
+    pascal!(model, "OrderBy")
+}

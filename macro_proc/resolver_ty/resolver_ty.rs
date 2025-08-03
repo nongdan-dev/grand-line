@@ -1,0 +1,65 @@
+use crate::prelude::*;
+
+pub struct ResolverTy {
+    ty: Ts2,
+    name: Ts2,
+    a: ResolverTyAttr,
+    item: ResolverTyItem,
+}
+
+impl ResolverTy {
+    pub fn g(ty: Ts2, name: Ts2, a: ResolverTyAttr, item: ResolverTyItem) -> TokenStream {
+        let g = Self { ty, name, a, item };
+
+        let ty = &g.ty;
+        let resolver = g.gen_resolver_fn();
+
+        let r = quote! {
+            use sea_orm::*;
+            use sea_orm::prelude::*;
+            use sea_orm::entity::prelude::*;
+
+            #[derive(Default)]
+            pub struct #ty;
+            #[async_graphql::Object]
+            impl #ty {
+                #resolver
+            }
+        };
+
+        #[cfg(feature = "debug_macro")]
+        debug_macro(&g.item.gql_name, r.clone());
+
+        r.into()
+    }
+}
+
+impl AttrDebug for ResolverTy {
+    fn attr_debug(&self) -> String {
+        self.a.inner.attr_debug()
+    }
+}
+
+impl GenResolverFn for ResolverTy {
+    fn name(&self) -> Ts2 {
+        self.name.clone()
+    }
+    fn gql_name(&self) -> String {
+        self.item.gql_name.clone()
+    }
+    fn inputs(&self) -> Ts2 {
+        self.item.inputs.clone()
+    }
+    fn output(&self) -> Ts2 {
+        self.item.output.clone()
+    }
+    fn body(&self) -> Ts2 {
+        self.item.body.clone()
+    }
+    fn no_tx(&self) -> bool {
+        self.a.no_tx
+    }
+    fn no_ctx(&self) -> bool {
+        self.a.no_ctx
+    }
+}

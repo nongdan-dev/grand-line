@@ -1,0 +1,18 @@
+[package]
+name = "macro_utils"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+name = "macro_utils"
+path = "lib.rs"
+
+[dependencies]
+heck = "0.5.0"
+maplit = "1.0.2"
+proc-macro2 = "1.0.95"
+quote = "1.0.40"
+serde = { version = "1.0.219", default-features = false, features = ["derive", "std"] }
+strum = "0.27.2"
+strum_macros = "0.27.2"
+syn = { version = "2.0.104", features = ["full"] }

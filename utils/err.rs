@@ -46,5 +46,5 @@ impl From<DbErr> for GrandLineError {
 }
 
 pub type GrandLineResult<T> = Result<T, GrandLineError>;
-pub(crate) use grand_line_macros::{err_client, err_server};
+pub(crate) use macro_utils::{err_client, err_server};
 pub(crate) type Res<T> = GrandLineResult<T>;
