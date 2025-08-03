@@ -10,11 +10,11 @@ async fn default() -> Result<(), Box<dyn Error>> {
 
         #[model]
         pub struct User {
-            first_name: String,
-            middle_name: String,
-            last_name: String,
+            pub first_name: String,
+            pub middle_name: String,
+            pub last_name: String,
             #[resolver(sql_dep=first_name+middle_name+last_name)]
-            full_name: String,
+            pub full_name: String,
         }
 
         async fn resolve_full_name(

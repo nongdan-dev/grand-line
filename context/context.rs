@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use async_graphql::{Context, extensions::ExtensionContext};
+use async_graphql::extensions::ExtensionContext;
 
 /// GrandLineContext should be constructed on each request.
 /// We will get it in the resolvers to manage per-request db transaction, graphql loaders, cache...
@@ -24,23 +24,5 @@ impl GrandLineContext {
             self.commit()
         }
         .await
-    }
-}
-
-pub trait ContextX {
-    fn grand_line_context(&self) -> Arc<GrandLineContext>;
-}
-
-impl ContextX for Context<'_> {
-    #[inline(always)]
-    fn grand_line_context(&self) -> Arc<GrandLineContext> {
-        self.data_unchecked::<Arc<GrandLineContext>>().clone()
-    }
-}
-
-impl ContextX for ExtensionContext<'_> {
-    #[inline(always)]
-    fn grand_line_context(&self) -> Arc<GrandLineContext> {
-        self.data_unchecked::<Arc<GrandLineContext>>().clone()
     }
 }

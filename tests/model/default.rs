@@ -10,9 +10,12 @@ async fn default() -> Result<(), Box<dyn Error>> {
 
         #[model]
         pub struct Data {
-            pub a: i64,
-            #[sql_expr(Expr::col(Column::A).add(1000))]
+            #[default("I love you")]
+            pub a: String,
+            #[default(3000)]
             pub b: i64,
+            #[default(9999)]
+            pub c: i64,
         }
 
         #[detail(Data)]
@@ -21,12 +24,18 @@ async fn default() -> Result<(), Box<dyn Error>> {
     use test::*;
 
     let db = db_1(Data).await?;
-    let d = am_create!(Data { a: 1 }).insert(&db).await?;
+    let d = am_create!(Data { c: 9 }).insert(&db).await?;
+
+    pretty_eq!(d.a, "I love you");
+    pretty_eq!(d.b, 3000);
+    pretty_eq!(d.c, 9);
 
     let q = r#"
     query test($id: ID!) {
         dataDetail(id: $id) {
+            a
             b
+            c
         }
     }
     "#;
@@ -35,7 +44,9 @@ async fn default() -> Result<(), Box<dyn Error>> {
     });
     let expected = value!({
         "dataDetail": {
-            "b": 1001,
+            "a": "I love you",
+            "b": 3000,
+            "c": 9,
         },
     });
 

@@ -86,12 +86,12 @@ pub fn delete(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn gql_input(attr: TokenStream, item: TokenStream) -> TokenStream {
-    gen_input(attr, item)
+    gen_gql_input(attr, item)
 }
 
 #[proc_macro_attribute]
 pub fn gql_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
-    gen_enum(attr, item)
+    gen_gql_enum(attr, item)
 }
 
 /// Helper to quickly create a filter with concise syntax.

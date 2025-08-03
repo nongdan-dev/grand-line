@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use syn::Field;
 
-pub fn push_filter(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
+pub fn filter(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
     push(f, struk, query, "eq");
     push(f, struk, query, "ne");
     let (_, uw_str) = unwrap_option_str(f.ty.to_token_stream());

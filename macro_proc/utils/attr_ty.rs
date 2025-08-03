@@ -11,6 +11,7 @@ pub static ATTR_RAW: LazyLock<HashSet<String>> = LazyLock::new(|| {
 #[derive(Debug, Clone, Eq, PartialEq, Display, PartialEqString)]
 #[strum(serialize_all = "snake_case")]
 pub enum AttrTy {
+    Graphql,
     Default,
     #[strum(serialize = "{0}")]
     Virtual(VirtualTy),

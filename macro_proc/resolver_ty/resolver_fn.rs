@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-pub trait GenResolverFn
+pub trait ResolverFn
 where
     Self: AttrDebug,
 {
@@ -17,7 +17,7 @@ where
         false
     }
 
-    fn gen_resolver_fn(&self) -> Ts2 {
+    fn resolver_fn(&self) -> Ts2 {
         let name = self.name();
         let gql_name = self.gql_name();
         let mut inputs = self.inputs();

@@ -6,7 +6,7 @@ pub fn gen_delete(attr: TokenStream, item: TokenStream) -> TokenStream {
     let r = parse_macro_input!(item as ResolverTyItem);
     let a = a.into_inner::<CrudAttr>("delete");
     let (mut r, ty, name) = r.init("mutation", "delete", &a.model);
-    check_crud_io(&a, &r);
+    a.validate(&r);
 
     if !a.resolver_inputs {
         r.inputs = quote!(id: String);

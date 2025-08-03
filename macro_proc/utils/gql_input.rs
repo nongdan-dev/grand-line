@@ -1,18 +1,17 @@
 use crate::prelude::*;
 
-pub fn gen_enum(_: TokenStream, item: TokenStream) -> TokenStream {
+pub fn gen_gql_input(_: TokenStream, item: TokenStream) -> TokenStream {
     let item = Into::<Ts2>::into(item);
 
     quote! {
+        #[serde_with::skip_serializing_none]
         #[derive(
             Debug,
             Clone,
-            Eq,
-            PartialEq,
-            Copy,
+            Default,
             serde::Deserialize,
             serde::Serialize,
-            async_graphql::Enum,
+            async_graphql::InputObject,
         )]
         #item
     }

@@ -12,7 +12,7 @@ impl ResolverTy {
         let g = Self { ty, name, a, item };
 
         let ty = &g.ty;
-        let resolver = g.gen_resolver_fn();
+        let resolver = g.resolver_fn();
 
         let r = quote! {
             use sea_orm::*;
@@ -40,7 +40,7 @@ impl AttrDebug for ResolverTy {
     }
 }
 
-impl GenResolverFn for ResolverTy {
+impl ResolverFn for ResolverTy {
     fn name(&self) -> Ts2 {
         self.name.clone()
     }

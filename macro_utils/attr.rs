@@ -14,7 +14,7 @@ pub struct Attr {
     /// In field, this will be `Model.field`.
     debug: String,
     /// In proc macro this is the macro name.
-    /// In field, this will be attribute from our derive macro GrandLineModel.
+    /// In field, this will be one of attribute from AttrTy.
     pub attr: String,
     /// Raw args parsed as strings
     args: HashMap<String, (String, AttrParseTy)>,

@@ -1,11 +1,11 @@
-mod gen_mutation;
-mod gen_query;
+mod mutation;
+mod query;
 mod resolver_fn;
 mod resolver_ty;
 mod resolver_ty_attr;
 mod resolver_ty_item;
-pub use gen_mutation::*;
-pub use gen_query::*;
+pub use mutation::*;
+pub use query::*;
 pub use resolver_fn::*;
 pub use resolver_ty::*;
 pub use resolver_ty_attr::*;

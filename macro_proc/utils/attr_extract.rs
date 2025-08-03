@@ -1,10 +1,9 @@
 use crate::prelude::*;
 use syn::{Attribute, Field, FieldsNamed, punctuated::Punctuated, token::Comma};
 
-/// All virtual attributes, defined in derive GrandLineModel.
-/// If any of these attributes matched, we should extract the whole field out.
-fn is_virtual(attrs: &Vec<Attr>) -> Option<VirtualTy> {
-    let map = VirtualTy::all()
+/// Validate it should have only one of our attributes.
+fn validate(attrs: &Vec<Attr>) {
+    let map = AttrTy::all()
         .iter()
         .map(|v| (s!(v), v.clone()))
         .collect::<HashMap<_, _>>();
@@ -16,17 +15,30 @@ fn is_virtual(attrs: &Vec<Attr>) -> Option<VirtualTy> {
     }
     if matches.len() > 1 {
         let err = f!(
-            "{}.{} should have only one between: {}",
+            "`{}.{}` should have only one between: {}",
             attrs[0].field_model(),
             attrs[0].field_name(),
             matches.iter().map(|v| s!(v)).collect::<Vec<_>>().join(", "),
         );
         pan!(err);
     }
-    matches.get(0).cloned()
 }
 
-/// All attribute to be extracted from sql, defined in derive GrandLineModel.
+/// All virtual attributes.
+/// If any of these attributes matched, we should extract the whole field out.
+fn is_virtual(attrs: &Vec<Attr>) -> Option<VirtualTy> {
+    let map = VirtualTy::all()
+        .iter()
+        .map(|v| (s!(v), v.clone()))
+        .collect::<HashMap<_, _>>();
+    attrs
+        .iter()
+        .filter_map(|a| map.get(&a.attr))
+        .nth(0)
+        .cloned()
+}
+
+/// All attribute to be extracted from sql.
 /// If any of these attributes matched, we should removed them out of the field.
 fn extract_sql(attrs: &Vec<Attr>) -> Vec<Attribute> {
     let ne = AttrTy::all().iter().map(|a| s!(a)).collect::<HashSet<_>>();
@@ -60,16 +72,23 @@ pub fn attr_extract(
     model: &str,
     fields: &Punctuated<Field, Comma>,
 ) -> (
+    Vec<Attr>,
     Vec<Vec<Attr>>,
     Vec<Vec<Attr>>,
     Vec<(Field, Vec<Attr>)>,
     FieldsNamed,
 ) {
-    let (mut virs, mut exprs, mut gql, mut sql) = (vec![], vec![], vec![], vec![]);
+    let (mut defs, mut virs, mut exprs, mut gql, mut sql) =
+        (vec![], vec![], vec![], vec![], vec![]);
 
     for f in fields {
-        // virtuals
         let attrs = Attr::from_field(model, &f, &|a| ATTR_RAW.contains(a));
+        validate(&attrs);
+        // default
+        if let Some(def) = attrs.iter().find(|a| a.attr == AttrTy::Default).cloned() {
+            defs.push(def);
+        }
+        // virtuals
         if let Some(v) = is_virtual(&attrs) {
             if v == VirtualTy::SqlExpr {
                 exprs.push(attrs);
@@ -94,5 +113,5 @@ pub fn attr_extract(
         brace_token: Default::default(),
         named: Punctuated::from_iter(sql),
     };
-    (virs, exprs, gql, fields)
+    (defs, virs, exprs, gql, fields)
 }

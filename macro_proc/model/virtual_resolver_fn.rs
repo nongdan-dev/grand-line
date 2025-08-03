@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
-pub trait VirtualGen
+pub trait VirtualResolverFn
 where
-    Self: GenResolverFn,
+    Self: ResolverFn,
 {
     fn sql_deps(&self) -> Vec<String>;
 }

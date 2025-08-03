@@ -6,7 +6,7 @@ pub fn gen_create(attr: TokenStream, item: TokenStream) -> TokenStream {
     let r = parse_macro_input!(item as ResolverTyItem);
     let a = a.into_inner::<CrudAttr>("create");
     let (mut r, ty, name) = r.init("mutation", "create", &a.model);
-    check_crud_io(&a, &r);
+    a.validate(&r);
 
     if !a.resolver_inputs {
         let data = pascal!(name);

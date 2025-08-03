@@ -30,7 +30,7 @@ pub fn gql_fields(gfields: &Vec<(Field, Vec<Attr>)>) -> (Vec<Ts2>, Vec<Ts2>, Vec
     (struk, resolver, into, cols)
 }
 
-pub fn gql_select(virs: &Vec<Box<dyn VirtualGen>>) -> Vec<Ts2> {
+pub fn gql_virtuals(virs: &Vec<Box<dyn VirtualResolverFn>>) -> Vec<Ts2> {
     let mut select = vec![];
     for v in virs {
         let gql_name = v.gql_name();

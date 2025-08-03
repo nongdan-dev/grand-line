@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-pub fn push_filter_and_or_not(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
+pub fn filter_and_or_not(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
     push_and_or(f, struk, query, "and");
     push_and_or(f, struk, query, "or");
     push_not(f, struk, query);

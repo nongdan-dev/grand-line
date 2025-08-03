@@ -44,7 +44,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // ------------------------------------------------------------------------
     // parse macro attributes, extract and validate fields
     let model_str = s!(model);
-    let (virs, exprs, gfields, fields) = attr_extract(&model_str, &fields);
+    let (defs, virs, exprs, gfields, fields) = attr_extract(&model_str, &fields);
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
     // get the original model name in snake case for sql table, non-plural
@@ -59,7 +59,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let sql_alias = snake_str!(model);
     // ------------------------------------------------------------------------
     // generate virtual resolvers
-    let mut vgens = Vec::<Box<dyn VirtualGen>>::new();
+    let mut vgens = Vec::<Box<dyn VirtualResolverFn>>::new();
     for attrs in virs {
         let map = attrs
             .into_iter()
@@ -86,25 +86,41 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     // ------------------------------------------------------------------------
     // filter / order_by fields
-    let filter = ty_filter(&model);
-    let order_by = ty_order_by(&model);
     let (mut filter_struk, mut filter_query) = (vec![], vec![]);
     let (mut order_by_struk, mut order_by_query) = (vec![], vec![]);
     for (f, _) in &gfields {
-        push_filter(f, &mut filter_struk, &mut filter_query);
-        push_order_by(f, &mut order_by_struk, &mut order_by_query);
+        filter(f, &mut filter_struk, &mut filter_query);
+        order_by(f, &mut order_by_struk, &mut order_by_query);
     }
-    push_filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
+    let filter = ty_filter(&model);
+    let order_by = ty_order_by(&model);
+    filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
     // ------------------------------------------------------------------------
     // gql fields
     let (mut gql_struk, mut gql_resolver, gql_into, sql_cols) = gql_fields(&gfields);
-    let mut gql_select = gql_select(&vgens);
+    let mut gql_select = gql_virtuals(&vgens);
     let (gql_struk2, gql_resolver2, gql_select2, sql_exprs) = gql_exprs(&exprs);
     gql_struk.extend(gql_struk2);
     gql_resolver.extend(gql_resolver2);
     gql_select.extend(gql_select2);
-    for f in vgens.iter() {
-        gql_resolver.push(f.gen_resolver_fn());
+    for f in vgens {
+        gql_resolver.push(f.resolver_fn());
+    }
+    // ------------------------------------------------------------------------
+    // active model default
+    let mut am_defs = vec![];
+    for a in defs {
+        let mut raw_str = a.raw();
+        if raw_str.starts_with("\"") || raw_str.starts_with("r#") {
+            raw_str = raw_str + ".to_string()"
+        }
+        let raw = ts2!(raw_str);
+        let name = ts2!(a.field_name());
+        am_defs.push(quote! {
+            if !matches!(am.#name, Set(_)) {
+                am.#name = Set(#raw);
+            }
+        });
     }
     // ------------------------------------------------------------------------
     // active model utils
@@ -117,8 +133,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         ts2!()
     } else {
         quote! {
-            if !matches!(am.created_at, ActiveValue::Set(_)) {
-                am.created_at = ActiveValue::Set(chrono::Utc::now());
+            if !matches!(am.created_at, Set(_)) {
+                am.created_at = Set(chrono::Utc::now());
             }
         }
     };
@@ -126,8 +142,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         ts2!()
     } else {
         quote! {
-            if !matches!(am.updated_at, ActiveValue::Set(_)) {
-                am.updated_at = ActiveValue::Set(Some(chrono::Utc::now()));
+            if !matches!(am.updated_at, Set(_)) {
+                am.updated_at = Set(Some(chrono::Utc::now()));
             }
         }
     };
@@ -210,6 +226,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn config_am_create(mut am: ActiveModel) -> ActiveModel {
                     #am_id
                     #am_created_at
+                    #(#am_defs)*
                     am
                 }
                 fn config_am_update(mut am: ActiveModel) -> ActiveModel {

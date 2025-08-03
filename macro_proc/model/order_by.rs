@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use syn::Field;
 
-pub fn push_order_by(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
+pub fn order_by(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
     push(f, struk, query, "asc");
     push(f, struk, query, "desc");
 }

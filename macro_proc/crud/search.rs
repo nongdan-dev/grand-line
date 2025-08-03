@@ -6,7 +6,7 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
     let r = parse_macro_input!(item as ResolverTyItem);
     let a = a.into_inner::<CrudAttr>("search");
     let (mut r, ty, name) = r.init("query", "search", &a.model);
-    check_crud_io(&a, &r);
+    a.validate(&r);
 
     let filter = ty_filter(&a.model);
     let order_by = ty_order_by(&a.model);

@@ -6,7 +6,7 @@ pub fn gen_count(attr: TokenStream, item: TokenStream) -> TokenStream {
     let r = parse_macro_input!(item as ResolverTyItem);
     let a = a.into_inner::<CrudAttr>("count");
     let (mut r, ty, name) = r.init("query", "count", &a.model);
-    check_crud_io(&a, &r);
+    a.validate(&r);
 
     let filter = ty_filter(&a.model);
 

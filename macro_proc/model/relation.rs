@@ -111,7 +111,7 @@ impl GenRelation {
     }
 }
 
-impl VirtualGen for GenRelation {
+impl VirtualResolverFn for GenRelation {
     fn sql_deps(&self) -> Vec<String> {
         vec![self.sql_dep_str()]
     }
@@ -122,7 +122,7 @@ impl AttrDebug for GenRelation {
     }
 }
 
-impl GenResolverFn for GenRelation {
+impl ResolverFn for GenRelation {
     fn name(&self) -> Ts2 {
         self.a.name()
     }
