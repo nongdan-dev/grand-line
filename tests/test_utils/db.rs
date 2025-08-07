@@ -1,8 +1,10 @@
 #![allow(dead_code)]
 
+use std::time::Duration;
+
 use super::prelude::*;
 
-pub async fn db_1<E1>(e1: E1) -> Result<DatabaseConnection, Box<dyn Error>>
+pub async fn db_1<E1>(e1: E1) -> Result<DatabaseConnection, Box<dyn Error + Send + Sync>>
 where
     E1: EntityTrait,
 {
@@ -11,7 +13,10 @@ where
     Ok(db)
 }
 
-pub async fn db_2<E1, E2>(e1: E1, e2: E2) -> Result<DatabaseConnection, Box<dyn Error>>
+pub async fn db_2<E1, E2>(
+    e1: E1,
+    e2: E2,
+) -> Result<DatabaseConnection, Box<dyn Error + Send + Sync>>
 where
     E1: EntityTrait,
     E2: EntityTrait,
@@ -22,7 +27,11 @@ where
     Ok(db)
 }
 
-pub async fn db_3<E1, E2, E3>(e1: E1, e2: E2, e3: E3) -> Result<DatabaseConnection, Box<dyn Error>>
+pub async fn db_3<E1, E2, E3>(
+    e1: E1,
+    e2: E2,
+    e3: E3,
+) -> Result<DatabaseConnection, Box<dyn Error + Send + Sync>>
 where
     E1: EntityTrait,
     E2: EntityTrait,
@@ -35,7 +44,7 @@ where
     Ok(db)
 }
 
-async fn create_table<E>(db: &DatabaseConnection, e: E) -> Result<(), Box<dyn Error>>
+async fn create_table<E>(db: &DatabaseConnection, e: E) -> Result<(), Box<dyn Error + Send + Sync>>
 where
     E: EntityTrait,
 {
@@ -46,11 +55,11 @@ where
     Ok(())
 }
 
-async fn db() -> Result<DatabaseConnection, Box<dyn Error>> {
+async fn db() -> Result<DatabaseConnection, Box<dyn Error + Send + Sync>> {
     #[cfg(feature = "postgres")]
     {
-        let conn = "postgres://postgres:test_pwd@localhost:5432/test_db";
-        let db = Database::connect(conn).await?;
+        let c = conn("postgres://postgres:test_pwd@localhost:5432/test_db");
+        let db = Database::connect(c).await?;
         let stmts = vec![
             // drop recreate new db on each test
             "DROP SCHEMA public CASCADE;",
@@ -64,8 +73,8 @@ async fn db() -> Result<DatabaseConnection, Box<dyn Error>> {
     }
     #[cfg(feature = "mysql")]
     {
-        let conn = "mysql://root:test_pwd@localhost:3306/test_db";
-        let db = Database::connect(conn).await?;
+        let c = conn("mysql://root:test_pwd@localhost:3306/test_db");
+        let db = Database::connect(c).await?;
         let stmts = vec![
             // drop recreate new db on each test
             "DROP DATABASE IF EXISTS test_db2;",
@@ -75,18 +84,26 @@ async fn db() -> Result<DatabaseConnection, Box<dyn Error>> {
             let stmt = Statement::from_string(DbBackend::Postgres, stmt.to_owned());
             db.execute(stmt).await?;
         }
-        let conn = "mysql://root:test_pwd@localhost:3306/test_db2";
-        let db = Database::connect(conn).await?;
+        let c = conn("mysql://root:test_pwd@localhost:3306/test_db2");
+        let db = Database::connect(c).await?;
         Ok(db)
     }
     #[cfg(feature = "sqlite")]
     {
-        let conn = "sqlite::memory:";
-        let db = Database::connect(conn).await?;
+        let c = conn("sqlite::memory:");
+        let db = Database::connect(c).await?;
         Ok(db)
     }
     #[cfg(not(any(feature = "postgres", feature = "mysql", feature = "sqlite")))]
     {
         misuse!("must enable one of: postgres, mysql, sqlite")
     }
+}
+
+fn conn(c: &str) -> ConnectOptions {
+    let mut c = ConnectOptions::new(c);
+    let d = Duration::from_secs(1);
+    c.connect_timeout(d);
+    c.acquire_timeout(d);
+    c
 }

@@ -97,7 +97,7 @@ pub fn gql_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
 /// Helper to quickly create a filter with concise syntax.
 #[proc_macro]
 pub fn filter(item: TokenStream) -> TokenStream {
-    gen_struct(item, "Filter", "Some", "")
+    expr_struct(item, "Filter", "Some", "")
 }
 
 /// Helper to quickly create a filter with concise syntax and wrap with Some.
@@ -124,7 +124,7 @@ pub fn order_by_some(item: TokenStream) -> TokenStream {
 /// and convert all string literals into String automatically.
 #[proc_macro]
 pub fn active_model(item: TokenStream) -> TokenStream {
-    gen_struct(item, "ActiveModel", "ActiveValue::Set", "")
+    expr_struct(item, "ActiveModel", "Set", "")
 }
 
 /// Helper to quickly create an active model with concise syntax
@@ -133,7 +133,7 @@ pub fn active_model(item: TokenStream) -> TokenStream {
 /// to get default values on this operation.
 #[proc_macro]
 pub fn am_create(item: TokenStream) -> TokenStream {
-    gen_struct(item, "ActiveModel", "ActiveValue::Set", "config_am_create")
+    expr_struct(item, "ActiveModel", "Set", "config_am_create")
 }
 
 /// Helper to quickly create active model with concise syntax
@@ -142,5 +142,5 @@ pub fn am_create(item: TokenStream) -> TokenStream {
 /// to get default values on this operation.
 #[proc_macro]
 pub fn am_update(item: TokenStream) -> TokenStream {
-    gen_struct(item, "ActiveModel", "ActiveValue::Set", "config_am_update")
+    expr_struct(item, "ActiveModel", "Set", "config_am_update")
 }

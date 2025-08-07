@@ -11,9 +11,9 @@ edition = "2024"
 path = "lib.rs"
 
 [features]
-default = ["axum", "postgres", "re_exports"]
-# re export dependencies
-re_exports = []
+default = ["axum", "postgres"]
+# do not re-export dependencies
+no_re_exports = []
 # externals
 sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
 mysql = ["sea-orm/sqlx-mysql", "sqlx/mysql"]

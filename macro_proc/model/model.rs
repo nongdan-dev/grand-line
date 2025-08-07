@@ -35,11 +35,53 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             fields.push(field!(pub updated_by_id: Option<String>));
         }
     }
+    let mut config_has_deleted_at = quote!(false);
+    let mut sql_soft_delete = ts2!();
+    let mut am_soft_delete_impl = ts2!();
+    let mut am_soft_delete = ts2!();
     if !a.no_deleted_at {
         fields.push(field!(pub deleted_at: Option<DateTimeUtc>));
         if !a.no_by_id {
             fields.push(field!(pub deleted_by_id: Option<String>));
         }
+        config_has_deleted_at = quote! {
+            !self.deleted_at.is_undefined() ||
+            !self.deleted_at_ne.is_undefined() ||
+            self.deleted_at_in.is_some() ||
+            self.deleted_at_not_in.is_some() ||
+            self.deleted_at_gt.is_some() ||
+            self.deleted_at_gte.is_some() ||
+            self.deleted_at_lt.is_some() ||
+            self.deleted_at_lte.is_some()
+        };
+        sql_soft_delete = quote! {
+            pub fn soft_delete_by_id(id: &str) -> Result<ActiveModel, Box<dyn Error + Send + Sync>> {
+                let c = Self::condition_id(id)?;
+                let mut am = am_update!(#model {
+                    id: id.to_string(),
+                });
+                am.deleted_at = am.updated_at.clone();
+                Ok(am)
+            }
+        };
+        am_soft_delete_impl = quote! {
+            async fn soft_delete<D>(self, db: &D) -> Result<Model, Box<dyn Error + Send + Sync>>
+            where
+                D: ConnectionTrait;
+        };
+        am_soft_delete = quote! {
+            async fn soft_delete<D>(self, db: &D) -> Result<Model, Box<dyn Error + Send + Sync>>
+            where
+                D: ConnectionTrait,
+            {
+                let mut am = am_update!(#model {
+                    ..self
+                });
+                am.deleted_at = am.updated_at.clone();
+                let r = am.update(db).await?;
+                Ok(r)
+            }
+        };
     }
     // ------------------------------------------------------------------------
     // parse macro attributes, extract and validate fields
@@ -55,6 +97,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let gql = ty_gql(&model);
     let column = ty_column(&model);
     let active_model = ty_active_model(&model);
+    let active_model_async_impl = ty_active_model_async_impl(&model);
     let gql_alias = s!(model);
     let sql_alias = snake_str!(model);
     // ------------------------------------------------------------------------
@@ -203,6 +246,10 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
+            impl Entity {
+                #sql_soft_delete
+            }
+
             static SQL_COLS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {
                 let mut m = HashMap::new();
                 #(#sql_cols)*
@@ -244,6 +291,16 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
+            #[async_trait]
+            pub trait ActiveModelAsyncImpl {
+                #am_soft_delete_impl
+            }
+
+            #[async_trait]
+            impl ActiveModelAsyncImpl for ActiveModel {
+                #am_soft_delete
+            }
+
             #[gql_input]
             pub struct #filter {
                 #(#filter_struk)*
@@ -256,7 +313,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                     }
                 }
                 fn config_has_deleted_at(&self) -> bool {
-                    todo!("TODO:")
+                    #config_has_deleted_at
                 }
                 fn and(&self) -> Option<Vec<Self>> {
                     self.and.clone()
@@ -299,6 +356,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             Entity as #model,
             Column as #column,
             ActiveModel as #active_model,
+            ActiveModelAsyncImpl as #active_model_async_impl,
             #gql,
             #filter,
             #order_by,

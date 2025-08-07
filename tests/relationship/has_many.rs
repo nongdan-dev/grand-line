@@ -4,7 +4,7 @@ use test_utils::prelude::*;
 
 #[tokio::test]
 #[cfg_attr(feature = "serial", serial)]
-async fn default() -> Result<(), Box<dyn Error>> {
+async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     mod test {
         use super::*;
 
@@ -25,6 +25,8 @@ async fn default() -> Result<(), Box<dyn Error>> {
     use test::*;
 
     let db = db_2(User, Email).await?;
+    let s = schema_q::<UserDetailQuery>(&db);
+
     let u = am_create!(User).insert(&db).await?;
     let _ = am_create!(Email {
         address: "email@example.com",
@@ -53,7 +55,6 @@ async fn default() -> Result<(), Box<dyn Error>> {
         },
     });
 
-    let s = schema_q::<UserDetailQuery>(&db);
-    exec_assert(s, q, v, expected).await?;
+    exec_assert(&s, q, Some(v), expected).await?;
     Ok(())
 }

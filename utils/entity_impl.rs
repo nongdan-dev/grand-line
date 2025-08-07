@@ -34,6 +34,9 @@ where
         }
         c
     }
+    fn find_exclude_deleted() -> Select<Self> {
+        Self::find().exclude_deleted()
+    }
 
     /// Get look ahead key with alias-aware.
     /// For example the below two queries both have the same key a.b at b if there is no alias-aware.
@@ -91,7 +94,7 @@ where
     G: FromQueryResult + Send + Sync,
 {
     fn internal_find_by_id(id: &str) -> Res<Select<Self>> {
-        Self::condition_id(id).map(|c| Self::find().filter(c))
+        Self::condition_id(id).map(|c| Self::find_exclude_deleted().filter(c))
     }
 }
 

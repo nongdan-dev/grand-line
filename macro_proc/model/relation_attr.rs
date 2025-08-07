@@ -12,6 +12,21 @@ pub struct RelationAttr {
     #[field_names(virt)]
     other_key: !,
 }
+impl From<Attr> for RelationAttr {
+    fn from(a: Attr) -> Self {
+        Self { inner: a }
+    }
+}
+impl AttrValidate for RelationAttr {
+    fn attr_fields(a: &Attr) -> Vec<String> {
+        let mut f = vec![Self::F_KEY];
+        if a.attr == RelationTy::ManyToMany {
+            f.push(Self::F_THROUGH);
+            f.push(Self::F_OTHER_KEY);
+        }
+        f.iter().map(|f| s!(f)).collect()
+    }
+}
 
 impl RelationAttr {
     pub fn to(&self) -> Ts2 {
@@ -54,26 +69,5 @@ impl RelationAttr {
             .inner
             .errk(k, "should not access this key in this attr");
         bug!(err);
-    }
-}
-
-impl From<Attr> for RelationAttr {
-    fn from(a: Attr) -> Self {
-        let a = Self { inner: a };
-        if a.inner.attr == RelationTy::ManyToMany {
-            return a;
-        }
-        for k in vec![Self::F_THROUGH, Self::F_OTHER_KEY] {
-            if a.inner.has(k) {
-                let err = a.inner.err_incorrect(k);
-                pan!(err);
-            }
-        }
-        a
-    }
-}
-impl AttrValidate for RelationAttr {
-    fn attr_fields(_: &Attr) -> Vec<String> {
-        Self::F.iter().map(|f| s!(f)).collect()
     }
 }

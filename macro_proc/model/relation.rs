@@ -37,14 +37,17 @@ impl GenRelation {
         quote!(Vec<#to>)
     }
 
-    fn body_utils(&self, r: Ts2) -> Ts2 {
+    fn body_utils(&self, r: Ts2, vec: bool) -> Ts2 {
         let sql_dep = ts2!(self.sql_dep_str());
+        let none = if vec { quote!(vec![]) } else { quote!(None) };
         quote! {
-            // TODO: handle case: original id is nullable Option<String>
-            let id = self.#sql_dep.clone().ok_or_else(|| "should be selected from database already")?;
-            let _tx = ctx.tx().await?;
-            let tx = _tx.as_ref();
-            #r
+            if let Some(id) = self.#sql_dep.clone() {
+                let _tx = ctx.tx().await?;
+                let tx = _tx.as_ref();
+                #r
+            } else {
+                #none
+            }
         }
     }
 
@@ -68,7 +71,7 @@ impl GenRelation {
             let c = Condition::all().add(#column::#col.eq(id));
             #model::find().filter(c).gql_select(ctx).await?.one(tx).await?
         };
-        self.body_utils(r)
+        self.body_utils(r, false)
     }
     fn body_has_one(&self) -> Ts2 {
         let model = self.a.to();
@@ -78,7 +81,7 @@ impl GenRelation {
             let c = Condition::all().add(#column::#col.eq(id));
             #model::find().filter(c).gql_select(ctx).await?.one(tx).await?
         };
-        self.body_utils(r)
+        self.body_utils(r, false)
     }
     fn body_has_many(&self) -> Ts2 {
         let model = self.a.to();
@@ -88,7 +91,7 @@ impl GenRelation {
             let c = Condition::all().add(#column::#col.eq(id));
             #model::gql_search(ctx, tx, Some(c), filter, None, order_by, None, page).await?
         };
-        self.body_utils(r)
+        self.body_utils(r, true)
     }
     fn body_many_to_many(&self) -> Ts2 {
         let model = self.a.to();
@@ -107,7 +110,7 @@ impl GenRelation {
             let c = Condition::all().add(#column::#col.in_subquery(sub));
             #model::gql_search(ctx, tx, Some(c), filter, None, order_by, None, page).await?
         };
-        self.body_utils(r)
+        self.body_utils(r, true)
     }
 }
 

@@ -11,7 +11,6 @@ pub use macro_utils::am_value;
 
 mod re_exports {
     pub use async_graphql;
-    pub use async_trait;
     pub use chrono;
     pub use sea_orm;
     pub use serde;
@@ -32,6 +31,7 @@ mod re_exports {
     pub use macro_proc_proc::{PartialEqString, field_names};
     // common
     pub use async_graphql::MaybeUndefined as Undefined;
+    pub use async_trait::async_trait;
     pub use tokio::sync::Mutex;
     // common std
     pub use std::collections::{HashMap, HashSet};
@@ -39,15 +39,14 @@ mod re_exports {
     pub use std::sync::{Arc, LazyLock};
 }
 
-#[cfg(feature = "re_exports")]
+#[cfg(not(feature = "no_re_exports"))]
 pub use re_exports::*;
 
 pub(crate) mod prelude {
     pub use crate::*;
-    pub use async_trait::async_trait;
     pub use sea_orm::prelude::*;
     pub use sea_orm::*;
 
-    #[cfg(not(feature = "re_exports"))]
+    #[cfg(feature = "no_re_exports")]
     pub use re_exports::*;
 }

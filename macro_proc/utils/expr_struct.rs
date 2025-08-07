@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use syn::{Expr, ExprStruct, Lit, parse_macro_input};
 
-pub fn gen_struct(item: TokenStream, suf: &str, fw: &str, rw: &str) -> TokenStream {
+pub fn expr_struct(item: TokenStream, suf: &str, fw: &str, rw: &str) -> TokenStream {
     let mut item = Into::<Ts2>::into(item).to_string().trim().to_owned();
     if !item.ends_with("}") {
         item = item + "{}";
@@ -16,7 +16,7 @@ pub fn gen_struct(item: TokenStream, suf: &str, fw: &str, rw: &str) -> TokenStre
     let rest = if s!(rest).trim() == "" {
         ts2!("..Default::default()")
     } else {
-        rest
+        quote!(..#rest)
     };
 
     let mut fields = vec![];

@@ -4,42 +4,43 @@ use test_utils::prelude::*;
 
 #[tokio::test]
 #[cfg_attr(feature = "serial", serial)]
-async fn default() -> Result<(), Box<dyn Error>> {
+async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     mod test {
         use super::*;
 
         #[model]
-        pub struct Data {
+        pub struct User {
             pub a: i64,
             #[sql_expr(Expr::col(Column::A).add(1000))]
             pub b: i64,
         }
 
-        #[detail(Data)]
+        #[detail(User)]
         fn resolver() {}
     }
     use test::*;
 
-    let db = db_1(Data).await?;
-    let d = am_create!(Data { a: 1 }).insert(&db).await?;
+    let db = db_1(User).await?;
+    let s = schema_q::<UserDetailQuery>(&db);
+
+    let u = am_create!(User { a: 1 }).insert(&db).await?;
 
     let q = r#"
     query test($id: ID!) {
-        dataDetail(id: $id) {
+        userDetail(id: $id) {
             b
         }
     }
     "#;
     let v = value!({
-        "id": d.id,
+        "id": u.id,
     });
     let expected = value!({
-        "dataDetail": {
+        "userDetail": {
             "b": 1001,
         },
     });
 
-    let s = schema_q::<DataDetailQuery>(&db);
-    exec_assert(s, q, v, expected).await?;
+    exec_assert(&s, q, Some(v), expected).await?;
     Ok(())
 }

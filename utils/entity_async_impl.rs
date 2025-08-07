@@ -123,7 +123,16 @@ where
     where
         D: ConnectionTrait,
     {
-        let mut q = filter.combine(filter_extra).select();
+        let f = filter.combine(filter_extra);
+        let mut q = f.select();
+        println!(
+            "{} {}",
+            serde_json::to_string(&f).unwrap(),
+            f.has_deleted_at()
+        );
+        if !f.has_deleted_at() {
+            q = q.exclude_deleted();
+        }
         if let Some(c) = condition {
             q = q.filter(c);
         }

@@ -4,7 +4,7 @@ use test_utils::prelude::*;
 
 #[tokio::test]
 #[cfg_attr(feature = "serial", serial)]
-async fn default() -> Result<(), Box<dyn Error>> {
+async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     mod test {
         use super::*;
 
@@ -37,7 +37,9 @@ async fn default() -> Result<(), Box<dyn Error>> {
     use test::*;
 
     let db = db_1(User).await?;
-    let d = am_create!(User {
+    let s = schema_q::<UserDetailQuery>(&db);
+
+    let u = am_create!(User {
         first_name: "Olivia",
         middle_name: "Anna",
         last_name: "Dunham",
@@ -53,7 +55,7 @@ async fn default() -> Result<(), Box<dyn Error>> {
     }
     "#;
     let v = value!({
-        "id": d.id,
+        "id": u.id,
     });
     let expected = value!({
         "userDetail": {
@@ -61,19 +63,18 @@ async fn default() -> Result<(), Box<dyn Error>> {
         },
     });
 
-    let s = schema_q::<UserDetailQuery>(&db);
-    exec_assert(s, q, v, expected).await?;
+    exec_assert(&s, q, Some(v), expected).await?;
     Ok(())
 }
 
 #[tokio::test]
 #[cfg_attr(feature = "serial", serial)]
-async fn sql_expr() -> Result<(), Box<dyn Error>> {
+async fn sql_expr() -> Result<(), Box<dyn Error + Send + Sync>> {
     mod test {
         use super::*;
 
         #[model]
-        pub struct Data {
+        pub struct User {
             a: i64,
             #[sql_expr(Expr::col(Column::A).add(1000))]
             b: i64,
@@ -84,7 +85,7 @@ async fn sql_expr() -> Result<(), Box<dyn Error>> {
         }
 
         async fn resolve_d(
-            u: &DataGql,
+            u: &UserGql,
             _: &Context<'_>,
         ) -> Result<i64, Box<dyn Error + Send + Sync>> {
             let err = "should be selected from database already";
@@ -95,31 +96,32 @@ async fn sql_expr() -> Result<(), Box<dyn Error>> {
             Ok(d)
         }
 
-        #[detail(Data)]
+        #[detail(User)]
         fn resolver() {}
     }
     use test::*;
 
-    let db = db_1(Data).await?;
-    let d = am_create!(Data { a: 1 }).insert(&db).await?;
+    let db = db_1(User).await?;
+    let s = schema_q::<UserDetailQuery>(&db);
+
+    let u = am_create!(User { a: 1 }).insert(&db).await?;
 
     let q = r#"
     query test($id: ID!) {
-        dataDetail(id: $id) {
+        userDetail(id: $id) {
             d
         }
     }
     "#;
     let v = value!({
-        "id": d.id,
+        "id": u.id,
     });
     let expected = value!({
-        "dataDetail": {
+        "userDetail": {
             "d": 3003,
         },
     });
 
-    let s = schema_q::<DataDetailQuery>(&db);
-    exec_assert(s, q, v, expected).await?;
+    exec_assert(&s, q, Some(v), expected).await?;
     Ok(())
 }

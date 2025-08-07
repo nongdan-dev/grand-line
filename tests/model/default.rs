@@ -4,12 +4,12 @@ use test_utils::prelude::*;
 
 #[tokio::test]
 #[cfg_attr(feature = "serial", serial)]
-async fn default() -> Result<(), Box<dyn Error>> {
+async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     mod test {
         use super::*;
 
         #[model]
-        pub struct Data {
+        pub struct User {
             #[default("I love you")]
             pub a: String,
             #[default(3000)]
@@ -18,21 +18,23 @@ async fn default() -> Result<(), Box<dyn Error>> {
             pub c: i64,
         }
 
-        #[detail(Data)]
+        #[detail(User)]
         fn resolver() {}
     }
     use test::*;
 
-    let db = db_1(Data).await?;
-    let d = am_create!(Data { c: 9 }).insert(&db).await?;
+    let db = db_1(User).await?;
+    let s = schema_q::<UserDetailQuery>(&db);
 
-    pretty_eq!(d.a, "I love you");
-    pretty_eq!(d.b, 3000);
-    pretty_eq!(d.c, 9);
+    let u = am_create!(User { c: 9 }).insert(&db).await?;
+
+    pretty_eq!(u.a, "I love you");
+    pretty_eq!(u.b, 3000);
+    pretty_eq!(u.c, 9);
 
     let q = r#"
     query test($id: ID!) {
-        dataDetail(id: $id) {
+        userDetail(id: $id) {
             a
             b
             c
@@ -40,17 +42,16 @@ async fn default() -> Result<(), Box<dyn Error>> {
     }
     "#;
     let v = value!({
-        "id": d.id,
+        "id": u.id,
     });
     let expected = value!({
-        "dataDetail": {
+        "userDetail": {
             "a": "I love you",
             "b": 3000,
             "c": 9,
         },
     });
 
-    let s = schema_q::<DataDetailQuery>(&db);
-    exec_assert(s, q, v, expected).await?;
+    exec_assert(&s, q, Some(v), expected).await?;
     Ok(())
 }

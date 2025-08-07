@@ -1,9 +1,10 @@
 use crate::prelude::*;
+use serde::Serialize;
 
 /// Helper trait to combine filter and filter_extra.
 pub trait Filter<T>
 where
-    Self: Conditionable + Send + Sync + Sized,
+    Self: Conditionable + Send + Sync + Sized + Serialize,
     T: EntityTrait,
 {
     /// Combine filter and filter_extra to use in abstract methods.
@@ -66,7 +67,7 @@ where
     /// Helper to combine filter and filter_extra.
     fn combine(self, filter_extra: Self) -> Self;
     /// Check if there is deleted_at in this filter.
-    fn has_deleted_at(self) -> bool;
+    fn has_deleted_at(&self) -> bool;
 }
 
 /// Automatically implement for Option<Filter>.
@@ -83,7 +84,9 @@ where
             (None, None) => None,
         }
     }
-    fn has_deleted_at(self) -> bool {
-        self.map(|ref f| f.has_deleted_at()).unwrap_or_default()
+    fn has_deleted_at(&self) -> bool {
+        self.as_ref()
+            .map(|f| f.has_deleted_at())
+            .unwrap_or_default()
     }
 }
