@@ -17,6 +17,9 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
             order_by: Option<Vec<#order_by>>,
             page: Option<Pagination>,
         };
+        if !a.ra.no_include_deleted {
+            r.inputs = push_include_deleted(&r.inputs);
+        }
     }
 
     if !a.resolver_output {
@@ -33,5 +36,5 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
         };
     }
 
-    ResolverTy::g(ty, name, a.resolver_attr, r)
+    ResolverTy::g(ty, name, a.ra, r)
 }

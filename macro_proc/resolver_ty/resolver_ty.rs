@@ -3,13 +3,13 @@ use crate::prelude::*;
 pub struct ResolverTy {
     ty: Ts2,
     name: Ts2,
-    a: ResolverTyAttr,
+    ra: ResolverTyAttr,
     item: ResolverTyItem,
 }
 
 impl ResolverTy {
-    pub fn g(ty: Ts2, name: Ts2, a: ResolverTyAttr, item: ResolverTyItem) -> TokenStream {
-        let g = Self { ty, name, a, item };
+    pub fn g(ty: Ts2, name: Ts2, ra: ResolverTyAttr, item: ResolverTyItem) -> TokenStream {
+        let g = Self { ty, name, ra, item };
 
         let ty = &g.ty;
         let resolver = g.resolver_fn();
@@ -36,7 +36,7 @@ impl ResolverTy {
 
 impl AttrDebug for ResolverTy {
     fn attr_debug(&self) -> String {
-        self.a.inner.attr_debug()
+        self.ra.inner.attr_debug()
     }
 }
 
@@ -57,9 +57,9 @@ impl ResolverFn for ResolverTy {
         self.item.body.clone()
     }
     fn no_tx(&self) -> bool {
-        self.a.no_tx
+        self.ra.no_tx
     }
     fn no_ctx(&self) -> bool {
-        self.a.no_ctx
+        self.ra.no_ctx
     }
 }

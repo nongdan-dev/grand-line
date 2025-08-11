@@ -11,7 +11,12 @@ pub fn gen_count(attr: TokenStream, item: TokenStream) -> TokenStream {
     let filter = ty_filter(&a.model);
 
     if !a.resolver_inputs {
-        r.inputs = quote!(filter: Option<#filter>);
+        r.inputs = quote! {
+            filter: Option<#filter>,
+        };
+        if !a.ra.no_include_deleted {
+            r.inputs = push_include_deleted(&r.inputs);
+        }
     }
 
     if !a.resolver_output {
@@ -27,5 +32,5 @@ pub fn gen_count(attr: TokenStream, item: TokenStream) -> TokenStream {
         };
     }
 
-    ResolverTy::g(ty, name, a.resolver_attr, r)
+    ResolverTy::g(ty, name, a.ra, r)
 }

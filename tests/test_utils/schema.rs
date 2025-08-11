@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use super::prelude::*;
+use super::*;
 
 pub fn schema_q<Q>(db: &DatabaseConnection) -> Schema<Q, EmptyMutation, EmptySubscription>
 where

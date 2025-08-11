@@ -5,7 +5,7 @@ pub struct ResolverAttr {
     pub call: String,
     pub sql_dep: Vec<String>,
     #[field_names(skip)]
-    pub resolver_attr: ResolverTyAttr,
+    pub ra: ResolverTyAttr,
     #[field_names(skip)]
     pub inner: Attr,
 }
@@ -21,7 +21,7 @@ impl From<Attr> for ResolverAttr {
                 .split('+')
                 .map(|s| s.trim().to_string())
                 .collect(),
-            resolver_attr: a.clone().into(),
+            ra: a.clone().into(),
             inner: a,
         }
     }

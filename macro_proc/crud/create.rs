@@ -27,5 +27,5 @@ pub fn gen_create(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
-    ResolverTy::g(ty, name, a.resolver_attr, r)
+    ResolverTy::g(ty, name, a.ra, r)
 }

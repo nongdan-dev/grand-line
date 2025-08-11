@@ -9,6 +9,7 @@ attr_default_flag!(resolver_inputs);
 attr_default_flag!(resolver_output);
 attr_default_flag!(no_tx);
 attr_default_flag!(no_ctx);
+attr_default_flag!(no_include_deleted);
 
 pub fn default_limit_default() -> u64 {
     let v = 10;

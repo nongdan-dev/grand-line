@@ -33,6 +33,7 @@ resolver_inputs = ["macro_proc/resolver_inputs"]
 resolver_output = ["macro_proc/resolver_output"]
 no_tx = ["macro_proc/no_tx"]
 no_ctx = ["macro_proc/no_ctx"]
+no_include_deleted = ["macro_proc/no_include_deleted"]
 # limit flags
 limit_x2 = ["macro_proc/limit_x2"]
 limit_x5 = ["macro_proc/limit_x5"]

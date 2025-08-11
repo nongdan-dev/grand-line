@@ -3,6 +3,7 @@ use crate::prelude::*;
 #[field_names]
 #[derive(Clone)]
 pub struct RelationAttr {
+    pub no_include_deleted: bool,
     #[field_names(skip)]
     pub inner: Attr,
     #[field_names(virt)]
@@ -14,7 +15,10 @@ pub struct RelationAttr {
 }
 impl From<Attr> for RelationAttr {
     fn from(a: Attr) -> Self {
-        Self { inner: a }
+        attr_unwrap_or_else!(Self {
+            no_include_deleted: bool,
+            inner: a,
+        })
     }
 }
 impl AttrValidate for RelationAttr {

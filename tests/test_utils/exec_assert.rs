@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use super::prelude::*;
+use super::*;
 
 pub async fn exec_assert<Q, M, S>(
     s: &Schema<Q, M, S>,

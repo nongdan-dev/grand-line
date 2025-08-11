@@ -7,7 +7,7 @@ pub struct CrudAttr {
     #[field_names(skip)]
     pub model: String,
     #[field_names(skip)]
-    pub resolver_attr: ResolverTyAttr,
+    pub ra: ResolverTyAttr,
 }
 impl From<Attr> for CrudAttr {
     fn from(a: Attr) -> Self {
@@ -15,7 +15,7 @@ impl From<Attr> for CrudAttr {
             resolver_inputs: bool,
             resolver_output: bool,
             model: a.model_from_first_path(),
-            resolver_attr: a.into(),
+            ra: a.into(),
         })
     }
 }
@@ -47,7 +47,7 @@ impl CrudAttr {
                 );
                 pan!(err);
             }
-            if self.resolver_attr.no_tx || self.resolver_attr.no_ctx {
+            if self.ra.no_tx || self.ra.no_ctx {
                 let err = f!("{} output requires tx, ctx", r.gql_name);
                 pan!(err);
             }
@@ -59,8 +59,8 @@ impl CrudAttr {
             );
             pan!(err);
         }
-        if !self.resolver_attr.no_tx {
-            if self.resolver_attr.no_ctx {
+        if !self.ra.no_tx {
+            if self.ra.no_ctx {
                 let err = f!("{} tx requires ctx", r.gql_name);
                 pan!(err);
             }

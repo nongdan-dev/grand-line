@@ -17,10 +17,10 @@ impl AttrDebug for GenResolver {
 
 impl ResolverFn for GenResolver {
     fn no_tx(&self) -> bool {
-        self.a.resolver_attr.no_tx
+        self.a.ra.no_tx
     }
     fn no_ctx(&self) -> bool {
-        self.a.resolver_attr.no_ctx
+        self.a.ra.no_ctx
     }
     fn name(&self) -> Ts2 {
         ts2!(self.a.inner.field_name())

@@ -1,6 +1,6 @@
 #[path = "../test_utils/mod.rs"]
 mod test_utils;
-use test_utils::prelude::*;
+use test_utils::*;
 
 #[tokio::test]
 #[cfg_attr(feature = "serial", serial)]

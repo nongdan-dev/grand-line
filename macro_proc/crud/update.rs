@@ -30,5 +30,5 @@ pub fn gen_update(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
-    ResolverTy::g(ty, name, a.resolver_attr, r)
+    ResolverTy::g(ty, name, a.ra, r)
 }

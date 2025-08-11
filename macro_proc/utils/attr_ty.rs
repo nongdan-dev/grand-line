@@ -1,6 +1,18 @@
 use crate::prelude::*;
 use strum_macros::Display;
 
+#[derive(Debug, Clone, Eq, PartialEq, Display, PartialEqString)]
+#[strum(serialize_all = "snake_case")]
+pub enum MacroTy {
+    Model,
+    Search,
+    Count,
+    Detail,
+    Create,
+    Update,
+    Delete,
+}
+
 pub static ATTR_RAW: LazyLock<HashSet<String>> = LazyLock::new(|| {
     let mut set = HashSet::new();
     set.insert(s!(AttrTy::Default));

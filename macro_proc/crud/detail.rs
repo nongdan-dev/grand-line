@@ -9,7 +9,12 @@ pub fn gen_detail(attr: TokenStream, item: TokenStream) -> TokenStream {
     a.validate(&r);
 
     if !a.resolver_inputs {
-        r.inputs = quote!(id: String);
+        r.inputs = quote! {
+            id: String,
+        };
+        if !a.ra.no_include_deleted {
+            r.inputs = push_include_deleted(&r.inputs);
+        }
     }
 
     if !a.resolver_output {
@@ -24,5 +29,5 @@ pub fn gen_detail(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
 
-    ResolverTy::g(ty, name, a.resolver_attr, r)
+    ResolverTy::g(ty, name, a.ra, r)
 }

@@ -15,17 +15,25 @@ impl GenRelation {
         }
     }
     fn input_one(&self) -> Ts2 {
-        ts2!()
+        let mut inputs = ts2!();
+        if !self.a.no_include_deleted {
+            inputs = push_include_deleted(&inputs);
+        }
+        inputs
     }
     fn input_many(&self) -> Ts2 {
         let to = self.a.to();
         let filter = ty_filter(&to);
         let order_by = ty_order_by(&to);
-        quote! {
+        let mut inputs = quote! {
             filter: Option<#filter>,
             order_by: Option<Vec<#order_by>>,
             page: Option<Pagination>,
+        };
+        if !self.a.no_include_deleted {
+            inputs = push_include_deleted(&inputs);
         }
+        inputs
     }
 
     fn output_one(&self) -> Ts2 {
