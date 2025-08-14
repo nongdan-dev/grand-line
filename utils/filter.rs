@@ -9,12 +9,10 @@ where
 {
     /// Combine filter and filter_extra to use in abstract methods.
     /// Should be generated in the #[model] macro.
-    fn config_and(a: Self, b: Self) -> Self;
+    fn conf_and(a: Self, b: Self) -> Self;
     /// Check if there is deleted_at in this filter, without the combination of and/or/not.
-    /// Should be generated in the #[model] macro if there is deleted_at.
-    fn config_has_deleted_at(&self) -> bool {
-        false
-    }
+    /// Should be generated in the #[model] macro.
+    fn conf_has_deleted_at(&self) -> bool;
     /// Get and to use in abstract methods.
     /// Should be generated in the #[model] macro.
     fn and(&self) -> Option<Vec<Self>>;
@@ -26,7 +24,7 @@ where
     fn not(&self) -> Option<Self>;
     /// Check if there is deleted_at in this filter, with the combination of and/or/not.
     fn has_deleted_at(&self) -> bool {
-        if self.config_has_deleted_at() {
+        if self.conf_has_deleted_at() {
             return true;
         }
         if let Some(and) = self.and() {
@@ -55,7 +53,7 @@ where
     F: Filter<T>,
 {
     fn chain(&self, q: Select<T>) -> Select<T> {
-        q.filter(self.condition())
+        q.filter(self.cond())
     }
 }
 
@@ -78,7 +76,7 @@ where
 {
     fn combine(self, filter_extra: Self) -> Self {
         match (self, filter_extra) {
-            (Some(a), Some(b)) => Some(F::config_and(a, b)),
+            (Some(a), Some(b)) => Some(F::conf_and(a, b)),
             (Some(a), None) => Some(a),
             (None, Some(b)) => Some(b),
             (None, None) => None,

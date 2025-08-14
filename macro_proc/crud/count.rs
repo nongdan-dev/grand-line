@@ -22,13 +22,19 @@ pub fn gen_count(attr: TokenStream, item: TokenStream) -> TokenStream {
     if !a.resolver_output {
         r.output = quote!(u64);
 
+        let include_deleted = if !a.ra.no_include_deleted {
+            quote!(include_deleted)
+        } else {
+            quote!(None)
+        };
+
         let body = r.body;
         let model = ts2!(a.model);
         r.body = quote! {
             let filter_extra: Option<#filter> = {
                 #body
             };
-            #model::gql_count(tx, filter, filter_extra).await?
+            #model::gql_count(tx, filter, filter_extra, #include_deleted).await?
         };
     }
 

@@ -35,7 +35,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             fields.push(field!(pub updated_by_id: Option<String>));
         }
     }
-    let mut config_has_deleted_at = quote!(false);
+    let mut conf_has_deleted_at = quote!(false);
     let mut sql_soft_delete = ts2!();
     let mut am_soft_delete_impl = ts2!();
     let mut am_soft_delete = ts2!();
@@ -44,7 +44,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         if !a.no_by_id {
             fields.push(field!(pub deleted_by_id: Option<String>));
         }
-        config_has_deleted_at = quote! {
+        conf_has_deleted_at = quote! {
             !self.deleted_at.is_undefined() ||
             !self.deleted_at_ne.is_undefined() ||
             self.deleted_at_in.is_some() ||
@@ -56,7 +56,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         };
         sql_soft_delete = quote! {
             pub fn soft_delete_by_id(id: &str) -> Result<ActiveModel, Box<dyn Error + Send + Sync>> {
-                let c = Self::condition_id(id)?;
+                let c = Self::cond_id(id)?;
                 let mut am = am_update!(#model {
                     id: id.to_string(),
                 });
@@ -115,7 +115,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             vgens.push(match v {
                 VirtualTy::Relation(ty) => Box::new(GenRelation {
                     ty: ty.clone(),
-                    a: a.clone().into_with_validate(),
+                    ra: a.clone().into_with_validate(),
                 }),
                 VirtualTy::Resolver => Box::new(GenResolver {
                     a: a.clone().into_with_validate(),
@@ -193,7 +193,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // ------------------------------------------------------------------------
     // config limit
     let (limit_default, limit_max) = (a.limit_default, a.limit_max);
-    let config_limit = quote! {
+    let conf_limit = quote! {
         ConfigLimit {
             default: #limit_default,
             max: #limit_max,
@@ -203,9 +203,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let r = quote! {
         pub mod #module {
             use super::*;
-            use sea_orm::*;
-            use sea_orm::prelude::*;
-            use sea_orm::entity::prelude::*;
+            pub use sea_orm::{entity::prelude::*, prelude::*, *};
 
             #[derive(
                 Debug,
@@ -267,26 +265,26 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             });
 
             impl EntityX<Model, ActiveModel, #filter, #order_by, #gql> for Entity {
-                fn config_limit() -> ConfigLimit {
-                    #config_limit
+                fn conf_limit() -> ConfigLimit {
+                    #conf_limit
                 }
-                fn config_am_create(mut am: ActiveModel) -> ActiveModel {
+                fn conf_am_create(mut am: ActiveModel) -> ActiveModel {
                     #am_id
                     #am_created_at
                     #(#am_defs)*
                     am
                 }
-                fn config_am_update(mut am: ActiveModel) -> ActiveModel {
+                fn conf_am_update(mut am: ActiveModel) -> ActiveModel {
                     #am_updated_at
                     am
                 }
-                fn config_sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>> {
+                fn conf_sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>> {
                     &SQL_COLS
                 }
-                fn config_sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> {
+                fn conf_sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> {
                     &SQL_EXPRS
                 }
-                fn config_gql_select() -> &'static LazyLock<HashMap<&'static str, Vec<&'static str>>> {
+                fn conf_gql_select() -> &'static LazyLock<HashMap<&'static str, Vec<&'static str>>> {
                     &GQL_SELECT
                 }
             }
@@ -306,14 +304,14 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #(#filter_struk)*
             }
             impl Filter<Entity> for #filter {
-                fn config_and(a: Self, b: Self) -> Self {
+                fn conf_and(a: Self, b: Self) -> Self {
                     Self {
                         and: Some(vec![a, b]),
                         ..Default::default()
                     }
                 }
-                fn config_has_deleted_at(&self) -> bool {
-                    #config_has_deleted_at
+                fn conf_has_deleted_at(&self) -> bool {
+                    #conf_has_deleted_at
                 }
                 fn and(&self) -> Option<Vec<Self>> {
                     self.and.clone()
@@ -326,7 +324,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
             impl Conditionable for #filter {
-                fn condition(&self) -> Condition {
+                fn cond(&self) -> Condition {
                     let this = self.clone();
                     let mut c = Condition::all();
                     #(#filter_query)*
@@ -339,7 +337,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #(#order_by_struk)*
             }
             impl OrderBy<Entity> for #order_by {
-                fn config_default() -> Self {
+                fn conf_default() -> Self {
                     Self::IdDesc
                 }
             }

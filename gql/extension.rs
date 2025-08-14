@@ -1,8 +1,4 @@
 use crate::prelude::*;
-use async_graphql::{
-    Request, Response, ServerError, ServerResult,
-    extensions::{Extension, ExtensionContext, ExtensionFactory, NextExecute, NextPrepareRequest},
-};
 
 /// Extension to insert GrandLineContext on each request, then cleanup at the end of each request.
 pub struct GrandLineExtension;
@@ -36,10 +32,16 @@ impl Extension for GrandLineExtensionImpl {
         next: NextExecute<'_>,
     ) -> Response {
         let mut r = next.run(ctx, operation_name).await;
-        let gl = ctx.grand_line_context();
-        if let Err(e) = gl.cleanup(!r.errors.is_empty()).await {
-            r.errors.push(ServerError::new(e.to_string(), None));
-        }
+        match ctx.grand_line_context() {
+            Ok(gl) => {
+                if let Err(e) = gl.cleanup(!r.errors.is_empty()).await {
+                    r.errors.push(ServerError::new(e.to_string(), None));
+                }
+            }
+            Err(e) => {
+                r.errors.push(ServerError::new(e.to_string(), None));
+            }
+        };
         // TODO: use our error enum to only return client error
         r
     }

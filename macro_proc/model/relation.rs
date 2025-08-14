@@ -2,13 +2,13 @@ use crate::prelude::*;
 
 pub struct GenRelation {
     pub ty: RelationTy,
-    pub a: RelationAttr,
+    pub ra: RelationAttr,
 }
 
 impl GenRelation {
     fn sql_dep_str(&self) -> String {
         match self.ty {
-            RelationTy::BelongsTo => self.a.key_str(),
+            RelationTy::BelongsTo => self.ra.key_str(),
             RelationTy::HasOne => s!("id"),
             RelationTy::HasMany => s!("id"),
             RelationTy::ManyToMany => s!("id"),
@@ -16,13 +16,13 @@ impl GenRelation {
     }
     fn input_one(&self) -> Ts2 {
         let mut inputs = ts2!();
-        if !self.a.no_include_deleted {
+        if !self.ra.no_include_deleted {
             inputs = push_include_deleted(&inputs);
         }
         inputs
     }
     fn input_many(&self) -> Ts2 {
-        let to = self.a.to();
+        let to = self.ra.to();
         let filter = ty_filter(&to);
         let order_by = ty_order_by(&to);
         let mut inputs = quote! {
@@ -30,18 +30,18 @@ impl GenRelation {
             order_by: Option<Vec<#order_by>>,
             page: Option<Pagination>,
         };
-        if !self.a.no_include_deleted {
+        if !self.ra.no_include_deleted {
             inputs = push_include_deleted(&inputs);
         }
         inputs
     }
 
     fn output_one(&self) -> Ts2 {
-        let to = self.a.gql_to();
+        let to = self.ra.gql_to();
         quote!(Option<#to>)
     }
     fn output_many(&self) -> Ts2 {
-        let to = self.a.gql_to();
+        let to = self.ra.gql_to();
         quote!(Vec<#to>)
     }
 
@@ -60,19 +60,19 @@ impl GenRelation {
     }
 
     fn column(&self) -> Ts2 {
-        ty_column(&self.a.to())
+        ty_column(&self.ra.to())
     }
     fn col(&self) -> Ts2 {
         match self.ty {
             RelationTy::BelongsTo => pascal!("id"),
-            RelationTy::HasOne => pascal!(self.a.key_str()),
-            RelationTy::HasMany => pascal!(self.a.key_str()),
+            RelationTy::HasOne => pascal!(self.ra.key_str()),
+            RelationTy::HasMany => pascal!(self.ra.key_str()),
             RelationTy::ManyToMany => pascal!("id"),
         }
     }
 
     fn body_belongs_to(&self) -> Ts2 {
-        let model = self.a.to();
+        let model = self.ra.to();
         let column = self.column();
         let col = self.col();
         let r = quote! {
@@ -82,7 +82,7 @@ impl GenRelation {
         self.body_utils(r, false)
     }
     fn body_has_one(&self) -> Ts2 {
-        let model = self.a.to();
+        let model = self.ra.to();
         let column = self.column();
         let col = self.col();
         let r = quote! {
@@ -92,23 +92,35 @@ impl GenRelation {
         self.body_utils(r, false)
     }
     fn body_has_many(&self) -> Ts2 {
-        let model = self.a.to();
+        let include_deleted = if !self.ra.no_include_deleted {
+            quote!(include_deleted)
+        } else {
+            quote!(None)
+        };
+
+        let model = self.ra.to();
         let column = self.column();
         let col = self.col();
         let r = quote! {
             let c = Condition::all().add(#column::#col.eq(id));
-            #model::gql_search(ctx, tx, Some(c), filter, None, order_by, None, page).await?
+            #model::gql_search(ctx, tx, Some(c), filter, None, order_by, None, page, #include_deleted).await?
         };
         self.body_utils(r, true)
     }
     fn body_many_to_many(&self) -> Ts2 {
-        let model = self.a.to();
+        let include_deleted = if !self.ra.no_include_deleted {
+            quote!(include_deleted)
+        } else {
+            quote!(None)
+        };
+
+        let model = self.ra.to();
         let column = self.column();
         let col = self.col();
-        let through = self.a.through();
+        let through = self.ra.through();
         let through_column = ty_column(&through);
-        let through_key_col = pascal!(self.a.key_str());
-        let through_other_key_col = pascal!(self.a.other_key());
+        let through_key_col = pascal!(self.ra.key_str());
+        let through_other_key_col = pascal!(self.ra.other_key());
         let r = quote! {
             let sub = #through::find()
                 .select_only()
@@ -116,7 +128,7 @@ impl GenRelation {
                 .filter(#through_column::#through_key_col.eq(id))
                 .into_query();
             let c = Condition::all().add(#column::#col.in_subquery(sub));
-            #model::gql_search(ctx, tx, Some(c), filter, None, order_by, None, page).await?
+            #model::gql_search(ctx, tx, Some(c), filter, None, order_by, None, page, #include_deleted).await?
         };
         self.body_utils(r, true)
     }
@@ -129,13 +141,13 @@ impl VirtualResolverFn for GenRelation {
 }
 impl AttrDebug for GenRelation {
     fn attr_debug(&self) -> String {
-        self.a.inner.attr_debug()
+        self.ra.inner.attr_debug()
     }
 }
 
 impl ResolverFn for GenRelation {
     fn name(&self) -> Ts2 {
-        self.a.name()
+        self.ra.name()
     }
     fn gql_name(&self) -> String {
         camel_str!(self.name())

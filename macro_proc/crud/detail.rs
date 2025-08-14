@@ -21,11 +21,17 @@ pub fn gen_detail(attr: TokenStream, item: TokenStream) -> TokenStream {
         let output = ty_gql(&a.model);
         r.output = quote!(Option<#output>);
 
+        let include_deleted = if !a.ra.no_include_deleted {
+            quote!(include_deleted)
+        } else {
+            quote!(None)
+        };
+
         let body = r.body;
         let model = ts2!(a.model);
         r.body = quote! {
             #body
-            #model::gql_detail(ctx, tx, &id).await?
+            #model::gql_detail(ctx, tx, &id, #include_deleted).await?
         }
     }
 

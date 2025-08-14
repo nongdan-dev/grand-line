@@ -1,8 +1,5 @@
 use crate::prelude::*;
 
-pub trait VirtualResolverFn
-where
-    Self: ResolverFn,
-{
+pub trait VirtualResolverFn: ResolverFn {
     fn sql_deps(&self) -> Vec<String>;
 }

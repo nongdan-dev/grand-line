@@ -10,13 +10,13 @@ pub use schema::*;
 pub use grand_line::*;
 pub use macro_utils::*;
 
-pub use async_graphql::*;
-pub use sea_orm::prelude::*;
-pub use sea_orm::*;
+pub use async_graphql::{extensions::*, *};
+pub use sea_orm::{entity::prelude::*, prelude::*, *};
 
 pub use pretty_assertions::assert_eq as pretty_eq;
 pub use serial_test::serial;
 
+// override ambiguous
 pub use async_graphql::{Schema, Value};
 pub use sea_orm::Schema as DbSchema;
 

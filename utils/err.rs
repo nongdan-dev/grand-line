@@ -1,13 +1,14 @@
 use crate::prelude::*;
-use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(ThisError, Debug)]
 pub enum ErrServer {
     #[error("database error: {0}")]
     Db(#[from] DbErr),
     #[error("{0} is not present in active model")]
     DbAmField404(String),
 
+    #[error("failed to get grand line context: {0}")]
+    Ctx404(String),
     #[error("commit error: transaction is still in use elsewhere")]
     TxCommit,
     #[error("rollback error: transaction is still in use elsewhere")]
@@ -22,7 +23,7 @@ pub enum ErrServer {
     BugId404,
 }
 
-#[derive(Error, Debug)]
+#[derive(ThisError, Debug)]
 pub enum ErrClient {
     #[error("404 data not found")]
     Db404,
@@ -31,7 +32,7 @@ pub enum ErrClient {
     New(String),
 }
 
-#[derive(Error, Debug)]
+#[derive(ThisError, Debug)]
 pub enum GrandLineError {
     #[error(transparent)]
     Server(#[from] ErrServer),

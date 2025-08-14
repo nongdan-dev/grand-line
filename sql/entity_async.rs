@@ -1,9 +1,8 @@
 use crate::prelude::*;
-use async_graphql::Context;
 
 /// Abstract extra entity async methods implementation.
 #[async_trait]
-pub trait EntityXAsyncImpl<M, A, F, O, G>
+pub trait EntityXAsync<M, A, F, O, G>
 where
     Self: EntityX<M, A, F, O, G> + 'static,
     M: FromQueryResult + Send + Sync + 'static,
@@ -12,61 +11,44 @@ where
     O: OrderBy<Self> + 'static,
     G: FromQueryResult + Send + Sync + 'static,
 {
-    /// Helper to check if exists by condition.
-    async fn exists<D>(db: &D, c: Condition) -> Res<bool>
-    where
-        D: ConnectionTrait,
-    {
-        let v = Self::find()
-            .filter(c)
-            .select()
-            .expr(Expr::value(1))
-            .limit(1)
-            .one(db)
-            .await?;
-        match v {
-            Some(_) => Ok(true),
-            None => Ok(false),
-        }
-    }
-    /// Helper to check if exists by id.
-    async fn exists_by_id<D>(db: &D, id: &str) -> Res<bool>
-    where
-        D: ConnectionTrait,
-    {
-        let c = Self::condition_id(id)?;
-        Self::exists(db, c).await
-    }
+    // /// Helper to check if exists by id.
+    // async fn exists_by_id<D>(db: &D, id: &str) -> Res<bool>
+    // where
+    //     D: ConnectionTrait,
+    // {
+    //     let c = Self::cond_id(id)?;
+    //     Self::exists(db, c).await
+    // }
 
-    /// Helper to check if exists by condition and return error if not.
-    async fn try_exists<D>(db: &D, c: Condition) -> Res<()>
-    where
-        D: ConnectionTrait,
-    {
-        match Self::exists(db, c).await? {
-            true => Ok(()),
-            false => err_client!(Db404),
-        }
-    }
-    /// Helper to check if exists by id and return error if not.
-    async fn try_exists_by_id<D>(db: &D, id: &str) -> Res<()>
-    where
-        D: ConnectionTrait,
-    {
-        let c = Self::condition_id(id)?;
-        Self::try_exists(db, c).await
-    }
+    // /// Helper to check if exists by condition and return error if not.
+    // async fn try_exists<D>(db: &D, c: Condition) -> Res<()>
+    // where
+    //     D: ConnectionTrait,
+    // {
+    //     match Self::exists(db, c).await? {
+    //         true => Ok(()),
+    //         false => err_client!(Db404),
+    //     }
+    // }
+    // /// Helper to check if exists by id and return error if not.
+    // async fn try_exists_by_id<D>(db: &D, id: &str) -> Res<()>
+    // where
+    //     D: ConnectionTrait,
+    // {
+    //     let c = Self::cond_id(id)?;
+    //     Self::try_exists(db, c).await
+    // }
 
     /// Helper to find by id and return error if not.
-    async fn try_find_by_id<D>(db: &D, id: &str) -> Res<M>
-    where
-        D: ConnectionTrait,
-    {
-        match Self::internal_find_by_id(id)?.one(db).await? {
-            Some(v) => Ok(v),
-            None => err_client!(Db404),
-        }
-    }
+    // async fn try_find_by_id<D>(db: &D, id: &str) -> Res<M>
+    // where
+    //     D: ConnectionTrait,
+    // {
+    //     match Self::internal_find_by_id(id)?.one(db).await? {
+    //         Some(v) => Ok(v),
+    //         None => err_client!(Db404),
+    //     }
+    // }
 
     /// Look ahead for sql columns from requested fields in the graphql context.
     async fn gql_look_ahead(
@@ -78,7 +60,7 @@ where
             Option<sea_query::SimpleExpr>,
         )>,
     > {
-        let k = Self::gql_look_ahead_key(ctx);
+        let k = ctx.gql_look_ahead_key();
         // TODO: cache in the gl context to handle case like: 1000 response nested etc...
         println!("gql_look_ahead k={}", k);
 
@@ -87,9 +69,9 @@ where
             return err_server!(LookAhead);
         }
 
-        let sql_cols = Self::config_sql_cols();
-        let sql_exprs = Self::config_sql_exprs();
-        let gql_select = Self::config_gql_select();
+        let sql_cols = Self::conf_sql_cols();
+        let sql_exprs = Self::conf_sql_exprs();
+        let gql_select = Self::conf_gql_select();
 
         let r = f[0]
             .selection_set()
@@ -119,25 +101,22 @@ where
         order_by: Option<Vec<O>>,
         order_by_default: Option<Vec<O>>,
         page: Option<Pagination>,
+        include_deleted: Option<bool>,
     ) -> Res<Vec<G>>
     where
         D: ConnectionTrait,
     {
-        let f = filter.combine(filter_extra);
-        let mut q = f.select();
-        println!(
-            "{} {}",
-            serde_json::to_string(&f).unwrap(),
-            f.has_deleted_at()
-        );
-        if !f.has_deleted_at() {
-            q = q.exclude_deleted();
+        let filter = filter.combine(filter_extra);
+        let include_deleted = include_deleted.or_else(|| Some(filter.has_deleted_at()));
+        let mut q = Self::find().include_deleted(include_deleted);
+        if let Some(f) = filter {
+            q = q.filter(f.cond());
         }
         if let Some(c) = condition {
             q = q.filter(c);
         }
         let q = order_by.combine(order_by_default).chain(q);
-        let p = page.inner(Self::config_limit());
+        let p = page.inner(Self::conf_limit());
         let r = q
             .offset(p.offset)
             .limit(p.limit)
@@ -149,21 +128,38 @@ where
     }
 
     /// Helper to use in resolver body of the macro count.
-    async fn gql_count<D>(db: &D, filter: Option<F>, filter_extra: Option<F>) -> Res<u64>
+    async fn gql_count<D>(
+        db: &D,
+        filter: Option<F>,
+        filter_extra: Option<F>,
+        include_deleted: Option<bool>,
+    ) -> Res<u64>
     where
         D: ConnectionTrait,
     {
-        let q = filter.combine(filter_extra).select();
+        let filter = filter.combine(filter_extra);
+        let include_deleted = include_deleted.or_else(|| Some(filter.has_deleted_at()));
+        let mut q = Self::find().include_deleted(include_deleted);
+        if let Some(f) = filter {
+            q = q.filter(f.cond());
+        }
         let r = PaginatorTrait::count(q, db).await?;
         Ok(r)
     }
 
     /// Helper to use in resolver body of the macro detail.
-    async fn gql_detail<D>(ctx: &Context<'_>, db: &D, id: &str) -> Res<Option<G>>
+    async fn gql_detail<D>(
+        ctx: &Context<'_>,
+        db: &D,
+        id: &str,
+        include_deleted: Option<bool>,
+    ) -> Res<Option<G>>
     where
         D: ConnectionTrait,
     {
-        let r = Self::internal_find_by_id(id)?
+        let r = Self::find()
+            .include_deleted(include_deleted)
+            .by_id(id)?
             .gql_select(ctx)
             .await?
             .one(db)
@@ -172,19 +168,23 @@ where
     }
 
     /// Helper to use in resolver body of the macro delete.
-    async fn gql_delete<D>(db: &D, id: &str) -> Res<G>
+    async fn gql_delete<D>(db: &D, id: &str, include_deleted: Option<bool>) -> Res<G>
     where
         D: ConnectionTrait,
     {
-        let c = Self::condition_id(id)?;
         let r = Self::find()
-            .filter(c.clone())
+            .include_deleted(include_deleted)
+            .by_id(id)?
             .gql_select_id()?
             .one(db)
             .await?;
         match r {
             Some(r) => {
-                Self::delete_many().filter(c).exec(db).await?;
+                Self::delete_many()
+                    .include_deleted(include_deleted)
+                    .by_id(id)?
+                    .exec(db)
+                    .await?;
                 Ok(r)
             }
             None => err_client!(Db404),
@@ -194,7 +194,7 @@ where
 
 /// Automatically implement for EntityX.
 #[async_trait]
-impl<T, M, A, F, O, G> EntityXAsyncImpl<M, A, F, O, G> for T
+impl<T, M, A, F, O, G> EntityXAsync<M, A, F, O, G> for T
 where
     T: EntityX<M, A, F, O, G> + 'static,
     M: FromQueryResult + Send + Sync + 'static,

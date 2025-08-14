@@ -15,9 +15,7 @@ impl ResolverTy {
         let resolver = g.resolver_fn();
 
         let r = quote! {
-            use sea_orm::*;
-            use sea_orm::prelude::*;
-            use sea_orm::entity::prelude::*;
+            pub use sea_orm::{entity::prelude::*, prelude::*, *};
 
             #[derive(Default)]
             pub struct #ty;

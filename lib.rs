@@ -1,6 +1,8 @@
-mod context;
+mod gql;
+mod sql;
 mod utils;
-pub use context::*;
+pub use gql::*;
+pub use sql::*;
 pub use utils::*;
 
 pub use macro_proc::{
@@ -42,11 +44,15 @@ mod re_exports {
 #[cfg(not(feature = "no_re_exports"))]
 pub use re_exports::*;
 
+#[allow(unused_imports)]
 pub(crate) mod prelude {
     pub use crate::*;
-    pub use sea_orm::prelude::*;
-    pub use sea_orm::*;
+    pub use async_graphql::{extensions::*, *};
+    pub use sea_orm::{entity::prelude::*, prelude::*, *};
 
     #[cfg(feature = "no_re_exports")]
     pub use re_exports::*;
+
+    pub use async_graphql::Error;
+    pub use thiserror::Error as ThisError;
 }

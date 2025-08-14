@@ -63,7 +63,7 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
         },
     });
 
-    exec_assert(&s, q, Some(v), expected).await?;
+    exec_assert(&s, q, Some(&v), &expected).await?;
     Ok(())
 }
 
@@ -122,6 +122,6 @@ async fn sql_expr() -> Result<(), Box<dyn Error + Send + Sync>> {
         },
     });
 
-    exec_assert(&s, q, Some(v), expected).await?;
+    exec_assert(&s, q, Some(&v), &expected).await?;
     Ok(())
 }

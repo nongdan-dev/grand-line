@@ -26,13 +26,19 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
         let output = ty_gql(&a.model);
         r.output = quote!(Vec<#output>);
 
+        let include_deleted = if !a.ra.no_include_deleted {
+            quote!(include_deleted)
+        } else {
+            quote!(None)
+        };
+
         let body = r.body;
         let model = ts2!(a.model);
         r.body = quote! {
             let (filter_extra, order_by_default): (Option<#filter>, Option<Vec<#order_by>>) = {
                 #body
             };
-            #model::gql_search(ctx, tx, None, filter, filter_extra, order_by, order_by_default, page).await?
+            #model::gql_search(ctx, tx, None, filter, filter_extra, order_by, order_by_default, page, #include_deleted).await?
         };
     }
 
