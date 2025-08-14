@@ -13,16 +13,21 @@ impl ResolverTy {
 
         let ty = &g.ty;
         let resolver = g.resolver_fn();
+        let m = snake!(&g.ty);
 
         let r = quote! {
-            pub use sea_orm::{entity::prelude::*, prelude::*, *};
+            mod #m {
+                pub use super::*;
+                pub use sea_orm::{entity::prelude::*, prelude::*, *};
 
-            #[derive(Default)]
-            pub struct #ty;
-            #[async_graphql::Object]
-            impl #ty {
-                #resolver
+                #[derive(Default)]
+                pub struct #ty;
+                #[async_graphql::Object]
+                impl #ty {
+                    #resolver
+                }
             }
+            pub use #m::#ty;
         };
 
         #[cfg(feature = "debug_macro")]

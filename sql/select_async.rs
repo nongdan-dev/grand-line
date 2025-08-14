@@ -16,6 +16,14 @@ where
     async fn exists<D>(self, db: &D) -> Res<bool>
     where
         D: ConnectionTrait;
+    /// Helper to check if exists and return error if not.
+    async fn try_exists<D>(self, db: &D) -> Res<()>
+    where
+        D: ConnectionTrait;
+    /// Helper to find one and return error if not.
+    async fn try_one<D>(self, db: &D) -> Res<M>
+    where
+        D: ConnectionTrait;
     /// Select only columns from requested fields in the graphql context.
     async fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<G>>>;
 }
@@ -39,6 +47,26 @@ where
         match v {
             Some(_) => Ok(true),
             None => Ok(false),
+        }
+    }
+
+    async fn try_exists<D>(self, db: &D) -> Res<()>
+    where
+        D: ConnectionTrait,
+    {
+        match self.exists(db).await? {
+            true => Ok(()),
+            false => err_client!(Db404),
+        }
+    }
+
+    async fn try_one<D>(self, db: &D) -> Res<M>
+    where
+        D: ConnectionTrait,
+    {
+        match self.one(db).await? {
+            Some(v) => Ok(v),
+            None => err_client!(Db404),
         }
     }
 

@@ -22,7 +22,7 @@ pub fn gen_count(attr: TokenStream, item: TokenStream) -> TokenStream {
     if !a.resolver_output {
         r.output = quote!(u64);
 
-        let include_deleted = if !a.ra.no_include_deleted {
+        let include_deleted = if !a.resolver_inputs && !a.ra.no_include_deleted {
             quote!(include_deleted)
         } else {
             quote!(None)

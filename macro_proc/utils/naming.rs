@@ -12,9 +12,6 @@ pub fn ty_column(model: impl Display) -> Ts2 {
 pub fn ty_active_model(model: impl Display) -> Ts2 {
     pascal!(model, "ActiveModel")
 }
-pub fn ty_active_model_async_impl(model: impl Display) -> Ts2 {
-    pascal!(model, "ActiveModelAsyncImpl")
-}
 pub fn ty_filter(model: impl Display) -> Ts2 {
     pascal!(model, "Filter")
 }

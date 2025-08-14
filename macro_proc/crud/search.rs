@@ -26,7 +26,7 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
         let output = ty_gql(&a.model);
         r.output = quote!(Vec<#output>);
 
-        let include_deleted = if !a.ra.no_include_deleted {
+        let include_deleted = if !a.resolver_inputs && !a.ra.no_include_deleted {
             quote!(include_deleted)
         } else {
             quote!(None)

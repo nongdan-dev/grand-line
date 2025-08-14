@@ -37,7 +37,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     let mut conf_has_deleted_at = quote!(false);
     let mut sql_soft_delete = ts2!();
-    let mut am_soft_delete_impl = ts2!();
     let mut am_soft_delete = ts2!();
     if !a.no_deleted_at {
         fields.push(field!(pub deleted_at: Option<DateTimeUtc>));
@@ -55,8 +54,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             self.deleted_at_lte.is_some()
         };
         sql_soft_delete = quote! {
-            pub fn soft_delete_by_id(id: &str) -> Result<ActiveModel, Box<dyn Error + Send + Sync>> {
-                let c = Self::cond_id(id)?;
+            pub async fn soft_delete_by_id(id: &str) -> Result<ActiveModel, Box<dyn Error + Send + Sync>> {
                 let mut am = am_update!(#model {
                     id: id.to_string(),
                 });
@@ -64,13 +62,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 Ok(am)
             }
         };
-        am_soft_delete_impl = quote! {
-            async fn soft_delete<D>(self, db: &D) -> Result<Model, Box<dyn Error + Send + Sync>>
-            where
-                D: ConnectionTrait;
-        };
         am_soft_delete = quote! {
-            async fn soft_delete<D>(self, db: &D) -> Result<Model, Box<dyn Error + Send + Sync>>
+            pub async fn soft_delete<D>(self, db: &D) -> Result<Model, Box<dyn Error + Send + Sync>>
             where
                 D: ConnectionTrait,
             {
@@ -97,7 +90,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let gql = ty_gql(&model);
     let column = ty_column(&model);
     let active_model = ty_active_model(&model);
-    let active_model_async_impl = ty_active_model_async_impl(&model);
     let gql_alias = s!(model);
     let sql_alias = snake_str!(model);
     // ------------------------------------------------------------------------
@@ -289,13 +281,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
-            #[async_trait]
-            pub trait ActiveModelAsyncImpl {
-                #am_soft_delete_impl
-            }
-
-            #[async_trait]
-            impl ActiveModelAsyncImpl for ActiveModel {
+            impl ActiveModel {
                 #am_soft_delete
             }
 
@@ -354,7 +340,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             Entity as #model,
             Column as #column,
             ActiveModel as #active_model,
-            ActiveModelAsyncImpl as #active_model_async_impl,
             #gql,
             #filter,
             #order_by,

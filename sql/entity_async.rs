@@ -11,45 +11,6 @@ where
     O: OrderBy<Self> + 'static,
     G: FromQueryResult + Send + Sync + 'static,
 {
-    // /// Helper to check if exists by id.
-    // async fn exists_by_id<D>(db: &D, id: &str) -> Res<bool>
-    // where
-    //     D: ConnectionTrait,
-    // {
-    //     let c = Self::cond_id(id)?;
-    //     Self::exists(db, c).await
-    // }
-
-    // /// Helper to check if exists by condition and return error if not.
-    // async fn try_exists<D>(db: &D, c: Condition) -> Res<()>
-    // where
-    //     D: ConnectionTrait,
-    // {
-    //     match Self::exists(db, c).await? {
-    //         true => Ok(()),
-    //         false => err_client!(Db404),
-    //     }
-    // }
-    // /// Helper to check if exists by id and return error if not.
-    // async fn try_exists_by_id<D>(db: &D, id: &str) -> Res<()>
-    // where
-    //     D: ConnectionTrait,
-    // {
-    //     let c = Self::cond_id(id)?;
-    //     Self::try_exists(db, c).await
-    // }
-
-    /// Helper to find by id and return error if not.
-    // async fn try_find_by_id<D>(db: &D, id: &str) -> Res<M>
-    // where
-    //     D: ConnectionTrait,
-    // {
-    //     match Self::internal_find_by_id(id)?.one(db).await? {
-    //         Some(v) => Ok(v),
-    //         None => err_client!(Db404),
-    //     }
-    // }
-
     /// Look ahead for sql columns from requested fields in the graphql context.
     async fn gql_look_ahead(
         ctx: &Context<'_>,
@@ -168,23 +129,14 @@ where
     }
 
     /// Helper to use in resolver body of the macro delete.
-    async fn gql_delete<D>(db: &D, id: &str, include_deleted: Option<bool>) -> Res<G>
+    async fn gql_delete<D>(db: &D, id: &str) -> Res<G>
     where
         D: ConnectionTrait,
     {
-        let r = Self::find()
-            .include_deleted(include_deleted)
-            .by_id(id)?
-            .gql_select_id()?
-            .one(db)
-            .await?;
+        let r = Self::find().by_id(id)?.gql_select_id()?.one(db).await?;
         match r {
             Some(r) => {
-                Self::delete_many()
-                    .include_deleted(include_deleted)
-                    .by_id(id)?
-                    .exec(db)
-                    .await?;
+                Self::delete_many().by_id(id)?.exec(db).await?;
                 Ok(r)
             }
             None => err_client!(Db404),
