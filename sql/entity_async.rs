@@ -11,47 +11,6 @@ where
     O: OrderBy<Self> + 'static,
     G: FromQueryResult + Send + Sync + 'static,
 {
-    /// Look ahead for sql columns from requested fields in the graphql context.
-    async fn gql_look_ahead(
-        ctx: &Context<'_>,
-    ) -> Res<
-        Vec<(
-            &'static str,
-            Option<Self::Column>,
-            Option<sea_query::SimpleExpr>,
-        )>,
-    > {
-        let k = ctx.gql_look_ahead_key();
-        // TODO: cache in the gl context to handle case like: 1000 response nested etc...
-        println!("gql_look_ahead k={}", k);
-
-        let f = ctx.look_ahead().selection_fields();
-        if f.len() != 1 {
-            return err_server!(LookAhead);
-        }
-
-        let sql_cols = Self::conf_sql_cols();
-        let sql_exprs = Self::conf_sql_exprs();
-        let gql_select = Self::conf_gql_select();
-
-        let r = f[0]
-            .selection_set()
-            .filter_map(|f| gql_select.get(f.name().to_string().as_str()))
-            .flat_map(|c| c.iter().copied())
-            .collect::<HashSet<_>>()
-            .iter()
-            .filter_map(|c| {
-                let (col, expr) = (sql_cols.get(c), sql_exprs.get(c));
-                match (col, expr) {
-                    (None, None) => None,
-                    _ => Some((*c, col.copied(), expr.cloned())),
-                }
-            })
-            .collect::<Vec<_>>();
-
-        Ok(r)
-    }
-
     /// Helper to use in resolver body of the macro search.
     async fn gql_search<D>(
         ctx: &Context<'_>,
@@ -67,22 +26,14 @@ where
     where
         D: ConnectionTrait,
     {
-        let filter = filter.combine(filter_extra);
-        let include_deleted = include_deleted.or_else(|| Some(filter.has_deleted_at()));
-        let mut q = Self::find().include_deleted(include_deleted);
-        if let Some(f) = filter {
-            q = q.filter(f.cond());
-        }
-        if let Some(c) = condition {
-            q = q.filter(c);
-        }
-        let q = order_by.combine(order_by_default).chain(q);
-        let p = page.inner(Self::conf_limit());
-        let r = q
-            .offset(p.offset)
-            .limit(p.limit)
-            .gql_select(ctx)
-            .await?
+        let f = filter.combine(filter_extra);
+        let r = Self::find()
+            .include_deleted(include_deleted.or_else(|| Some(f.has_deleted_at())))
+            .filter_opt(condition)
+            .chain(f)
+            .chain(order_by.combine(order_by_default))
+            .chain(page.inner(Self::conf_limit()))
+            .gql_select(ctx)?
             .all(db)
             .await?;
         Ok(r)
@@ -100,11 +51,11 @@ where
     {
         let filter = filter.combine(filter_extra);
         let include_deleted = include_deleted.or_else(|| Some(filter.has_deleted_at()));
-        let mut q = Self::find().include_deleted(include_deleted);
-        if let Some(f) = filter {
-            q = q.filter(f.cond());
-        }
-        let r = PaginatorTrait::count(q, db).await?;
+        let r = Self::find()
+            .include_deleted(include_deleted)
+            .filter_opt(filter.map(|f| f.cond()))
+            .count(db)
+            .await?;
         Ok(r)
     }
 
@@ -121,26 +72,34 @@ where
         let r = Self::find()
             .include_deleted(include_deleted)
             .by_id(id)?
-            .gql_select(ctx)
-            .await?
+            .gql_select(ctx)?
             .one(db)
             .await?;
         Ok(r)
     }
 
     /// Helper to use in resolver body of the macro delete.
-    async fn gql_delete<D>(db: &D, id: &str) -> Res<G>
+    async fn gql_delete<D>(db: &D, am: A) -> Res<G>
     where
         D: ConnectionTrait,
     {
-        let r = Self::find().by_id(id)?.gql_select_id()?.one(db).await?;
-        match r {
-            Some(r) => {
-                Self::delete_many().by_id(id)?.exec(db).await?;
-                Ok(r)
-            }
-            None => err_client!(Db404),
-        }
+        let r = Self::find()
+            .include_deleted(None)
+            .by_id(id)?
+            .gql_select_id()?
+            .try_one(db)
+            .await?;
+        am.update(db).await?;
+    }
+
+    /// Helper to use in resolver body of the macro delete.
+    async fn gql_delete_permanent<D>(db: &D, id: &str) -> Res<G>
+    where
+        D: ConnectionTrait,
+    {
+        let r = Self::find().by_id(id)?.gql_select_id()?.try_one(db).await?;
+        Self::delete_many().by_id(id)?.exec(db).await?;
+        Ok(r)
     }
 }
 

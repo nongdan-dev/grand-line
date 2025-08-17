@@ -28,11 +28,20 @@ where
     T: EntityTrait,
     F: Chainable<T>,
 {
-    fn chain(&self, q: Select<T>) -> Select<T> {
-        let mut q = q;
+    fn chain(&self, mut q: Select<T>) -> Select<T> {
         for c in self {
             q = c.chain(q)
         }
         q
+    }
+}
+
+/// Automatically implement Chainable for PaginationInner.
+impl<T> Chainable<T> for PaginationInner
+where
+    T: EntityTrait,
+{
+    fn chain(&self, q: Select<T>) -> Select<T> {
+        q.offset(self.offset).limit(self.limit)
     }
 }

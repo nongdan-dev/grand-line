@@ -24,8 +24,6 @@ where
     async fn try_one<D>(self, db: &D) -> Res<M>
     where
         D: ConnectionTrait;
-    /// Select only columns from requested fields in the graphql context.
-    async fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<G>>>;
 }
 
 /// Automatically implement for Select<T>.
@@ -68,25 +66,5 @@ where
             Some(v) => Ok(v),
             None => err_client!(Db404),
         }
-    }
-
-    async fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<G>>> {
-        let mut q = self;
-        let cols = T::gql_look_ahead(ctx).await?;
-        if cols.len() > 0 {
-            q = q.select_only();
-            for (c, col, expr) in cols {
-                match col {
-                    None => {}
-                    Some(col) => q = q.select_column(col),
-                }
-                match expr {
-                    None => {}
-                    Some(expr) => q = q.column_as(expr, c),
-                }
-            }
-        }
-        let r = q.into_model::<G>();
-        Ok(r)
     }
 }

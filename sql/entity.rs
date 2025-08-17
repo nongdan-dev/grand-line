@@ -60,4 +60,41 @@ where
             },
         }
     }
+
+    /// Look ahead for sql columns from requested fields in the graphql context.
+    fn gql_look_ahead(
+        ctx: &Context<'_>,
+    ) -> Res<
+        Vec<(
+            &'static str,
+            Option<Self::Column>,
+            Option<sea_query::SimpleExpr>,
+        )>,
+    > {
+        let f = ctx.look_ahead().selection_fields();
+        if f.len() != 1 {
+            return err_server!(LookAhead);
+        }
+
+        let sql_cols = Self::conf_sql_cols();
+        let sql_exprs = Self::conf_sql_exprs();
+        let gql_select = Self::conf_gql_select();
+
+        let r = f[0]
+            .selection_set()
+            .filter_map(|f| gql_select.get(f.name().to_string().as_str()))
+            .flat_map(|c| c.iter().copied())
+            .collect::<HashSet<_>>()
+            .iter()
+            .filter_map(|c| {
+                let (col, expr) = (sql_cols.get(c), sql_exprs.get(c));
+                match (col, expr) {
+                    (None, None) => None,
+                    _ => Some((*c, col.copied(), expr.cloned())),
+                }
+            })
+            .collect::<Vec<_>>();
+
+        Ok(r)
+    }
 }

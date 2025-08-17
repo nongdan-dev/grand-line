@@ -77,7 +77,7 @@ impl GenRelation {
         let col = self.col();
         let r = quote! {
             let c = Condition::all().add(#column::#col.eq(id));
-            #model::find().filter(c).gql_select(ctx).await?.one(tx).await?
+            #model::find().filter(c).gql_select(ctx)?.one(tx).await?
         };
         self.body_utils(r, false)
     }
@@ -87,7 +87,7 @@ impl GenRelation {
         let col = self.col();
         let r = quote! {
             let c = Condition::all().add(#column::#col.eq(id));
-            #model::find().filter(c).gql_select(ctx).await?.one(tx).await?
+            #model::find().filter(c).gql_select(ctx)?.one(tx).await?
         };
         self.body_utils(r, false)
     }
