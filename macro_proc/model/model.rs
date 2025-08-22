@@ -256,7 +256,12 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 m
             });
 
-            impl EntityX<Model, ActiveModel, #filter, #order_by, #gql> for Entity {
+            impl EntityX for Entity {
+                type M = Model;
+                type A = ActiveModel;
+                type F = #filter;
+                type O = #order_by;
+                type G = #gql;
                 fn conf_limit() -> ConfigLimit {
                     #conf_limit
                 }

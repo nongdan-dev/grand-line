@@ -74,16 +74,11 @@ async fn db() -> Result<DatabaseConnection, Box<dyn Error + Send + Sync>> {
     {
         let c = conn("mysql://root:test_pwd@localhost:3306/test_db");
         let db = Database::connect(c).await?;
-        let stmts = vec![
-            // drop recreate new db on each test
-            "DROP DATABASE IF EXISTS test_db2;",
-            "CREATE DATABASE test_db2;",
-        ];
-        for stmt in stmts.iter() {
-            let stmt = Statement::from_string(DbBackend::Postgres, stmt.to_owned());
-            db.execute(stmt).await?;
-        }
-        let c = conn("mysql://root:test_pwd@localhost:3306/test_db2");
+        let name = f!("test_db_{}", ulid());
+        let stmt = f!("CREATE DATABASE {};", name);
+        let stmt = Statement::from_string(DbBackend::Postgres, stmt);
+        db.execute(stmt).await?;
+        let c = conn(f!("mysql://root:test_pwd@localhost:3306/{}", name));
         let db = Database::connect(c).await?;
         Ok(db)
     }

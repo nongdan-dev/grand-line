@@ -1,14 +1,9 @@
 use crate::prelude::*;
 
 /// Abstract extra QueryFilter methods implementation.
-pub trait QueryFilterX<T, M, A, F, O, G>
+pub trait QueryFilterX<T>
 where
-    T: EntityX<M, A, F, O, G>,
-    M: FromQueryResult + Send + Sync,
-    A: ActiveModelTrait<Entity = T>,
-    F: Filter<T>,
-    O: OrderBy<T>,
-    G: FromQueryResult + Send + Sync,
+    T: EntityX,
     Self: QueryFilter,
 {
     /// Filter with condition deleted_at is not null, if there is deleted_at.
@@ -21,48 +16,16 @@ where
 }
 
 /// Automatically implement for Select<T>.
-impl<T, M, A, F, O, G> QueryFilterX<T, M, A, F, O, G> for Select<T>
-where
-    T: EntityX<M, A, F, O, G>,
-    M: FromQueryResult + Send + Sync,
-    A: ActiveModelTrait<Entity = T>,
-    F: Filter<T>,
-    O: OrderBy<T>,
-    G: FromQueryResult + Send + Sync,
-{
-}
+impl<T> QueryFilterX<T> for Select<T> where T: EntityX {}
 /// Automatically implement for DeleteMany<T>.
-impl<T, M, A, F, O, G> QueryFilterX<T, M, A, F, O, G> for DeleteMany<T>
-where
-    T: EntityX<M, A, F, O, G>,
-    M: FromQueryResult + Send + Sync,
-    A: ActiveModelTrait<Entity = T>,
-    F: Filter<T>,
-    O: OrderBy<T>,
-    G: FromQueryResult + Send + Sync,
-{
-}
+impl<T> QueryFilterX<T> for DeleteMany<T> where T: EntityX {}
 /// Automatically implement for UpdateMany<T>.
-impl<T, M, A, F, O, G> QueryFilterX<T, M, A, F, O, G> for UpdateMany<T>
-where
-    T: EntityX<M, A, F, O, G>,
-    M: FromQueryResult + Send + Sync,
-    A: ActiveModelTrait<Entity = T>,
-    F: Filter<T>,
-    O: OrderBy<T>,
-    G: FromQueryResult + Send + Sync,
-{
-}
+impl<T> QueryFilterX<T> for UpdateMany<T> where T: EntityX {}
 
-/// Abstract extra QueryFilter methods implementation.
-pub(crate) trait QueryFilterXInternal<T, M, A, F, O, G>
+/// Abstract extra QueryFilter methods implementation, internal only.
+pub(crate) trait QueryFilterXInternal<T>
 where
-    T: EntityX<M, A, F, O, G>,
-    M: FromQueryResult + Send + Sync,
-    A: ActiveModelTrait<Entity = T>,
-    F: Filter<T>,
-    O: OrderBy<T>,
-    G: FromQueryResult + Send + Sync,
+    T: EntityX,
     Self: QueryFilter,
 {
     /// Filter with condition id eq.
@@ -72,35 +35,8 @@ where
 }
 
 /// Automatically implement for Select<T>.
-impl<T, M, A, F, O, G> QueryFilterXInternal<T, M, A, F, O, G> for Select<T>
-where
-    T: EntityX<M, A, F, O, G>,
-    M: FromQueryResult + Send + Sync,
-    A: ActiveModelTrait<Entity = T>,
-    F: Filter<T>,
-    O: OrderBy<T>,
-    G: FromQueryResult + Send + Sync,
-{
-}
+impl<T> QueryFilterXInternal<T> for Select<T> where T: EntityX {}
 /// Automatically implement for DeleteMany<T>.
-impl<T, M, A, F, O, G> QueryFilterXInternal<T, M, A, F, O, G> for DeleteMany<T>
-where
-    T: EntityX<M, A, F, O, G>,
-    M: FromQueryResult + Send + Sync,
-    A: ActiveModelTrait<Entity = T>,
-    F: Filter<T>,
-    O: OrderBy<T>,
-    G: FromQueryResult + Send + Sync,
-{
-}
+impl<T> QueryFilterXInternal<T> for DeleteMany<T> where T: EntityX {}
 /// Automatically implement for UpdateMany<T>.
-impl<T, M, A, F, O, G> QueryFilterXInternal<T, M, A, F, O, G> for UpdateMany<T>
-where
-    T: EntityX<M, A, F, O, G>,
-    M: FromQueryResult + Send + Sync,
-    A: ActiveModelTrait<Entity = T>,
-    F: Filter<T>,
-    O: OrderBy<T>,
-    G: FromQueryResult + Send + Sync,
-{
-}
+impl<T> QueryFilterXInternal<T> for UpdateMany<T> where T: EntityX {}

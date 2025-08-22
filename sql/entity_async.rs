@@ -2,27 +2,19 @@ use crate::prelude::*;
 
 /// Abstract extra entity async methods implementation.
 #[async_trait]
-pub trait EntityXAsync<M, A, F, O, G>
-where
-    Self: EntityX<M, A, F, O, G> + 'static,
-    M: FromQueryResult + Send + Sync + 'static,
-    A: ActiveModelTrait<Entity = Self> + 'static,
-    F: Filter<Self> + 'static,
-    O: OrderBy<Self> + 'static,
-    G: FromQueryResult + Send + Sync + 'static,
-{
+pub trait EntityXAsync: EntityX + 'static {
     /// Helper to use in resolver body of the macro search.
     async fn gql_search<D>(
         ctx: &Context<'_>,
         db: &D,
         condition: Option<Condition>,
-        filter: Option<F>,
-        filter_extra: Option<F>,
-        order_by: Option<Vec<O>>,
-        order_by_default: Option<Vec<O>>,
+        filter: Option<Self::F>,
+        filter_extra: Option<Self::F>,
+        order_by: Option<Vec<Self::O>>,
+        order_by_default: Option<Vec<Self::O>>,
         page: Option<Pagination>,
         include_deleted: Option<bool>,
-    ) -> Res<Vec<G>>
+    ) -> Res<Vec<Self::G>>
     where
         D: ConnectionTrait,
     {
@@ -42,8 +34,8 @@ where
     /// Helper to use in resolver body of the macro count.
     async fn gql_count<D>(
         db: &D,
-        filter: Option<F>,
-        filter_extra: Option<F>,
+        filter: Option<Self::F>,
+        filter_extra: Option<Self::F>,
         include_deleted: Option<bool>,
     ) -> Res<u64>
     where
@@ -65,7 +57,7 @@ where
         db: &D,
         id: &str,
         include_deleted: Option<bool>,
-    ) -> Res<Option<G>>
+    ) -> Res<Option<Self::G>>
     where
         D: ConnectionTrait,
     {
@@ -79,7 +71,23 @@ where
     }
 
     /// Helper to use in resolver body of the macro delete.
-    async fn gql_delete<D>(db: &D, am: A) -> Res<G>
+    async fn gql_soft_delete<D>(db: &D, am: Self::A) -> Res<Self::G>
+    where
+        D: ConnectionTrait,
+    {
+        let id = "TODO:";
+        let r = Self::find()
+            .include_deleted(None)
+            .by_id(id)?
+            .gql_select_id()?
+            .try_one(db)
+            .await?;
+        am.update(db).await?;
+        Ok(r)
+    }
+
+    /// Helper to use in resolver body of the macro delete.
+    async fn gql_delete<D>(db: &D, id: &str) -> Res<Self::G>
     where
         D: ConnectionTrait,
     {
@@ -89,15 +97,6 @@ where
             .gql_select_id()?
             .try_one(db)
             .await?;
-        am.update(db).await?;
-    }
-
-    /// Helper to use in resolver body of the macro delete.
-    async fn gql_delete_permanent<D>(db: &D, id: &str) -> Res<G>
-    where
-        D: ConnectionTrait,
-    {
-        let r = Self::find().by_id(id)?.gql_select_id()?.try_one(db).await?;
         Self::delete_many().by_id(id)?.exec(db).await?;
         Ok(r)
     }
@@ -105,14 +104,4 @@ where
 
 /// Automatically implement for EntityX.
 #[async_trait]
-impl<T, M, A, F, O, G> EntityXAsync<M, A, F, O, G> for T
-where
-    T: EntityX<M, A, F, O, G> + 'static,
-    M: FromQueryResult + Send + Sync + 'static,
-    A: ActiveModelTrait<Entity = T> + 'static,
-    M: FromQueryResult + Send + Sync + 'static,
-    F: Filter<T> + 'static,
-    O: OrderBy<T> + 'static,
-    G: FromQueryResult + Send + Sync + 'static,
-{
-}
+impl<T> EntityXAsync for T where T: EntityX + 'static {}
