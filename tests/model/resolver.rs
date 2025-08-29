@@ -3,7 +3,6 @@ mod test_utils;
 use test_utils::*;
 
 #[tokio::test]
-#[cfg_attr(feature = "serial", serial)]
 async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     mod test {
         use super::*;
@@ -36,15 +35,16 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     }
     use test::*;
 
-    let db = db_1(User).await?;
-    let s = schema_q::<UserDetailQuery>(&db);
+    let _db = db_1(User).await?;
+    let db = _db.as_ref();
+    let s = schema_q::<UserDetailQuery>(db);
 
     let u = am_create!(User {
         first_name: "Olivia",
         middle_name: "Anna",
         last_name: "Dunham",
     })
-    .insert(&db)
+    .insert(db)
     .await?;
 
     let q = r#"
@@ -68,7 +68,6 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
 }
 
 #[tokio::test]
-#[cfg_attr(feature = "serial", serial)]
 async fn sql_expr() -> Result<(), Box<dyn Error + Send + Sync>> {
     mod test {
         use super::*;
@@ -101,10 +100,11 @@ async fn sql_expr() -> Result<(), Box<dyn Error + Send + Sync>> {
     }
     use test::*;
 
-    let db = db_1(User).await?;
-    let s = schema_q::<UserDetailQuery>(&db);
+    let _db = db_1(User).await?;
+    let db = _db.as_ref();
+    let s = schema_q::<UserDetailQuery>(db);
 
-    let u = am_create!(User { a: 1 }).insert(&db).await?;
+    let u = am_create!(User { a: 1 }).insert(db).await?;
 
     let q = r#"
     query test($id: ID!) {

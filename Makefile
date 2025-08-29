@@ -8,11 +8,11 @@ check:
 
 test:
 	make check \
-	&& cargo test --features serial;
+	&& cargo test;
 
 test_mysql:
 	make check \
-	&& cargo test --no-default-features --features mysql serial;
+	&& cargo test --no-default-features --features mysql;
 
 test_sqlite:
 	make check \

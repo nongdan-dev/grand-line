@@ -14,7 +14,6 @@ pub use async_graphql::{extensions::*, *};
 pub use sea_orm::{entity::prelude::*, prelude::*, *};
 
 pub use pretty_assertions::assert_eq as pretty_eq;
-pub use serial_test::serial;
 
 // override ambiguous
 pub use async_graphql::{Schema, Value};

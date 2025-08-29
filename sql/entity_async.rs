@@ -71,32 +71,11 @@ pub trait EntityXAsync: EntityX + 'static {
     }
 
     /// Helper to use in resolver body of the macro delete.
-    async fn gql_soft_delete<D>(db: &D, am: Self::A) -> Res<Self::G>
-    where
-        D: ConnectionTrait,
-    {
-        let id = "TODO:";
-        let r = Self::find()
-            .include_deleted(None)
-            .by_id(id)?
-            .gql_select_id()?
-            .try_one(db)
-            .await?;
-        am.update(db).await?;
-        Ok(r)
-    }
-
-    /// Helper to use in resolver body of the macro delete.
     async fn gql_delete<D>(db: &D, id: &str) -> Res<Self::G>
     where
         D: ConnectionTrait,
     {
-        let r = Self::find()
-            .include_deleted(None)
-            .by_id(id)?
-            .gql_select_id()?
-            .try_one(db)
-            .await?;
+        let r = Self::find().by_id(id)?.gql_select_id()?.try_one(db).await?;
         Self::delete_many().by_id(id)?.exec(db).await?;
         Ok(r)
     }

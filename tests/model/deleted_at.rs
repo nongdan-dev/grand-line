@@ -3,7 +3,6 @@ mod test_utils;
 use test_utils::*;
 
 #[tokio::test]
-#[cfg_attr(feature = "serial", serial)]
 async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     mod test {
         use super::*;
@@ -30,12 +29,13 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     #[derive(Default, MergedObject)]
     struct Query(UserDetailQuery, UserSearchQuery, UserCountQuery);
 
-    let db = db_1(User).await?;
-    let s = schema_q::<Query>(&db);
+    let _db = db_1(User).await?;
+    let db = _db.as_ref();
+    let s = schema_q::<Query>(db);
 
-    let _ = am_create!(User { name: "Peter" }).insert(&db).await?;
-    let u = am_create!(User { name: "Olivia" }).insert(&db).await?;
-    let u = u.into_active_model().soft_delete(&db).await?;
+    let _ = am_create!(User { name: "Peter" }).insert(db).await?;
+    let u = am_create!(User { name: "Olivia" }).insert(db).await?;
+    let u = u.into_active_model().soft_delete(db).await?;
 
     // ========================================================================
     // detail

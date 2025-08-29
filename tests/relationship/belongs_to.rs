@@ -3,7 +3,6 @@ mod test_utils;
 use test_utils::*;
 
 #[tokio::test]
-#[cfg_attr(feature = "serial", serial)]
 async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     mod test {
         use super::*;
@@ -24,11 +23,12 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     }
     use test::*;
 
-    let db = db_2(User, Profile).await?;
-    let s = schema_q::<ProfileDetailQuery>(&db);
+    let _db = db_2(User, Profile).await?;
+    let db = _db.as_ref();
+    let s = schema_q::<ProfileDetailQuery>(db);
 
-    let u = am_create!(User { name: "Olivia" }).insert(&db).await?;
-    let f = am_create!(Profile { user_id: u.id }).insert(&db).await?;
+    let u = am_create!(User { name: "Olivia" }).insert(db).await?;
+    let f = am_create!(Profile { user_id: u.id }).insert(db).await?;
 
     let q = r#"
     query test($id: ID!) {
