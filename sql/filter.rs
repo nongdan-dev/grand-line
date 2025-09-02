@@ -15,29 +15,29 @@ where
     fn conf_has_deleted_at(&self) -> bool;
     /// Get and to use in abstract methods.
     /// Should be generated in the #[model] macro.
-    fn and(&self) -> Option<Vec<Self>>;
+    fn get_and(&self) -> Option<Vec<Self>>;
     /// Get or to use in abstract methods.
     /// Should be generated in the #[model] macro.
-    fn or(&self) -> Option<Vec<Self>>;
+    fn get_or(&self) -> Option<Vec<Self>>;
     /// Get not to use in abstract methods.
     /// Should be generated in the #[model] macro.
-    fn not(&self) -> Option<Self>;
+    fn get_not(&self) -> Option<Self>;
     /// Check if there is deleted_at in this filter, with the combination of and/or/not.
     fn has_deleted_at(&self) -> bool {
         if self.conf_has_deleted_at() {
             return true;
         }
-        if let Some(and) = self.and() {
+        if let Some(and) = self.get_and() {
             if and.iter().any(|f| f.has_deleted_at()) {
                 return true;
             }
         }
-        if let Some(or) = self.or() {
+        if let Some(or) = self.get_or() {
             if or.iter().any(|f| f.has_deleted_at()) {
                 return true;
             }
         }
-        if let Some(not) = self.not() {
+        if let Some(not) = self.get_not() {
             if not.has_deleted_at() {
                 return true;
             }

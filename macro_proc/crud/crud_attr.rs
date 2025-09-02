@@ -4,6 +4,7 @@ use crate::prelude::*;
 pub struct CrudAttr {
     pub resolver_inputs: bool,
     pub resolver_output: bool,
+    pub no_permanent_delete: bool,
     #[field_names(skip)]
     pub model: String,
     #[field_names(skip)]
@@ -14,6 +15,7 @@ impl From<Attr> for CrudAttr {
         attr_unwrap_or_else!(Self {
             resolver_inputs: bool,
             resolver_output: bool,
+            no_permanent_delete: bool,
             model: a.model_from_first_path(),
             ra: a.into(),
         })
@@ -21,7 +23,11 @@ impl From<Attr> for CrudAttr {
 }
 impl AttrValidate for CrudAttr {
     fn attr_fields(a: &Attr) -> Vec<String> {
-        let mut f = Self::F.iter().map(|f| s!(f)).collect::<Vec<_>>();
+        let mut f = Self::F
+            .iter()
+            .map(|f| s!(f))
+            .filter(|f| !(a.attr != MacroTy::Delete && f == Self::F_NO_PERMANENT_DELETE))
+            .collect::<Vec<_>>();
         f.extend(ResolverTyAttr::attr_fields(a));
         f.push(a.model_from_first_path());
         f

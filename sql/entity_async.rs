@@ -71,7 +71,7 @@ pub trait EntityXAsync: EntityX + 'static {
     }
 
     /// Helper to use in resolver body of the macro delete.
-    async fn gql_delete<D>(db: &D, id: &str) -> Res<Self::G>
+    async fn gql_delete<D>(db: &D, id: &str, permanent: Option<bool>) -> Res<Self::G>
     where
         D: ConnectionTrait,
     {

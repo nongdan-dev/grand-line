@@ -182,6 +182,29 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
     };
+    let am_soft_delete = if a.no_deleted_at {
+        ts2!()
+    } else {
+        let mut am = quote! {
+            if !matches!(am.deleted_at.clone(), Set(_)) {
+                let mut am = am_update!(#model {
+                    ..am
+                });
+            }
+        };
+        if a.no_updated_at {
+            am = quote! {
+                #am
+                am.deleted_at = Set(Some(chrono::Utc::now()));
+            };
+        } else {
+            am = quote! {
+                #am
+                am.deleted_at = am.updated_at.clone();
+            };
+        }
+        am
+    };
     // ------------------------------------------------------------------------
     // config limit
     let (limit_default, limit_max) = (a.limit_default, a.limit_max);
@@ -206,7 +229,12 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             #[sea_orm(table_name=#sql_alias)]
             #item
 
+            impl ModelX<Entity> for Model {
+            }
+
             impl ActiveModelBehavior for ActiveModel {
+            }
+            impl ActiveModelX<Entity> for ActiveModel {
             }
 
             #[derive(Debug, EnumIter, DeriveRelation)]
@@ -234,6 +262,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                         ..Default::default()
                     }
                 }
+            }
+            impl GqlModel<Entity> for #gql {
             }
 
             impl Entity {
@@ -275,6 +305,10 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                     #am_updated_at
                     am
                 }
+                fn conf_am_soft_delete(mut am: ActiveModel) -> ActiveModel {
+                    #am_soft_delete
+                    am
+                }
                 fn conf_sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>> {
                     &SQL_COLS
                 }
@@ -304,13 +338,13 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn conf_has_deleted_at(&self) -> bool {
                     #conf_has_deleted_at
                 }
-                fn and(&self) -> Option<Vec<Self>> {
+                fn get_and(&self) -> Option<Vec<Self>> {
                     self.and.clone()
                 }
-                fn or(&self) -> Option<Vec<Self>> {
+                fn get_or(&self) -> Option<Vec<Self>> {
                     self.or.clone()
                 }
-                fn not(&self) -> Option<Self> {
+                fn get_not(&self) -> Option<Self> {
                     self.not.clone().map(|b| *b)
                 }
             }

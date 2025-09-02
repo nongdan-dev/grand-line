@@ -2,11 +2,11 @@ use crate::prelude::*;
 
 /// Helper trait to abstract extra methods into sea_orm entity.
 pub trait EntityX: EntityTrait<Model = Self::M> {
-    type M: FromQueryResult + IntoActiveModel<Self::A> + Send + Sync;
-    type A: ActiveModelTrait<Entity = Self> + ActiveModelBehavior + Send + Sync;
+    type M: ModelX<Self> + Send + Sync;
+    type A: ActiveModelX<Self> + Send + Sync;
     type F: Filter<Self> + Send + Sync;
     type O: OrderBy<Self> + Send + Sync;
-    type G: FromQueryResult + Send + Sync;
+    type G: GqlModel<Self> + Send + Sync;
 
     /// Get default and max limit configuration.
     /// Should be generated in the #[model] macro.
@@ -23,6 +23,12 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
     /// This can be used together with the macro grand_line::am_update.
     /// Should be generated in the #[model] macro.
     fn conf_am_update(am: Self::A) -> Self::A;
+
+    /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
+    /// We need to have this method instead to get default values on delete.
+    /// This can be used together with the macro grand_line::am_delete.
+    /// Should be generated in the #[model] macro.
+    fn conf_am_soft_delete(am: Self::A) -> Self::A;
 
     /// Get sql columns map with rust snake field name to use in abstract methods.
     /// Should be generated in the #[model] macro.
