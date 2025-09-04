@@ -129,18 +129,27 @@ pub fn active_model(item: TokenStream) -> TokenStream {
 
 /// Helper to quickly create an active model with concise syntax
 /// and convert all string literals into String automatically.
-/// It will also wrap the active model with Entity::conf_am_create
+/// It will also wrap the active model with ActiveModelX::_create
 /// to get default values on this operation.
 #[proc_macro]
 pub fn am_create(item: TokenStream) -> TokenStream {
-    expr_struct(item, "ActiveModel", "Set", "conf_am_create")
+    expr_struct(item, "ActiveModel", "Set", "_create")
 }
 
 /// Helper to quickly create active model with concise syntax
 /// and convert all string literals into String automatically.
-/// It will also wrap the active model with Entity::conf_am_update
+/// It will also wrap the active model with ActiveModelX::_update
 /// to get default values on this operation.
 #[proc_macro]
 pub fn am_update(item: TokenStream) -> TokenStream {
-    expr_struct(item, "ActiveModel", "Set", "conf_am_update")
+    expr_struct(item, "ActiveModel", "Set", "_update")
+}
+
+/// Helper to quickly create active model with concise syntax
+/// and convert all string literals into String automatically.
+/// It will also wrap the active model with ActiveModelX::_delete
+/// to get default values on this operation.
+#[proc_macro]
+pub fn am_delete(item: TokenStream) -> TokenStream {
+    expr_struct(item, "ActiveModel", "Set", "_delete")
 }

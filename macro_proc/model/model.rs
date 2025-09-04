@@ -37,7 +37,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     let mut conf_has_deleted_at = quote!(false);
     let mut sql_soft_delete = ts2!();
-    let mut am_soft_delete = ts2!();
+    let mut am_soft_delete2 = ts2!();
     if !a.no_deleted_at {
         fields.push(field!(pub deleted_at: Option<DateTimeUtc>));
         if !a.no_by_id {
@@ -62,7 +62,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 Ok(am)
             }
         };
-        am_soft_delete = quote! {
+        am_soft_delete2 = quote! {
             pub async fn soft_delete<D>(self, db: &D) -> Result<Model, Box<dyn Error + Send + Sync>>
             where
                 D: ConnectionTrait,
@@ -144,6 +144,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // ------------------------------------------------------------------------
     // active model default
     let mut am_defs = vec![];
+    let mut self_am_defs = vec![];
     for a in defs {
         let mut raw_str = a.raw();
         if raw_str.starts_with("\"") || raw_str.starts_with("r#") {
@@ -156,38 +157,20 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 am.#name = Set(#raw);
             }
         });
+        self_am_defs.push(quote! {
+            if !matches!(self.#name, Set(_)) {
+                self.#name = Set(#raw);
+            }
+        });
     }
     // ------------------------------------------------------------------------
     // active model utils
-    let am_id = quote! {
-        if !matches!(am.id, Set(_)) {
-            am.id = Set(ulid::Ulid::new().to_string());
-        }
-    };
-    let am_created_at = if a.no_created_at {
-        ts2!()
-    } else {
-        quote! {
-            if !matches!(am.created_at, Set(_)) {
-                am.created_at = Set(chrono::Utc::now());
-            }
-        }
-    };
-    let am_updated_at = if a.no_updated_at {
-        ts2!()
-    } else {
-        quote! {
-            if !matches!(am.updated_at, Set(_)) {
-                am.updated_at = Set(Some(chrono::Utc::now()));
-            }
-        }
-    };
     let am_soft_delete = if a.no_deleted_at {
         ts2!()
     } else {
         let mut am = quote! {
             if !matches!(am.deleted_at.clone(), Set(_)) {
-                let mut am = am_update!(#model {
+                am = am_update!(#model {
                     ..am
                 });
             }
@@ -204,6 +187,46 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             };
         }
         am
+    };
+    //
+    let am_get_created_at = if a.no_created_at {
+        quote!(NotSet)
+    } else {
+        quote!(self.created_at.clone())
+    };
+    let am_set_created_at = if a.no_created_at {
+        quote!(self)
+    } else {
+        quote! {
+            self.created_at = Set(v);
+            self
+        }
+    };
+    let am_get_updated_at = if a.no_updated_at {
+        quote!(NotSet)
+    } else {
+        quote!(self.updated_at.clone())
+    };
+    let am_set_updated_at = if a.no_updated_at {
+        quote!(self)
+    } else {
+        quote! {
+            self.updated_at = Set(Some(v));
+            self
+        }
+    };
+    let am_get_deleted_at = if a.no_deleted_at {
+        quote!(NotSet)
+    } else {
+        quote!(self.deleted_at.clone())
+    };
+    let am_set_deleted_at = if a.no_deleted_at {
+        quote!(self)
+    } else {
+        quote! {
+            self.deleted_at = Set(Some(v));
+            self
+        }
     };
     // ------------------------------------------------------------------------
     // config limit
@@ -235,6 +258,42 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             impl ActiveModelBehavior for ActiveModel {
             }
             impl ActiveModelX<Entity> for ActiveModel {
+                fn _from_id(v: &str) -> Self {
+                    Self {
+                        id: Set(v.to_string()),
+                        ..Default::default()
+                    }
+                    ._set_default_values()
+                }
+                fn _set_default_values(mut self) -> Self {
+                    #(#self_am_defs)*
+                    self
+                }
+                fn _get_id(&self) -> ActiveValue<String> {
+                    self.id.clone()
+                }
+                fn _set_id(mut self, v: &str) -> Self {
+                    self.id = Set(v.to_string());
+                    self
+                }
+                fn _get_created_at(&self) -> ActiveValue<DateTimeUtc> {
+                    #am_get_created_at
+                }
+                fn _set_created_at(mut self, v: DateTimeUtc) -> Self {
+                    #am_set_created_at
+                }
+                fn _get_updated_at(&self) -> ActiveValue<Option<DateTimeUtc>> {
+                    #am_get_updated_at
+                }
+                fn _set_updated_at(mut self, v: DateTimeUtc) -> Self {
+                    #am_set_updated_at
+                }
+                fn _get_deleted_at(&self) -> ActiveValue<Option<DateTimeUtc>> {
+                    #am_get_deleted_at
+                }
+                fn _set_deleted_at(mut self, v: DateTimeUtc) -> Self {
+                    #am_set_deleted_at
+                }
             }
 
             #[derive(Debug, EnumIter, DeriveRelation)]
@@ -295,16 +354,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn conf_limit() -> ConfigLimit {
                     #conf_limit
                 }
-                fn conf_am_create(mut am: ActiveModel) -> ActiveModel {
-                    #am_id
-                    #am_created_at
-                    #(#am_defs)*
-                    am
-                }
-                fn conf_am_update(mut am: ActiveModel) -> ActiveModel {
-                    #am_updated_at
-                    am
-                }
                 fn conf_am_soft_delete(mut am: ActiveModel) -> ActiveModel {
                     #am_soft_delete
                     am
@@ -321,7 +370,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             impl ActiveModel {
-                #am_soft_delete
+                #am_soft_delete2
             }
 
             #[gql_input]
@@ -335,7 +384,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                         ..Default::default()
                     }
                 }
-                fn conf_has_deleted_at(&self) -> bool {
+                fn _has_deleted_at(&self) -> bool {
                     #conf_has_deleted_at
                 }
                 fn get_and(&self) -> Option<Vec<Self>> {

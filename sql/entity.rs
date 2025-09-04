@@ -13,18 +13,6 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
     fn conf_limit() -> ConfigLimit;
 
     /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
-    /// We need to have this method instead to get default values on create.
-    /// This can be used together with the macro grand_line::am_create.
-    /// Should be generated in the #[model] macro.
-    fn conf_am_create(am: Self::A) -> Self::A;
-
-    /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
-    /// We need to have this method instead to get default values on update.
-    /// This can be used together with the macro grand_line::am_update.
-    /// Should be generated in the #[model] macro.
-    fn conf_am_update(am: Self::A) -> Self::A;
-
-    /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
     /// We need to have this method instead to get default values on delete.
     /// This can be used together with the macro grand_line::am_delete.
     /// Should be generated in the #[model] macro.

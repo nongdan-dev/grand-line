@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use syn::{Expr, ExprStruct, Lit, parse_macro_input};
 
-pub fn expr_struct(item: TokenStream, suf: &str, fw: &str, rw: &str) -> TokenStream {
+pub fn expr_struct(item: TokenStream, suf: &str, wrap: &str, method: &str) -> TokenStream {
     let mut item = Into::<Ts2>::into(item).to_string().trim().to_owned();
     if !item.ends_with("}") {
         item = item + "{}";
@@ -14,7 +14,7 @@ pub fn expr_struct(item: TokenStream, suf: &str, fw: &str, rw: &str) -> TokenStr
 
     let rest = item.rest.to_token_stream();
     let rest = if s!(rest).trim() == "" {
-        ts2!("..Default::default()")
+        quote!(..Default::default())
     } else {
         quote!(..#rest)
     };
@@ -31,8 +31,8 @@ pub fn expr_struct(item: TokenStream, suf: &str, fw: &str, rw: &str) -> TokenStr
         } else {
             f.expr.to_token_stream()
         };
-        let fw = ts2!(f.member.to_token_stream(), ":", fw);
-        fields.push(quote!(#fw(#v)));
+        let wrap = ts2!(f.member.to_token_stream(), ":", wrap);
+        fields.push(quote!(#wrap(#v)));
     }
 
     let r = quote! {
@@ -42,9 +42,9 @@ pub fn expr_struct(item: TokenStream, suf: &str, fw: &str, rw: &str) -> TokenStr
         }
     };
 
-    if rw != "" {
-        let rwrap = ts2!(model, "::", rw);
-        quote!(#rwrap(#r))
+    if method != "" {
+        let method = ts2!(method);
+        quote!(#r.#method())
     } else {
         r
     }
