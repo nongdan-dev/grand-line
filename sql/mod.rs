@@ -1,4 +1,5 @@
 mod active_model;
+mod active_model_async;
 mod chainable;
 mod conditionable;
 mod entity;
@@ -13,6 +14,7 @@ mod select;
 mod select_async;
 mod selectable;
 pub use active_model::*;
+pub use active_model_async::*;
 pub use chainable::*;
 pub use conditionable::*;
 pub use entity::*;

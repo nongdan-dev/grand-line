@@ -18,11 +18,11 @@ pub fn gql_fields(gfields: &Vec<(Field, Vec<Attr>)>) -> (Vec<Ts2>, Vec<Ts2>, Vec
 
         into.push(if opt {
             quote! {
-                #name: v.#name,
+                #name: self.#name,
             }
         } else {
             quote! {
-                #name: Some(v.#name),
+                #name: Some(self.#name),
             }
         });
     }

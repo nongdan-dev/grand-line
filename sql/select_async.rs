@@ -4,7 +4,7 @@ use crate::prelude::*;
 #[async_trait]
 pub trait SelectXAsync<T>
 where
-    T: EntityX + 'static,
+    T: EntityX,
 {
     /// Helper to check exists.
     async fn exists<D>(self, db: &D) -> Res<bool>
@@ -21,7 +21,7 @@ where
 #[async_trait]
 impl<T> SelectXAsync<T> for Select<T>
 where
-    T: EntityX + 'static,
+    T: EntityX,
 {
     /// Helper to check exists.
     async fn exists<D>(self, db: &D) -> Res<bool>
@@ -52,7 +52,7 @@ where
 #[async_trait]
 pub trait SelectXAsync2<G>
 where
-    G: FromQueryResult + Send + Sync + 'static,
+    G: FromQueryResult + Send + Sync,
 {
     /// Helper to find one and return error if not.
     async fn try_one<D>(self, db: &D) -> Res<G>
@@ -64,7 +64,7 @@ where
 #[async_trait]
 impl<T> SelectXAsync2<T::M> for Select<T>
 where
-    T: EntityX + 'static,
+    T: EntityX,
 {
     /// Helper to find one and return error if not.
     async fn try_one<D>(self, db: &D) -> Res<T::M>
@@ -82,7 +82,7 @@ where
 #[async_trait]
 impl<G> SelectXAsync2<G> for Selector<SelectModel<G>>
 where
-    G: FromQueryResult + Send + Sync + 'static,
+    G: FromQueryResult + Send + Sync,
 {
     /// Helper to find one and return error if not.
     async fn try_one<D>(self, db: &D) -> Res<G>

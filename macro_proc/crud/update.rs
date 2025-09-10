@@ -26,7 +26,7 @@ pub fn gen_update(attr: TokenStream, item: TokenStream) -> TokenStream {
             let am: #am = {
                 #body
             };
-            am.update(tx).await?.into()
+            am.update(tx).await?.to_gql(ctx)
         }
     }
 

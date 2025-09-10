@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 /// Abstract extra entity async methods implementation.
 #[async_trait]
-pub trait EntityXAsync: EntityX + 'static {
+pub trait EntityXAsync: EntityX {
     /// Helper to use in resolver body of the macro search.
     async fn gql_search<D>(
         ctx: &Context<'_>,
@@ -75,12 +75,17 @@ pub trait EntityXAsync: EntityX + 'static {
     where
         D: ConnectionTrait,
     {
-        let r = Self::find().by_id(id)?.gql_select_id()?.try_one(db).await?;
-        Self::delete_many().by_id(id)?.exec(db).await?;
+        if permanent.unwrap_or_default() {
+            Self::delete_many().by_id(id)?.exec(db).await?;
+        } else {
+            let a = <Self::A as Default>::default();
+            a._set_id(id)._delete().update(db).await?;
+        }
+        let r = Self::G::default()._set_id(id);
         Ok(r)
     }
 }
 
 /// Automatically implement for EntityX.
 #[async_trait]
-impl<T> EntityXAsync for T where T: EntityX + 'static {}
+impl<T> EntityXAsync for T where T: EntityX {}

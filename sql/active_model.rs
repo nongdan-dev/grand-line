@@ -1,12 +1,13 @@
 use crate::prelude::*;
 
+/// Abstract extra active model methods implementation.
 pub trait ActiveModelX<T>
 where
     T: EntityX,
-    Self: ActiveModelTrait<Entity = T> + ActiveModelBehavior,
+    Self: ActiveModelTrait<Entity = T> + ActiveModelBehavior + Default + Send + Sync + Sized,
 {
-    fn _from_id(id: &str) -> Self;
     fn _set_default_values(self) -> Self;
+
     fn _get_id(&self) -> ActiveValue<String>;
     fn _set_id(self, v: &str) -> Self;
     fn _get_created_at(&self) -> ActiveValue<DateTimeUtc>;
@@ -26,7 +27,8 @@ where
         if !self._get_created_at().is_set() {
             self = self._set_created_at(chrono::Utc::now());
         }
-        self._set_default_values()
+        self = self._set_default_values();
+        self
     }
 
     /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
@@ -45,10 +47,11 @@ where
     fn _delete(mut self) -> Self {
         self = self._update();
         if let Set(Some(v)) = self._get_updated_at() {
-            self._set_deleted_at(v)
+            self = self._set_deleted_at(v);
         } else {
             let now = chrono::Utc::now();
-            self._set_updated_at(now)._set_deleted_at(now)
+            self = self._set_updated_at(now)._set_deleted_at(now);
         }
+        self
     }
 }

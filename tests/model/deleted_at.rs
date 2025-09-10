@@ -23,19 +23,24 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
         fn resolver() {
             None
         }
+
+        #[delete(User)]
+        fn resolver() {}
     }
     use test::*;
 
     #[derive(Default, MergedObject)]
     struct Query(UserDetailQuery, UserSearchQuery, UserCountQuery);
+    #[derive(Default, MergedObject)]
+    struct Mutation(UserDeleteMutation);
 
     let _db = db_1(User).await?;
     let db = _db.as_ref();
-    let s = schema_q::<Query>(db);
+    let s = schema_qm::<Query, Mutation>(db);
 
-    let _ = am_create!(User { name: "Peter" }).insert(db).await?;
-    let u = am_create!(User { name: "Olivia" }).insert(db).await?;
-    let u = u.into_active_model().soft_delete(db).await?;
+    let u1 = am_create!(User { name: "Olivia" }).insert(db).await?;
+    let u2 = am_create!(User { name: "Peter" }).insert(db).await?;
+    let u1 = u1.into_active_model().soft_delete(db).await?;
 
     // ========================================================================
     // detail
@@ -47,13 +52,13 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
         }
     }
     "#;
-    let v = value!({
-        "id": u.id,
+    let v1 = value!({
+        "id": u1.id.clone(),
     });
     let expected = value!({
         "userDetail": null,
     });
-    exec_assert(&s, q, Some(&v), &expected).await?;
+    exec_assert(&s, q, Some(&v1), &expected).await?;
 
     // ========================================================================
     // search
@@ -162,6 +167,54 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     }
     "#;
     exec_assert(&s, q, None, &expected).await?;
+
+    // ========================================================================
+    // delete
+
+    let q = r#"
+    mutation test($id: ID!) {
+        userDelete(id: $id) {
+            id
+        }
+    }
+    "#;
+    let expected = value!({
+        "userDelete": {
+            "id": u2.id.clone(),
+        },
+    });
+    let v2 = value!({
+        "id": u2.id.clone(),
+    });
+    exec_assert(&s, q, Some(&v2), &expected).await?;
+
+    match User::find_by_id(&u2.id).one(db).await? {
+        Some(u) => assert!(
+            u.deleted_at != None,
+            "it should have soft delete by default, found deleted_at=None",
+        ),
+        None => assert!(
+            false,
+            "it should have soft delete by default: found None returned from db",
+        ),
+    }
+
+    let q = r#"
+    mutation test($id: ID!) {
+        userDelete(id: $id, permanent: true) {
+            id
+        }
+    }
+    "#;
+    exec_assert(&s, q, Some(&v2), &expected).await?;
+
+    match User::find_by_id(&u2.id).count(db).await? {
+        count => assert!(
+            count == 0,
+            "it should delete permanently in db, found count={}",
+            count,
+        ),
+    }
 
     Ok(())
 }

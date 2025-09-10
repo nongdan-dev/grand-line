@@ -36,8 +36,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     }
     let mut conf_has_deleted_at = quote!(false);
-    let mut sql_soft_delete = ts2!();
-    let mut am_soft_delete2 = ts2!();
     if !a.no_deleted_at {
         fields.push(field!(pub deleted_at: Option<DateTimeUtc>));
         if !a.no_by_id {
@@ -52,28 +50,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             self.deleted_at_gte.is_some() ||
             self.deleted_at_lt.is_some() ||
             self.deleted_at_lte.is_some()
-        };
-        sql_soft_delete = quote! {
-            pub async fn soft_delete_by_id(id: &str) -> Result<ActiveModel, Box<dyn Error + Send + Sync>> {
-                let mut am = am_update!(#model {
-                    id: id.to_string(),
-                });
-                am.deleted_at = am.updated_at.clone();
-                Ok(am)
-            }
-        };
-        am_soft_delete2 = quote! {
-            pub async fn soft_delete<D>(self, db: &D) -> Result<Model, Box<dyn Error + Send + Sync>>
-            where
-                D: ConnectionTrait,
-            {
-                let mut am = am_update!(#model {
-                    ..self
-                });
-                am.deleted_at = am.updated_at.clone();
-                let r = am.update(db).await?;
-                Ok(r)
-            }
         };
     }
     // ------------------------------------------------------------------------
@@ -165,30 +141,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     // ------------------------------------------------------------------------
     // active model utils
-    let am_soft_delete = if a.no_deleted_at {
-        ts2!()
-    } else {
-        let mut am = quote! {
-            if !matches!(am.deleted_at.clone(), Set(_)) {
-                am = am_update!(#model {
-                    ..am
-                });
-            }
-        };
-        if a.no_updated_at {
-            am = quote! {
-                #am
-                am.deleted_at = Set(Some(chrono::Utc::now()));
-            };
-        } else {
-            am = quote! {
-                #am
-                am.deleted_at = am.updated_at.clone();
-            };
-        }
-        am
-    };
-    //
     let am_get_created_at = if a.no_created_at {
         quote!(NotSet)
     } else {
@@ -252,19 +204,75 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             #[sea_orm(table_name=#sql_alias)]
             #item
 
-            impl ModelX<Entity> for Model {
+            #[derive(
+                Debug,
+                Clone,
+                Default,
+                FromQueryResult,
+            )]
+            pub struct #gql {
+                #(#gql_struk)*
+            }
+            #[async_graphql::Object(name=#gql_alias)]
+            impl #gql {
+                #(#gql_resolver)*
             }
 
             impl ActiveModelBehavior for ActiveModel {
+                // no support for ActiveModelBehavior
+                // instead use the following macros: default, am_create, am_update, am_delete
             }
-            impl ActiveModelX<Entity> for ActiveModel {
-                fn _from_id(v: &str) -> Self {
-                    Self {
-                        id: Set(v.to_string()),
+            #[derive(Debug, EnumIter, DeriveRelation)]
+            pub enum Relation {
+                // TODO:
+            }
+
+            static SQL_COLS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {
+                let mut m = HashMap::new();
+                #(#sql_cols)*
+                m
+            });
+            static SQL_EXPRS: LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> = LazyLock::new(|| {
+                let mut m = HashMap::new();
+                #(#sql_exprs)*
+                m
+            });
+            static GQL_SELECT: LazyLock<HashMap<&'static str, Vec<&'static str>>> = LazyLock::new(|| {
+                let mut m = HashMap::new();
+                #(#gql_select)*
+                m
+            });
+
+            impl EntityX for Entity {
+                type M = Model;
+                type A = ActiveModel;
+                type F = #filter;
+                type O = #order_by;
+                type G = #gql;
+                fn conf_limit() -> ConfigLimit {
+                    #conf_limit
+                }
+                fn conf_sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>> {
+                    &SQL_COLS
+                }
+                fn conf_sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> {
+                    &SQL_EXPRS
+                }
+                fn conf_gql_select() -> &'static LazyLock<HashMap<&'static str, Vec<&'static str>>> {
+                    &GQL_SELECT
+                }
+            }
+
+            impl ModelX<Entity> for Model {
+                fn _to_gql(self) -> #gql {
+                    #gql {
+                        #(#gql_into)*
                         ..Default::default()
                     }
-                    ._set_default_values()
                 }
+            }
+
+            impl ActiveModelX<Entity> for ActiveModel {
                 fn _set_default_values(mut self) -> Self {
                     #(#self_am_defs)*
                     self
@@ -296,81 +304,11 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
-            #[derive(Debug, EnumIter, DeriveRelation)]
-            pub enum Relation {
-                // TODO:
-            }
-
-            #[derive(
-                Debug,
-                Clone,
-                Default,
-                FromQueryResult,
-            )]
-            pub struct #gql {
-                #(#gql_struk)*
-            }
-            #[async_graphql::Object(name=#gql_alias)]
-            impl #gql {
-                #(#gql_resolver)*
-            }
-            impl From<Model> for #gql {
-                fn from(v: Model) -> Self {
-                    #gql {
-                        #(#gql_into)*
-                        ..Default::default()
-                    }
-                }
-            }
             impl GqlModel<Entity> for #gql {
-            }
-
-            impl Entity {
-                #sql_soft_delete
-            }
-
-            static SQL_COLS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {
-                let mut m = HashMap::new();
-                #(#sql_cols)*
-                m
-            });
-            static SQL_EXPRS: LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> = LazyLock::new(|| {
-                let mut m = HashMap::new();
-                #(#sql_exprs)*
-                m
-            });
-            static GQL_SELECT: LazyLock<HashMap<&'static str, Vec<&'static str>>> = LazyLock::new(|| {
-                let mut m = HashMap::new();
-                #(#gql_select)*
-                m
-            });
-
-            impl EntityX for Entity {
-                type M = Model;
-                type A = ActiveModel;
-                type F = #filter;
-                type O = #order_by;
-                type G = #gql;
-                fn conf_limit() -> ConfigLimit {
-                    #conf_limit
+                fn _set_id(mut self, v: &str) -> Self {
+                    self.id = Some(v.to_string());
+                    self
                 }
-                fn conf_am_soft_delete(mut am: ActiveModel) -> ActiveModel {
-                    #am_soft_delete
-                    am
-                }
-                fn conf_sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>> {
-                    &SQL_COLS
-                }
-                fn conf_sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> {
-                    &SQL_EXPRS
-                }
-                fn conf_gql_select() -> &'static LazyLock<HashMap<&'static str, Vec<&'static str>>> {
-                    &GQL_SELECT
-                }
-            }
-
-            impl ActiveModel {
-                #am_soft_delete2
             }
 
             #[gql_input]
@@ -378,7 +316,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #(#filter_struk)*
             }
             impl Filter<Entity> for #filter {
-                fn conf_and(a: Self, b: Self) -> Self {
+                fn _combine_and(a: Self, b: Self) -> Self {
                     Self {
                         and: Some(vec![a, b]),
                         ..Default::default()
@@ -387,13 +325,13 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn _has_deleted_at(&self) -> bool {
                     #conf_has_deleted_at
                 }
-                fn get_and(&self) -> Option<Vec<Self>> {
+                fn _get_and(&self) -> Option<Vec<Self>> {
                     self.and.clone()
                 }
-                fn get_or(&self) -> Option<Vec<Self>> {
+                fn _get_or(&self) -> Option<Vec<Self>> {
                     self.or.clone()
                 }
-                fn get_not(&self) -> Option<Self> {
+                fn _get_not(&self) -> Option<Self> {
                     self.not.clone().map(|b| *b)
                 }
             }
