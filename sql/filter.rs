@@ -2,10 +2,10 @@ use crate::prelude::*;
 use serde::Serialize;
 
 /// Helper trait to combine filter and filter_extra.
-pub trait Filter<T>
+pub trait Filter<E>
 where
+    E: EntityX,
     Self: Conditionable + Default + Serialize + Send + Sync + Sized,
-    T: EntityTrait,
 {
     /// Combine filter and filter_extra to use in abstract methods.
     /// Should be generated in the model macro.
@@ -48,20 +48,20 @@ where
 }
 
 /// Automatically implement Chainable for Filter
-impl<T, F> Chainable<T> for F
+impl<E, F> Chainable<E> for F
 where
-    T: EntityTrait,
-    F: Filter<T>,
+    E: EntityX,
+    F: Filter<E>,
 {
-    fn chain(&self, q: Select<T>) -> Select<T> {
+    fn chain(&self, q: Select<E>) -> Select<E> {
         q.filter(self.cond())
     }
 }
 
 /// Automatically implement for Option<Filter>.
-pub trait FilterImpl<T>
+pub trait FilterImpl<E>
 where
-    T: EntityTrait,
+    E: EntityX,
 {
     /// Helper to combine filter and filter_extra.
     fn combine(self, filter_extra: Self) -> Self;
@@ -70,10 +70,10 @@ where
 }
 
 /// Automatically implement for Option<Filter>.
-impl<T, F> FilterImpl<T> for Option<F>
+impl<E, F> FilterImpl<E> for Option<F>
 where
-    T: EntityTrait,
-    F: Filter<T>,
+    E: EntityX,
+    F: Filter<E>,
 {
     fn combine(self, filter_extra: Self) -> Self {
         match (self, filter_extra) {

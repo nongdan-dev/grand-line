@@ -199,15 +199,15 @@ impl Attr {
         }
     }
 
-    pub fn parse<T>(&self, k: &str) -> Option<T>
+    pub fn parse<V>(&self, k: &str) -> Option<V>
     where
-        T: FromStr,
+        V: FromStr,
     {
         match self.args.get(k) {
-            Some((v, AttrParseTy::NameValue)) => match v.parse::<T>() {
+            Some((v, AttrParseTy::NameValue)) => match v.parse::<V>() {
                 Ok(v) => Some(v),
                 Err(_) => {
-                    let err = f!("failed to parse `{}` as {}", v, type_name::<T>());
+                    let err = f!("failed to parse `{}` as {}", v, type_name::<V>());
                     let err = self.errk(k, err);
                     pan!(err);
                 }
@@ -219,9 +219,9 @@ impl Attr {
             None => None,
         }
     }
-    pub fn parse_must<T>(&self, k: &str) -> T
+    pub fn parse_must<V>(&self, k: &str) -> V
     where
-        T: FromStr,
+        V: FromStr,
     {
         match self.parse(k) {
             Some(v) => v,
@@ -264,11 +264,11 @@ impl Attr {
         }
     }
 
-    pub fn into_with_validate<T>(self) -> T
+    pub fn into_with_validate<V>(self) -> V
     where
-        T: From<Self> + AttrValidate,
+        V: From<Self> + AttrValidate,
     {
-        let map = T::attr_fields(&self).into_iter().collect::<HashSet<_>>();
+        let map = V::attr_fields(&self).into_iter().collect::<HashSet<_>>();
         for (k, _) in self.args.clone() {
             if !map.contains(&k) {
                 let err = self.err_incorrect(&k);

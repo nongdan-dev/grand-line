@@ -4,8 +4,10 @@ use crate::prelude::*;
 pub enum ErrServer {
     #[error("database error: {0}")]
     Db(#[from] DbErr),
-    #[error("{0} is not present in active model")]
-    DbAmField404(String),
+    #[error("{0} column is not present in the model {1}")]
+    DbCfgF404(&'static str, &'static str),
+    #[error("{0} have no value in the active model {1}")]
+    DbAmF404(&'static str, &'static str),
 
     #[error("failed to get grand line context: {0}")]
     Ctx404(String),
@@ -13,14 +15,14 @@ pub enum ErrServer {
     TxCommit,
     #[error("rollback error: transaction is still in use elsewhere")]
     TxRollback,
-    #[error("look ahead selection fields list length should be 1")]
+    #[error("look ahead selection fields length should be 1")]
     LookAhead,
 
     #[error("server error: {0}")]
     New(String),
 
-    #[error("FRAMEWORK BUG: id is not found in the model columns")]
-    BugId404,
+    #[error("FRAMEWORK BUG: id column is not present in the model {0}")]
+    BugId404(&'static str),
 }
 
 #[derive(ThisError, Debug)]
@@ -47,5 +49,5 @@ impl From<DbErr> for GrandLineError {
 }
 
 pub type GrandLineResult<T> = Result<T, GrandLineError>;
-pub(crate) use macro_utils::{err_client, err_server};
+pub(crate) use macro_utils::{_err_client, _err_server, err_client, err_server};
 pub(crate) type Res<T> = GrandLineResult<T>;

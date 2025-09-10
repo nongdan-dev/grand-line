@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
 /// Abstract extra Select methods implementation.
-pub trait SelectX<T>
+pub trait SelectX<E>
 where
-    T: EntityX,
+    E: EntityX,
 {
     /// Helper to filter with option.
     fn filter_opt(self, c: Option<Condition>) -> Self;
@@ -11,21 +11,20 @@ where
     /// Helper to filter with Chainable.
     fn chain<C>(self, c: C) -> Self
     where
-        C: Chainable<T>;
+        C: Chainable<E>;
 
     /// Select only columns from requested fields in the graphql context.
-    fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<T::G>>>;
+    fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<E::G>>>;
 
     /// Select only id for the graphql delete response.
-    fn gql_select_id(self) -> Res<Selector<SelectModel<T::G>>>;
+    fn gql_select_id(self) -> Res<Selector<SelectModel<E::G>>>;
 }
 
-/// Automatically implement for Select<T>.
-impl<T> SelectX<T> for Select<T>
+/// Automatically implement for Select<E>.
+impl<E> SelectX<E> for Select<E>
 where
-    T: EntityX,
+    E: EntityX,
 {
-    /// Helper to filter with option.
     fn filter_opt(self, c: Option<Condition>) -> Self {
         match c {
             Some(c) => self.filter(c),
@@ -33,18 +32,16 @@ where
         }
     }
 
-    /// Helper to filter with Chainable.
     fn chain<C>(self, c: C) -> Self
     where
-        C: Chainable<T>,
+        C: Chainable<E>,
     {
         c.chain(self)
     }
 
-    /// Select only columns from requested fields in the graphql context.
-    fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<T::G>>> {
+    fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<E::G>>> {
         let mut q = self;
-        let cols = T::gql_look_ahead(ctx)?;
+        let cols = E::gql_look_ahead(ctx)?;
         if cols.len() > 0 {
             q = q.select_only();
             for (c, col, expr) in cols {
@@ -58,12 +55,11 @@ where
                 }
             }
         }
-        let r = q.into_model::<T::G>();
+        let r = q.into_model::<E::G>();
         Ok(r)
     }
 
-    /// Select only id for the graphql delete response.
-    fn gql_select_id(self) -> Res<Selector<SelectModel<T::G>>> {
-        T::_col_id().map(|c| self.select_only().column(c).into_model::<T::G>())
+    fn gql_select_id(self) -> Res<Selector<SelectModel<E::G>>> {
+        E::_col_id().map(|c| self.select_only().column(c).into_model::<E::G>())
     }
 }

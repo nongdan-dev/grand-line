@@ -82,6 +82,5 @@ impl GrandLineContextImpl for ExtensionContext<'_> {
 }
 
 fn try_unwrap(r: Result<&Arc<GrandLineContext>, Error>) -> Res<Arc<GrandLineContext>> {
-    r.cloned()
-        .map_err(|e| GrandLineError::Server(ErrServer::Ctx404(e.message)))
+    r.cloned().map_err(|e| _err_server!(Ctx404(e.message)))
 }

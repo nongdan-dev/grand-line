@@ -5,7 +5,7 @@ use std::{ops::Deref, time::Duration};
 
 pub async fn db_1<E1>(e1: E1) -> Result<TmpDb, Box<dyn Error + Send + Sync>>
 where
-    E1: EntityTrait,
+    E1: EntityX,
 {
     let db = db().await?;
     create_table(&db, e1).await?;
@@ -14,8 +14,8 @@ where
 
 pub async fn db_2<E1, E2>(e1: E1, e2: E2) -> Result<TmpDb, Box<dyn Error + Send + Sync>>
 where
-    E1: EntityTrait,
-    E2: EntityTrait,
+    E1: EntityX,
+    E2: EntityX,
 {
     let db = db().await?;
     create_table(&db, e1).await?;
@@ -25,9 +25,9 @@ where
 
 pub async fn db_3<E1, E2, E3>(e1: E1, e2: E2, e3: E3) -> Result<TmpDb, Box<dyn Error + Send + Sync>>
 where
-    E1: EntityTrait,
-    E2: EntityTrait,
-    E3: EntityTrait,
+    E1: EntityX,
+    E2: EntityX,
+    E3: EntityX,
 {
     let db = db().await?;
     create_table(&db, e1).await?;
@@ -183,7 +183,7 @@ impl Drop for TmpDb {
 // helpers
 
 fn new_db_name() -> String {
-    f!("test_{}", ulid::Ulid::new().to_string().to_lowercase())
+    f!("test_{}", ulid())
 }
 
 fn get_uri_scheme(uri: &str) -> String {
@@ -226,7 +226,7 @@ async fn exec(
 
 async fn create_table<E>(db: &DatabaseConnection, e: E) -> Result<(), Box<dyn Error + Send + Sync>>
 where
-    E: EntityTrait,
+    E: EntityX,
 {
     let backend = db.get_database_backend();
     let schema = DbSchema::new(backend);

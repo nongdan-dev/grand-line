@@ -2,11 +2,11 @@ use crate::prelude::*;
 
 /// Abstract extra Select async methods implementation.
 #[async_trait]
-pub trait SelectXAsync<T>
+pub trait SelectXAsync<E>
 where
-    T: EntityX,
+    E: EntityX,
 {
-    /// Helper to check exists.
+    /// Helper to check if exists.
     async fn exists<D>(self, db: &D) -> Res<bool>
     where
         D: ConnectionTrait;
@@ -17,13 +17,12 @@ where
         D: ConnectionTrait;
 }
 
-/// Automatically implement for Select<T>.
+/// Automatically implement for Select<E>.
 #[async_trait]
-impl<T> SelectXAsync<T> for Select<T>
+impl<E> SelectXAsync<E> for Select<E>
 where
-    T: EntityX,
+    E: EntityX,
 {
-    /// Helper to check exists.
     async fn exists<D>(self, db: &D) -> Res<bool>
     where
         D: ConnectionTrait,
@@ -35,7 +34,6 @@ where
         }
     }
 
-    /// Helper to check if exists and return error if not.
     async fn try_exists<D>(self, db: &D) -> Res<()>
     where
         D: ConnectionTrait,
@@ -60,14 +58,13 @@ where
         D: ConnectionTrait;
 }
 
-/// Automatically implement for Select<T>.
+/// Automatically implement for Select<E>.
 #[async_trait]
-impl<T> SelectXAsync2<T::M> for Select<T>
+impl<E> SelectXAsync2<E::M> for Select<E>
 where
-    T: EntityX,
+    E: EntityX,
 {
-    /// Helper to find one and return error if not.
-    async fn try_one<D>(self, db: &D) -> Res<T::M>
+    async fn try_one<D>(self, db: &D) -> Res<E::M>
     where
         D: ConnectionTrait,
     {
@@ -84,7 +81,6 @@ impl<G> SelectXAsync2<G> for Selector<SelectModel<G>>
 where
     G: FromQueryResult + Send + Sync,
 {
-    /// Helper to find one and return error if not.
     async fn try_one<D>(self, db: &D) -> Res<G>
     where
         D: ConnectionTrait,

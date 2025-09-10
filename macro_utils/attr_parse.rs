@@ -24,9 +24,9 @@ pub struct AttrParse {
 }
 
 impl AttrParse {
-    pub fn into_inner<T>(self, name: &str) -> T
+    pub fn into_inner<A>(self, name: &str) -> A
     where
-        T: From<Attr> + AttrValidate,
+        A: From<Attr> + AttrValidate,
     {
         Attr::from_proc_macro(name, self).into_with_validate()
     }

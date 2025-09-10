@@ -5,6 +5,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as AttrParse);
     let mut item = parse_macro_input!(item as ItemStruct);
     let a = attr.into_inner::<ModelAttr>("model");
+
     // ------------------------------------------------------------------------
     // insert built-in fields: id, created_at, updated_at...
     let model = item.ident.to_token_stream();
@@ -35,31 +36,22 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             fields.push(field!(pub updated_by_id: Option<String>));
         }
     }
-    let mut conf_has_deleted_at = quote!(false);
     if !a.no_deleted_at {
         fields.push(field!(pub deleted_at: Option<DateTimeUtc>));
         if !a.no_by_id {
             fields.push(field!(pub deleted_by_id: Option<String>));
         }
-        conf_has_deleted_at = quote! {
-            !self.deleted_at.is_undefined() ||
-            !self.deleted_at_ne.is_undefined() ||
-            self.deleted_at_in.is_some() ||
-            self.deleted_at_not_in.is_some() ||
-            self.deleted_at_gt.is_some() ||
-            self.deleted_at_gte.is_some() ||
-            self.deleted_at_lt.is_some() ||
-            self.deleted_at_lte.is_some()
-        };
     }
+
     // ------------------------------------------------------------------------
     // parse macro attributes, extract and validate fields
     let model_str = s!(model);
     let (defs, virs, exprs, gfields, fields) = attr_extract(&model_str, &fields);
+
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
     // get the original model name in snake case for sql table, non-plural
-    item.ident = format_ident!("Model");
+    item.ident = ident!("Model");
     item.fields = Fields::Named(fields);
     let module = snake!(model);
     let sql = ty_sql(&model);
@@ -68,55 +60,17 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let active_model = ty_active_model(&model);
     let gql_alias = s!(model);
     let sql_alias = snake_str!(model);
+
     // ------------------------------------------------------------------------
-    // generate virtual resolvers
-    let mut vgens = Vec::<Box<dyn VirtualResolverFn>>::new();
-    for attrs in virs {
-        let map = attrs
-            .into_iter()
-            .map(|a| (a.attr.clone(), a))
-            .collect::<HashMap<_, _>>();
-        for (a, v) in VirtualTy::all()
-            .iter()
-            .filter_map(|v| map.get(&s!(v)).map(move |a| (a, v)))
-        {
-            vgens.push(match v {
-                VirtualTy::Relation(ty) => Box::new(GenRelation {
-                    ty: ty.clone(),
-                    ra: a.clone().into_with_validate(),
-                }),
-                VirtualTy::Resolver => Box::new(GenResolver {
-                    a: a.clone().into_with_validate(),
-                }),
-                _ => {
-                    let err = f!("invalid attr={} dyn VirtualGen", a.attr);
-                    bug!(err);
-                }
-            });
+    // entity limit_config
+    let (limit_default, limit_max) = (a.limit_default, a.limit_max);
+    let limit_config = quote! {
+        LimitConfig {
+            default: #limit_default,
+            max: #limit_max,
         }
-    }
-    // ------------------------------------------------------------------------
-    // filter / order_by fields
-    let (mut filter_struk, mut filter_query) = (vec![], vec![]);
-    let (mut order_by_struk, mut order_by_query) = (vec![], vec![]);
-    for (f, _) in &gfields {
-        filter(f, &mut filter_struk, &mut filter_query);
-        order_by(f, &mut order_by_struk, &mut order_by_query);
-    }
-    let filter = ty_filter(&model);
-    let order_by = ty_order_by(&model);
-    filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
-    // ------------------------------------------------------------------------
-    // gql fields
-    let (mut gql_struk, mut gql_resolver, gql_into, sql_cols) = gql_fields(&gfields);
-    let mut gql_select = gql_virtuals(&vgens);
-    let (gql_struk2, gql_resolver2, gql_select2, sql_exprs) = gql_exprs(&exprs);
-    gql_struk.extend(gql_struk2);
-    gql_resolver.extend(gql_resolver2);
-    gql_select.extend(gql_select2);
-    for f in vgens {
-        gql_resolver.push(f.resolver_fn());
-    }
+    };
+
     // ------------------------------------------------------------------------
     // active model default
     let mut am_defs = vec![];
@@ -139,8 +93,9 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         });
     }
+
     // ------------------------------------------------------------------------
-    // active model utils
+    // active model get/set
     let am_get_created_at = if a.no_created_at {
         quote!(NotSet)
     } else {
@@ -180,15 +135,75 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             self
         }
     };
+
     // ------------------------------------------------------------------------
-    // config limit
-    let (limit_default, limit_max) = (a.limit_default, a.limit_max);
-    let limit_config = quote! {
-        LimitConfig {
-            default: #limit_default,
-            max: #limit_max,
+    // filter / order_by
+    let (mut filter_struk, mut filter_query) = (vec![], vec![]);
+    let (mut order_by_struk, mut order_by_query) = (vec![], vec![]);
+    for (f, _) in &gfields {
+        filter(f, &mut filter_struk, &mut filter_query);
+        order_by(f, &mut order_by_struk, &mut order_by_query);
+    }
+    let filter = ty_filter(&model);
+    let order_by = ty_order_by(&model);
+    filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
+
+    // ------------------------------------------------------------------------
+    // filter has_deleted_at
+    let has_deleted_at = if a.no_deleted_at {
+        quote!(false)
+    } else {
+        quote! {
+            !self.deleted_at.is_undefined() ||
+            !self.deleted_at_ne.is_undefined() ||
+            self.deleted_at_in.is_some() ||
+            self.deleted_at_not_in.is_some() ||
+            self.deleted_at_gt.is_some() ||
+            self.deleted_at_gte.is_some() ||
+            self.deleted_at_lt.is_some() ||
+            self.deleted_at_lte.is_some()
         }
     };
+
+    // ------------------------------------------------------------------------
+    // virtual resolvers
+    let mut vgens = Vec::<Box<dyn VirtualResolverFn>>::new();
+    for attrs in virs {
+        let map = attrs
+            .into_iter()
+            .map(|a| (a.attr.clone(), a))
+            .collect::<HashMap<_, _>>();
+        for (a, v) in VirtualTy::all()
+            .iter()
+            .filter_map(|v| map.get(&s!(v)).map(move |a| (a, v)))
+        {
+            vgens.push(match v {
+                VirtualTy::Relation(ty) => Box::new(GenRelation {
+                    ty: ty.clone(),
+                    ra: a.clone().into_with_validate(),
+                }),
+                VirtualTy::Resolver => Box::new(GenResolver {
+                    a: a.clone().into_with_validate(),
+                }),
+                _ => {
+                    let err = f!("invalid attr={} dyn VirtualGen", a.attr);
+                    bug!(err);
+                }
+            });
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // gql
+    let (mut gql_struk, mut gql_resolver, gql_into, sql_cols) = gql_fields(&gfields);
+    let mut gql_select = gql_virtuals(&vgens);
+    let (gql_struk2, gql_resolver2, gql_select2, sql_exprs) = gql_exprs(&exprs);
+    gql_struk.extend(gql_struk2);
+    gql_resolver.extend(gql_resolver2);
+    gql_select.extend(gql_select2);
+    for f in vgens {
+        gql_resolver.push(f.resolver_fn());
+    }
 
     let r = quote! {
         pub mod #module {
@@ -249,6 +264,9 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 type F = #filter;
                 type O = #order_by;
                 type G = #gql;
+                fn _model_name() -> &'static str {
+                    #model_str
+                }
                 fn _limit_config() -> LimitConfig {
                     #limit_config
                 }
@@ -326,7 +344,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                     }
                 }
                 fn _has_deleted_at(&self) -> bool {
-                    #conf_has_deleted_at
+                    #has_deleted_at
                 }
                 fn _get_and(&self) -> Option<Vec<Self>> {
                     self.and.clone()

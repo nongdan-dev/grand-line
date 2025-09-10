@@ -1,20 +1,21 @@
 use crate::prelude::*;
 
 /// Helper trait to chain sea_orm Select of different types like Filter, OrderBy...
-pub trait Chainable<T>
+pub trait Chainable<E>
 where
-    T: EntityTrait,
+    E: EntityX,
 {
-    fn chain(&self, q: Select<T>) -> Select<T>;
+    /// Helper to chain sea_orm Select of different types like Filter, OrderBy...
+    fn chain(&self, q: Select<E>) -> Select<E>;
 }
 
 /// Automatically implement Chainable for Option<Chainable>.
-impl<T, F> Chainable<T> for Option<F>
+impl<E, C> Chainable<E> for Option<C>
 where
-    T: EntityTrait,
-    F: Chainable<T>,
+    E: EntityX,
+    C: Chainable<E>,
 {
-    fn chain(&self, q: Select<T>) -> Select<T> {
+    fn chain(&self, q: Select<E>) -> Select<E> {
         match self {
             Some(c) => c.chain(q),
             None => q,
@@ -23,12 +24,12 @@ where
 }
 
 /// Automatically implement Chainable for Vec<Chainable>.
-impl<T, F> Chainable<T> for Vec<F>
+impl<E, C> Chainable<E> for Vec<C>
 where
-    T: EntityTrait,
-    F: Chainable<T>,
+    E: EntityX,
+    C: Chainable<E>,
 {
-    fn chain(&self, mut q: Select<T>) -> Select<T> {
+    fn chain(&self, mut q: Select<E>) -> Select<E> {
         for c in self {
             q = c.chain(q)
         }
@@ -37,11 +38,11 @@ where
 }
 
 /// Automatically implement Chainable for PaginationInner.
-impl<T> Chainable<T> for PaginationInner
+impl<E> Chainable<E> for PaginationInner
 where
-    T: EntityTrait,
+    E: EntityX,
 {
-    fn chain(&self, q: Select<T>) -> Select<T> {
+    fn chain(&self, q: Select<E>) -> Select<E> {
         q.offset(self.offset).limit(self.limit)
     }
 }

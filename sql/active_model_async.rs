@@ -2,27 +2,28 @@ use crate::prelude::*;
 
 /// Abstract extra active model async methods implementation.
 #[async_trait]
-pub trait ActiveModelXAsync<T>
+pub trait ActiveModelXAsync<E>
 where
-    T: EntityX,
-    Self: ActiveModelX<T>,
+    E: EntityX<A = Self>,
+    Self: ActiveModelX<E>,
 {
-    // Set delete_at and update db.
-    async fn soft_delete<D>(self, db: &D) -> Res<T::M>
+    /// Set delete at and update db.
+    /// It also checks if the model has configured with deleted at column or not.
+    async fn soft_delete<D>(self, db: &D) -> Res<E::M>
     where
         D: ConnectionTrait,
-        T::M: IntoActiveModel<Self>,
     {
+        E::_check_col_deleted_at()?;
         let r = self._delete().update(db).await?;
         Ok(r)
     }
 }
 
-/// Automatically implement for ActiveModelXAsync<T>.
+/// Automatically implement for ActiveModelXAsync<E>.
 #[async_trait]
-impl<T, A> ActiveModelXAsync<T> for A
+impl<E, A> ActiveModelXAsync<E> for A
 where
-    T: EntityX,
-    A: ActiveModelX<T>,
+    E: EntityX<A = A>,
+    A: ActiveModelX<E>,
 {
 }

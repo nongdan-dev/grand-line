@@ -1,10 +1,11 @@
 use crate::prelude::*;
+use serde::Serialize;
 
 /// Helper trait to combine order_by and order_by_default with an initial value if all are empty.
-pub trait OrderBy<T>
+pub trait OrderBy<E>
 where
-    Self: Chainable<T> + Send + Sync + Sized,
-    T: EntityTrait,
+    E: EntityX,
+    Self: Chainable<E> + Serialize + Send + Sync + Sized,
 {
     /// Get order_by_default to use in abstract methods.
     /// Should be generated in the model macro.
@@ -12,20 +13,20 @@ where
 }
 
 /// Automatically implement combine for Option<Vec<OrderBy>>.
-pub trait OrderByImpl<T, O>
+pub trait OrderByImpl<E, O>
 where
-    T: EntityTrait,
-    O: OrderBy<T>,
+    E: EntityX,
+    O: OrderBy<E>,
 {
     /// Helper to combine order_by and order_by_default with an initial value if all are empty.
     fn combine(self, order_by_default: Self) -> Vec<O>;
 }
 
 /// Automatically implement combine for Option<Vec<OrderBy>>.
-impl<T, O> OrderByImpl<T, O> for Option<Vec<O>>
+impl<E, O> OrderByImpl<E, O> for Option<Vec<O>>
 where
-    T: EntityTrait,
-    O: OrderBy<T>,
+    E: EntityX,
+    O: OrderBy<E>,
 {
     fn combine(self, order_by_default: Self) -> Vec<O> {
         match self {

@@ -8,15 +8,19 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
     type O: OrderBy<Self>;
     type G: GqlModel<Self>;
 
+    /// Get entity model name.
+    /// To clarify model name in case of error.
+    fn _model_name() -> &'static str;
+
     /// Get default and max limit configuration.
     /// Should be generated in the model macro.
     fn _limit_config() -> LimitConfig;
 
-    /// Get sql columns map with rust snake field name to use in abstract methods.
+    /// Get sql columns map with rust snake field name.
     /// Should be generated in the model macro.
     fn _sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>>;
 
-    /// Get sql exprs map with rust snake field name to use in abstract methods.
+    /// Get sql exprs map with rust snake field name.
     /// Should be generated in the model macro.
     fn _sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>>;
 
@@ -62,36 +66,55 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
         Ok(r)
     }
 
-    /// Get primary id column to use in abstract methods.
+    /// Get primary id column.
     fn _col_id() -> Res<Self::Column> {
         Self::_sql_cols()
             .get("id")
             .cloned()
-            .ok_or_else(|| ErrServer::BugId404.into())
+            .ok_or_else(|| _err_server!(BugId404(Self::_model_name())))
     }
-
-    /// Shortcut condition id eq.
+    /// Quickly build condition id eq.
     fn _cond_id(id: &str) -> Res<Condition> {
         Self::_col_id().map(|c| Condition::all().add(c.eq(id)))
     }
 
-    /// Get deleted at column to use in abstract methods.
-    fn _col_deleted_at() -> Option<Self::Column> {
+    /// Get deleted at column.
+    fn _col_deleted_at_opt() -> Option<Self::Column> {
         Self::_sql_cols().get("deleted_at").cloned()
     }
-
-    /// Shortcut condition include deleted.
+    /// Get deleted at column.
+    fn _col_deleted_at() -> Res<Self::Column> {
+        Self::_col_deleted_at_opt()
+            .ok_or_else(|| _err_server!(DbCfgF404("deleted_at", Self::_model_name())))
+    }
+    /// Check if the model has configured with deleted at column or not.
+    fn _check_col_deleted_at() -> Res<()> {
+        Self::_col_deleted_at()?;
+        Ok(())
+    }
+    /// Quickly build condition include deleted.
     fn _cond_deleted_at(include_deleted: Option<bool>) -> Option<Condition> {
         match include_deleted {
             Some(true) => None,
-            _ => match Self::_col_deleted_at() {
+            _ => match Self::_col_deleted_at_opt() {
                 Some(c) => Some(Condition::all().add(c.is_null())),
                 None => None,
             },
         }
     }
 
-    fn soft_delete_by_id(id: &str) -> Self::A {
-        <Self::A as Default>::default()._set_id(id)._delete()
+    /// Set delete at with filter by id.
+    /// It also checks if the model has configured with deleted at column or not.
+    fn soft_delete_by_id(id: &str) -> Res<UpdateMany<Self>> {
+        Self::soft_delete_many()?.by_id(id)
+    }
+
+    /// Set delete at without any filter.
+    /// It also checks if the model has configured with deleted at column or not.
+    fn soft_delete_many() -> Res<UpdateMany<Self>> {
+        Self::_check_col_deleted_at()?;
+        let am = <Self::A as Default>::default()._delete();
+        let r = Self::update_many().set(am);
+        Ok(r)
     }
 }

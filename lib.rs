@@ -2,10 +2,11 @@ mod gql;
 mod sql;
 mod utils;
 pub use gql::*;
-pub use macro_proc::*;
-pub use macro_utils::am_value;
 pub use sql::*;
 pub use utils::*;
+
+pub use macro_proc::*;
+pub use macro_utils::am_value;
 
 mod re_exports {
     pub use async_graphql;

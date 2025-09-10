@@ -1,11 +1,17 @@
 use crate::prelude::*;
 
 /// Abstract extra active model methods implementation.
-pub trait ActiveModelX<T>
+pub trait ActiveModelX<E>
 where
-    T: EntityX,
-    Self: ActiveModelTrait<Entity = T> + ActiveModelBehavior + Default + Send + Sync + Sized,
+    E: EntityX<A = Self>,
+    Self: ActiveModelTrait<Entity = E> + ActiveModelBehavior + Default + Send + Sync + Sized,
 {
+    /// To clarify model name in case of error in the macro am_value.
+    fn _model_name(&self) -> &'static str {
+        E::_model_name()
+    }
+
+    /// Set default values from macro default.
     fn _set_default_values(self) -> Self;
 
     fn _get_id(&self) -> ActiveValue<String>;
@@ -22,10 +28,10 @@ where
     /// This will be used together with the macro grand_line::am_create.
     fn _create(mut self) -> Self {
         if !self._get_id().is_set() {
-            self = self._set_id(&ulid::Ulid::new().to_string());
+            self = self._set_id(&ulid());
         }
         if !self._get_created_at().is_set() {
-            self = self._set_created_at(chrono::Utc::now());
+            self = self._set_created_at(now());
         }
         self = self._set_default_values();
         self
@@ -36,7 +42,7 @@ where
     /// This will be used together with the macro grand_line::am_update.
     fn _update(mut self) -> Self {
         if !self._get_updated_at().is_set() {
-            self = self._set_updated_at(chrono::Utc::now());
+            self = self._set_updated_at(now());
         }
         self
     }
@@ -49,7 +55,7 @@ where
         if let Set(Some(v)) = self._get_updated_at() {
             self = self._set_deleted_at(v);
         } else {
-            let now = chrono::Utc::now();
+            let now = now();
             self = self._set_updated_at(now)._set_deleted_at(now);
         }
         self

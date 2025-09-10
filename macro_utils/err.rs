@@ -1,15 +1,31 @@
-/// Internal macro utils to quickly construct client error result.
+/// Internal macro utils to quickly construct a client error.
 #[macro_export]
-macro_rules! err_client {
+macro_rules! _err_client {
     ($($v:tt)*) => {
-        Err(Into::<GrandLineError>::into(ErrClient::$($v)*))
+        GrandLineError::Client(ErrClient::$($v)*)
     };
 }
 
-/// Internal macro utils to quickly construct server error result.
+/// Internal macro utils to quickly construct a client error result.
+#[macro_export]
+macro_rules! err_client {
+    ($($v:tt)*) => {
+        Err(_err_client!($($v)*))
+    };
+}
+
+/// Internal macro utils to quickly construct a server error.
+#[macro_export]
+macro_rules! _err_server {
+    ($($v:tt)*) => {
+        GrandLineError::Server(ErrServer::$($v)*)
+    };
+}
+
+/// Internal macro utils to quickly construct a server error result.
 #[macro_export]
 macro_rules! err_server {
     ($($v:tt)*) => {
-        Err(Into::<GrandLineError>::into(ErrServer::$($v)*))
+        Err(_err_server!($($v)*))
     };
 }

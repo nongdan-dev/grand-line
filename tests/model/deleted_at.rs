@@ -40,7 +40,7 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let u1 = am_create!(User { name: "Olivia" }).insert(db).await?;
     let u2 = am_create!(User { name: "Peter" }).insert(db).await?;
-    let u1 = u1.into_active_model().soft_delete(db).await?;
+    let _ = User::soft_delete_by_id(&u1.id)?.exec(db).await?;
 
     // ========================================================================
     // detail

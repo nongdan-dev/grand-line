@@ -1,16 +1,16 @@
 use crate::prelude::*;
 
 /// Helper trait to create sea_orm Select from types like Filter, OrderBy...
-pub trait Selectable<E: EntityTrait> {
+pub trait Selectable<E: EntityX> {
     /// Helper to create sea_orm Select from types like Filter, OrderBy...
     fn select(&self) -> Select<E>;
 }
 
 /// Automatically implement Selectable for Chainable.
-impl<T, E> Selectable<E> for T
+impl<E, C> Selectable<E> for C
 where
-    T: Chainable<E>,
-    E: EntityTrait,
+    E: EntityX,
+    C: Chainable<E>,
 {
     fn select(&self) -> Select<E> {
         self.chain(E::find())

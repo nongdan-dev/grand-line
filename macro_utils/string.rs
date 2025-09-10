@@ -21,6 +21,14 @@ macro_rules! f {
 
 /// Internal macro utils to handle strings and casings.
 #[macro_export]
+macro_rules! ident {
+    ($($s:tt)*) => {
+        format_ident!($($s)*)
+    };
+}
+
+/// Internal macro utils to handle strings and casings.
+#[macro_export]
 macro_rules! ts2 {
     ($($s:expr),*) => {
         s!($($s),*).parse::<Ts2>()
