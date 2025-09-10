@@ -356,8 +356,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                     self.not.clone().map(|b| *b)
                 }
             }
-            impl Conditionable for #filter {
-                fn cond(&self) -> Condition {
+            impl IntoCondition for #filter {
+                fn into_condition(&self) -> Condition {
                     let this = self.clone();
                     let mut c = Condition::all();
                     #(#filter_query)*
@@ -374,8 +374,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                     Self::IdDesc
                 }
             }
-            impl Chainable<Entity> for #order_by {
-                fn chain(&self, q: Select<Entity>) -> Select<Entity> {
+            impl ChainSelect<Entity> for #order_by {
+                fn chain_select(&self, q: Select<Entity>) -> Select<Entity> {
                     match *self {
                         #(#order_by_query)*
                     }

@@ -87,11 +87,6 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
         Self::_col_deleted_at_opt()
             .ok_or_else(|| _err_server!(DbCfgF404("deleted_at", Self::_model_name())))
     }
-    /// Check if the model has configured with deleted at column or not.
-    fn _check_col_deleted_at() -> Res<()> {
-        Self::_col_deleted_at()?;
-        Ok(())
-    }
     /// Quickly build condition include deleted.
     fn _cond_deleted_at(include_deleted: Option<bool>) -> Option<Condition> {
         match include_deleted {
@@ -112,7 +107,7 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
     /// Set delete at without any filter.
     /// It also checks if the model has configured with deleted at column or not.
     fn soft_delete_many() -> Res<UpdateMany<Self>> {
-        Self::_check_col_deleted_at()?;
+        Self::_col_deleted_at()?;
         let am = <Self::A as Default>::default()._delete();
         let r = Self::update_many().set(am);
         Ok(r)

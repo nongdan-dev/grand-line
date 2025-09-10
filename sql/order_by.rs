@@ -5,7 +5,7 @@ use serde::Serialize;
 pub trait OrderBy<E>
 where
     E: EntityX,
-    Self: Chainable<E> + Serialize + Send + Sync + Sized,
+    Self: ChainSelect<E> + Serialize + Send + Sync + Sized,
 {
     /// Get order_by_default to use in abstract methods.
     /// Should be generated in the model macro.

@@ -48,7 +48,7 @@ where
         let include_deleted = include_deleted.or_else(|| Some(filter.has_deleted_at()));
         let r = Self::find()
             .include_deleted(include_deleted)
-            .filter_opt(filter.map(|f| f.cond()))
+            .filter_opt(filter.map(|f| f.into_condition()))
             .count(db)
             .await?;
         Ok(r)

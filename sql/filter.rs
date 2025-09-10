@@ -5,7 +5,7 @@ use serde::Serialize;
 pub trait Filter<E>
 where
     E: EntityX,
-    Self: Conditionable + Default + Serialize + Send + Sync + Sized,
+    Self: IntoCondition + Default + Serialize + Send + Sync + Sized,
 {
     /// Combine filter and filter_extra to use in abstract methods.
     /// Should be generated in the model macro.
@@ -47,14 +47,14 @@ where
     }
 }
 
-/// Automatically implement Chainable for Filter
-impl<E, F> Chainable<E> for F
+/// Automatically implement ChainSelect for Filter
+impl<E, F> ChainSelect<E> for F
 where
     E: EntityX,
     F: Filter<E>,
 {
-    fn chain(&self, q: Select<E>) -> Select<E> {
-        q.filter(self.cond())
+    fn chain_select(&self, q: Select<E>) -> Select<E> {
+        q.filter(self.into_condition())
     }
 }
 

@@ -13,14 +13,15 @@ use grand_line::*;
 use serde_json::to_string as json;
 
 // create a sea orm model and graphql object
-// id, created_at, updated_at... will be inserted automatically
+// id, created_at, updated_at, deleted_at... are inserted automatically
 #[model]
 pub struct Todo {
     pub content: String,
     pub done: bool,
 }
 
-// search Todo with filter, sort, pagination
+// search Todo with filter, sort, pagination from client
+// variables are generated automatically
 #[search(Todo)]
 fn resolver() {
     println!(
@@ -32,15 +33,23 @@ fn resolver() {
     (None, None)
 }
 
+// count Todo with filter from client
+#[count(Todo)]
+fn resolver() {
+    println!("todoCount filter={}", json(&filter)?);
+    None
+}
+
 // we can also have a custom name
 // with extra filter, or default sort in the resolver as well
+// the extra will be combined as and condition with the value from client
 #[search(Todo)]
 fn todoSearch2024() {
-    let f = filter!(Todo {
+    let extra_filter = filter_some!(Todo {
         content_starts_with: "2024",
     });
-    let o = order_by!(Todo [DoneAsc, ContentAsc]);
-    (f, o)
+    let default_order_by = order_by_some!(Todo [DoneAsc, ContentAsc]);
+    (extra_filter, default_order_by)
 }
 
 // checkout the examples and documentation for more

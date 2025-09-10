@@ -8,10 +8,10 @@ where
     /// Helper to filter with option.
     fn filter_opt(self, c: Option<Condition>) -> Self;
 
-    /// Helper to filter with Chainable.
+    /// Helper to filter with ChainSelect.
     fn chain<C>(self, c: C) -> Self
     where
-        C: Chainable<E>;
+        C: ChainSelect<E>;
 
     /// Select only columns from requested fields in the graphql context.
     fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<E::G>>>;
@@ -34,9 +34,9 @@ where
 
     fn chain<C>(self, c: C) -> Self
     where
-        C: Chainable<E>,
+        C: ChainSelect<E>,
     {
-        c.chain(self)
+        c.chain_select(self)
     }
 
     fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<E::G>>> {
