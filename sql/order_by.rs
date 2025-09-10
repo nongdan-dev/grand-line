@@ -7,7 +7,7 @@ where
     T: EntityTrait,
 {
     /// Get order_by_default to use in abstract methods.
-    /// Should be generated in the #[model] macro.
+    /// Should be generated in the model macro.
     fn conf_default() -> Self;
 }
 

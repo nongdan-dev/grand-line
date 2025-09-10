@@ -24,7 +24,7 @@ pub trait EntityXAsync: EntityX {
             .filter_opt(condition)
             .chain(f)
             .chain(order_by.combine(order_by_default))
-            .chain(page.inner(Self::conf_limit()))
+            .chain(page.inner(Self::_limit_config()))
             .gql_select(ctx)?
             .all(db)
             .await?;

@@ -6,11 +6,7 @@ where
     T: EntityX,
     Self: FromQueryResult + IntoActiveModel<T::A> + Send + Sync + Sized,
 {
+    fn _get_id(&self) -> String;
+    // Convert sql model to gql model, without checking virtual fields from context.
     fn _to_gql(self) -> T::G;
-
-    // Convert sql model into gql model, with virtual aware from context.
-    fn to_gql(self, ctx: &Context<'_>) -> T::G {
-        // TODO:
-        self._to_gql()
-    }
 }

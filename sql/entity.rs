@@ -9,52 +9,23 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
     type G: GqlModel<Self>;
 
     /// Get default and max limit configuration.
-    /// Should be generated in the #[model] macro.
-    fn conf_limit() -> ConfigLimit;
+    /// Should be generated in the model macro.
+    fn _limit_config() -> LimitConfig;
 
     /// Get sql columns map with rust snake field name to use in abstract methods.
-    /// Should be generated in the #[model] macro.
-    fn conf_sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>>;
+    /// Should be generated in the model macro.
+    fn _sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>>;
 
     /// Get sql exprs map with rust snake field name to use in abstract methods.
-    /// Should be generated in the #[model] macro.
-    fn conf_sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>>;
+    /// Should be generated in the model macro.
+    fn _sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>>;
 
-    /// Get sql columns and exprs from gql field to look ahead
-    /// to select only requested fields in the graphql context.
-    /// Should be generated in the #[model] macro.
-    fn conf_gql_select() -> &'static LazyLock<HashMap<&'static str, Vec<&'static str>>>;
+    /// Get rust snake field sql columns and exprs, from gql camel field.
+    /// To look ahead and select only requested fields in the gql context.
+    /// Should be generated in the model macro.
+    fn _gql_select() -> &'static LazyLock<HashMap<&'static str, Vec<&'static str>>>;
 
-    /// Get primary id column to use in abstract methods.
-    fn conf_col_id() -> Res<Self::Column> {
-        Self::conf_sql_cols()
-            .get("id")
-            .cloned()
-            .ok_or_else(|| ErrServer::BugId404.into())
-    }
-
-    /// Shortcut condition id eq.
-    fn cond_id(id: &str) -> Res<Condition> {
-        Self::conf_col_id().map(|c| Condition::all().add(c.eq(id)))
-    }
-
-    /// Get deleted at column to use in abstract methods.
-    fn conf_col_deleted_at() -> Option<Self::Column> {
-        Self::conf_sql_cols().get("deleted_at").cloned()
-    }
-
-    /// Shortcut condition include deleted.
-    fn cond_include_deleted(include_deleted: Option<bool>) -> Option<Condition> {
-        match include_deleted {
-            Some(true) => None,
-            _ => match Self::conf_col_deleted_at() {
-                Some(c) => Some(Condition::all().add(c.is_null())),
-                None => None,
-            },
-        }
-    }
-
-    /// Look ahead for sql columns from requested fields in the graphql context.
+    /// Look ahead for sql columns and exprs, from requested fields in the gql context.
     fn gql_look_ahead(
         ctx: &Context<'_>,
     ) -> Res<
@@ -69,9 +40,9 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
             return err_server!(LookAhead);
         }
 
-        let sql_cols = Self::conf_sql_cols();
-        let sql_exprs = Self::conf_sql_exprs();
-        let gql_select = Self::conf_gql_select();
+        let sql_cols = Self::_sql_cols();
+        let sql_exprs = Self::_sql_exprs();
+        let gql_select = Self::_gql_select();
 
         let r = f[0]
             .selection_set()
@@ -89,6 +60,35 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
             .collect::<Vec<_>>();
 
         Ok(r)
+    }
+
+    /// Get primary id column to use in abstract methods.
+    fn _col_id() -> Res<Self::Column> {
+        Self::_sql_cols()
+            .get("id")
+            .cloned()
+            .ok_or_else(|| ErrServer::BugId404.into())
+    }
+
+    /// Shortcut condition id eq.
+    fn _cond_id(id: &str) -> Res<Condition> {
+        Self::_col_id().map(|c| Condition::all().add(c.eq(id)))
+    }
+
+    /// Get deleted at column to use in abstract methods.
+    fn _col_deleted_at() -> Option<Self::Column> {
+        Self::_sql_cols().get("deleted_at").cloned()
+    }
+
+    /// Shortcut condition include deleted.
+    fn _cond_deleted_at(include_deleted: Option<bool>) -> Option<Condition> {
+        match include_deleted {
+            Some(true) => None,
+            _ => match Self::_col_deleted_at() {
+                Some(c) => Some(Condition::all().add(c.is_null())),
+                None => None,
+            },
+        }
     }
 
     fn soft_delete_by_id(id: &str) -> Self::A {

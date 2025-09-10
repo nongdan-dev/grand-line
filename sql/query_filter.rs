@@ -8,7 +8,7 @@ where
 {
     /// Filter with condition deleted_at is not null, if there is deleted_at.
     fn include_deleted(self, include_deleted: Option<bool>) -> Self {
-        match T::cond_include_deleted(include_deleted) {
+        match T::_cond_deleted_at(include_deleted) {
             Some(c) => self.filter(c),
             None => self,
         }
@@ -30,7 +30,7 @@ where
 {
     /// Filter with condition id eq.
     fn by_id(self, id: &str) -> Res<Self> {
-        T::cond_id(id).map(|c| self.filter(c))
+        T::_cond_id(id).map(|c| self.filter(c))
     }
 }
 

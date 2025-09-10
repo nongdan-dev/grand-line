@@ -8,19 +8,19 @@ where
     T: EntityTrait,
 {
     /// Combine filter and filter_extra to use in abstract methods.
-    /// Should be generated in the #[model] macro.
+    /// Should be generated in the model macro.
     fn _combine_and(a: Self, b: Self) -> Self;
     /// Check if there is deleted_at in this filter, without the combination of and/or/not.
-    /// Should be generated in the #[model] macro.
+    /// Should be generated in the model macro.
     fn _has_deleted_at(&self) -> bool;
     /// Get and to use in abstract methods.
-    /// Should be generated in the #[model] macro.
+    /// Should be generated in the model macro.
     fn _get_and(&self) -> Option<Vec<Self>>;
     /// Get or to use in abstract methods.
-    /// Should be generated in the #[model] macro.
+    /// Should be generated in the model macro.
     fn _get_or(&self) -> Option<Vec<Self>>;
     /// Get not to use in abstract methods.
-    /// Should be generated in the #[model] macro.
+    /// Should be generated in the model macro.
     fn _get_not(&self) -> Option<Self>;
 
     /// Check if there is deleted_at in this filter, with the combination of and/or/not.

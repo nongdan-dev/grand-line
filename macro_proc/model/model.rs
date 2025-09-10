@@ -183,8 +183,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // ------------------------------------------------------------------------
     // config limit
     let (limit_default, limit_max) = (a.limit_default, a.limit_max);
-    let conf_limit = quote! {
-        ConfigLimit {
+    let limit_config = quote! {
+        LimitConfig {
             default: #limit_default,
             max: #limit_max,
         }
@@ -249,21 +249,24 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 type F = #filter;
                 type O = #order_by;
                 type G = #gql;
-                fn conf_limit() -> ConfigLimit {
-                    #conf_limit
+                fn _limit_config() -> LimitConfig {
+                    #limit_config
                 }
-                fn conf_sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>> {
+                fn _sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>> {
                     &SQL_COLS
                 }
-                fn conf_sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> {
+                fn _sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> {
                     &SQL_EXPRS
                 }
-                fn conf_gql_select() -> &'static LazyLock<HashMap<&'static str, Vec<&'static str>>> {
+                fn _gql_select() -> &'static LazyLock<HashMap<&'static str, Vec<&'static str>>> {
                     &GQL_SELECT
                 }
             }
 
             impl ModelX<Entity> for Model {
+                fn _get_id(&self) -> String {
+                    self.id.clone()
+                }
                 fn _to_gql(self) -> #gql {
                     #gql {
                         #(#gql_into)*

@@ -10,20 +10,20 @@ use syn::{
 
 #[derive(Clone)]
 pub struct Attr {
-    /// In proc macro this is empty.
-    /// In field, this will be `Model.field`.
+    /// In proc macro, this is empty.
+    /// In field, this will be Model.field.
     debug: String,
-    /// In proc macro this is the macro name.
+    /// In proc macro, this is the macro name.
     /// In field, this will be one of attribute from AttrTy.
     pub attr: String,
     /// Raw args parsed as strings
     args: HashMap<String, (String, AttrParseTy)>,
-    /// Only in proc macro like #crud[Model, ...].
+    /// Only in proc macro like crud(Model, ...).
     /// The first path will be the model name.
     first_path: Option<String>,
     /// Only in field.
     field: Option<(String, Attribute, Field)>,
-    /// Only in attribute #[sql_expr(...)].
+    /// Only in attribute sql_expr(...).
     raw: Option<String>,
 }
 
@@ -137,7 +137,7 @@ impl Attr {
                 v
             }
             None => {
-                let err = f!("missing model `#[{}(Model, ...)]`", self.attr);
+                let err = f!("missing model #[{}(Model, ...)]", self.attr);
                 let err = self.err(&err);
                 pan!(err);
             }

@@ -64,6 +64,6 @@ where
 
     /// Select only id for the graphql delete response.
     fn gql_select_id(self) -> Res<Selector<SelectModel<T::G>>> {
-        T::conf_col_id().map(|c| self.select_only().column(c).into_model::<T::G>())
+        T::_col_id().map(|c| self.select_only().column(c).into_model::<T::G>())
     }
 }
