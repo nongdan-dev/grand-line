@@ -43,7 +43,7 @@ impl GrandLineContext {
                     tx.commit().await?;
                     Ok(())
                 }
-                Err(_) => err_server!(TxCommit),
+                Err(_) => err_server_res!(TxCommit),
             },
             None => Ok(()),
         }
@@ -56,7 +56,7 @@ impl GrandLineContext {
                     tx.rollback().await?;
                     Ok(())
                 }
-                Err(_) => err_server!(TxRollback),
+                Err(_) => err_server_res!(TxRollback),
             },
             None => Ok(()),
         }
@@ -82,5 +82,5 @@ impl GrandLineContextImpl for ExtensionContext<'_> {
 }
 
 fn try_unwrap(r: Result<&Arc<GrandLineContext>, Error>) -> Res<Arc<GrandLineContext>> {
-    r.cloned().map_err(|e| _err_server!(Ctx404(e.message)))
+    r.cloned().map_err(|e| err_server!(Ctx404(e.message)))
 }

@@ -46,7 +46,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // ------------------------------------------------------------------------
     // parse macro attributes, extract and validate fields
     let model_str = s!(model);
-    let (defs, virs, exprs, gfields, fields) = attr_extract(&model_str, &fields);
+    let (defs, virs, exprs, gfields, fields) = attr_parse(&model_str, &fields);
 
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
@@ -206,7 +206,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     let r = quote! {
-        pub mod #module {
+        mod #module {
             use super::*;
             pub use sea_orm::{entity::prelude::*, prelude::*, *};
 

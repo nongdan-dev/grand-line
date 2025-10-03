@@ -1,5 +1,3 @@
-version: 'latest'
-
 services:
   grand_line_test_postgres:
     image: postgres:latest

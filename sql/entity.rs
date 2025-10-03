@@ -41,7 +41,7 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
     > {
         let f = ctx.look_ahead().selection_fields();
         if f.len() != 1 {
-            return err_server!(LookAhead);
+            return err_server_res!(LookAhead);
         }
 
         let sql_cols = Self::_sql_cols();
@@ -71,7 +71,7 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
         Self::_sql_cols()
             .get("id")
             .cloned()
-            .ok_or_else(|| _err_server!(BugId404(Self::_model_name())))
+            .ok_or_else(|| err_server!(BugId404(Self::_model_name())))
     }
     /// Quickly build condition id eq.
     fn _cond_id(id: &str) -> Res<Condition> {
@@ -85,7 +85,7 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
     /// Get deleted at column.
     fn _col_deleted_at() -> Res<Self::Column> {
         Self::_col_deleted_at_opt()
-            .ok_or_else(|| _err_server!(DbCfgF404("deleted_at", Self::_model_name())))
+            .ok_or_else(|| err_server!(DbCfgF404("deleted_at", Self::_model_name())))
     }
     /// Quickly build condition include deleted.
     fn _cond_deleted_at(include_deleted: Option<bool>) -> Option<Condition> {

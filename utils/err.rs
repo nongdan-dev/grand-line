@@ -18,9 +18,6 @@ pub enum ErrServer {
     #[error("look ahead selection fields length should be 1")]
     LookAhead,
 
-    #[error("server error: {0}")]
-    New(String),
-
     #[error("FRAMEWORK BUG: id column is not present in the model {0}")]
     BugId404(&'static str),
 }
@@ -29,9 +26,6 @@ pub enum ErrServer {
 pub enum ErrClient {
     #[error("404 data not found")]
     Db404,
-
-    #[error("{0}")]
-    New(String),
 }
 
 #[derive(ThisError, Debug)]
@@ -49,5 +43,5 @@ impl From<DbErr> for GrandLineError {
 }
 
 pub type GrandLineResult<T> = Result<T, GrandLineError>;
-pub(crate) use macro_utils::{_err_client, _err_server, err_client, err_server};
+pub(crate) use macro_utils::{err_client, err_client_res, err_server, err_server_res};
 pub(crate) type Res<T> = GrandLineResult<T>;
