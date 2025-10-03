@@ -43,24 +43,24 @@ limit_x10 = ["macro_proc/limit_x10"]
 [dependencies]
 async-graphql = { version = "7.0.17", default-features = false, features = ["chrono", "chrono-duration", "chrono-tz", "dataloader", "decimal", "string_number", "boxed-trait"] }
 async-graphql-axum = { version = "7.0.17", default-features = false, optional = true }
-async-trait = { version = "0.1.89" }
-axum = { version = "0.8.4", default-features = false, optional = true, features = ["default", "http2", "tokio", "multipart"] }
-chrono = { version = "0.4.41", default-features = false, features = ["now", "serde"] }
-macro_proc = { path = "./macro_proc" }
-macro_proc_proc = { path = "./macro_proc_proc" }
-macro_utils = { path = "./macro_utils" }
-sea-orm = { version = "1.1.14", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
-serde = { version = "1.0.219", default-features = false, features = ["derive", "std"] }
-serde_json = { version = "1.0.143", default-features = false }
-serde_with = { version = "3.14.0", default-features = false, features = ["macros"] }
+async-trait = { version = "0.1.89", default-features = false }
+axum = { version = "0.8.6", default-features = false, optional = true, features = ["default", "http2", "tokio", "multipart"] }
+chrono = { version = "0.4.42", default-features = false, features = ["now", "serde"] }
+macro_proc = { path = "./macro_proc", default-features = false }
+macro_proc_proc = { path = "./macro_proc_proc", default-features = false }
+macro_utils = { path = "./macro_utils", default-features = false }
+sea-orm = { version = "1.1.16", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
+serde = { version = "1.0.228", default-features = false, features = ["derive", "std"] }
+serde_json = { version = "1.0.145", default-features = false }
+serde_with = { version = "3.14.1", default-features = false, features = ["macros"] }
 sqlx = { version = "0.8.6", default-features = false, features = ["chrono", "json", "macros", "migrate", "runtime-tokio-rustls", "rust_decimal"] }
-thiserror = "2.0.16"
+thiserror = { version = "2.0.17", default-features = false }
 tokio = { version = "1.47.1", default-features = false, features = ["full"] }
 tower = { version = "0.5.2", default-features = false, optional = true }
 tower-http = { version = "0.6.6", default-features = false, optional = true, features = ["normalize-path"] }
 tracing = { version = "0.1.41", optional = true }
-tracing-subscriber = { version = "0.3.19", optional = true }
+tracing-subscriber = { version = "0.3.20", optional = true }
 ulid = { version = "1.2.1", default-features = false, features = ["std"] }
 
 [dev-dependencies]
-pretty_assertions = "1.4.1"
+pretty_assertions = { version = "1.4.1", default-features = false, features = ["std"] }
