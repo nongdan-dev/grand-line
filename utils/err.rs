@@ -9,7 +9,7 @@ pub enum ErrServer {
     #[error("{0} have no value in the active model {1}")]
     DbAmF404(&'static str, &'static str),
 
-    #[error("failed to get grand line context: {0}")]
+    #[error("no grand line context in the async graphql context: {0}")]
     Ctx404(String),
     #[error("commit error: transaction is still in use elsewhere")]
     TxCommit,
@@ -17,6 +17,9 @@ pub enum ErrServer {
     TxRollback,
     #[error("look ahead selection fields length should be 1")]
     LookAhead,
+
+    #[error("no request headers in the async graphql context: {0}")]
+    CtxReqHeaders404(String),
 
     #[error("FRAMEWORK BUG: id column is not present in the model {0}")]
     BugId404(&'static str),
@@ -26,6 +29,11 @@ pub enum ErrServer {
 pub enum ErrClient {
     #[error("404 data not found")]
     Db404,
+
+    #[error("failed to get request ip address")]
+    CtxReqIp404,
+    #[error("failed to get request user agent")]
+    CtxReqUa404,
 }
 
 #[derive(ThisError, Debug)]

@@ -20,8 +20,14 @@ impl Extension for GrandLineExtensionImpl {
         request: Request,
         next: NextPrepareRequest<'_>,
     ) -> ServerResult<Request> {
-        let gl = GrandLineContext::new(ctx);
-        next.run(ctx, request.data(gl)).await
+        let db = ctx
+            .data::<Arc<DatabaseConnection>>()
+            .map_err(|e| ServerError::new(e.message, None))?;
+        let gl = GrandLineContext {
+            db: db.clone(),
+            tx: Mutex::new(None),
+        };
+        next.run(ctx, request.data(Arc::new(gl))).await
     }
 
     /// Cleanup GrandLineContext at the end of each request.

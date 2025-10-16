@@ -10,6 +10,8 @@ pub use macro_utils::am_value;
 
 mod re_exports {
     pub use async_graphql;
+    pub use async_graphql_axum;
+    pub use axum;
     pub use chrono;
     pub use sea_orm;
     pub use serde;
@@ -18,10 +20,9 @@ mod re_exports {
     pub use sqlx;
     pub use thiserror;
     pub use tokio;
+    pub use tower;
+    pub use tower_http;
     pub use ulid;
-
-    #[cfg(feature = "axum")]
-    pub use {async_graphql_axum, axum, tower, tower_http};
 
     #[cfg(feature = "tracing")]
     pub use {tracing, tracing_subscriber};
@@ -31,6 +32,7 @@ mod re_exports {
     // common
     pub use async_graphql::MaybeUndefined as Undefined;
     pub use async_trait::async_trait;
+    pub use thiserror::Error as ThisError;
     pub use tokio::sync::Mutex;
     // common std
     pub use std::collections::{HashMap, HashSet};
@@ -51,5 +53,4 @@ pub(crate) mod prelude {
     pub use re_exports::*;
 
     pub use async_graphql::Error;
-    pub use thiserror::Error as ThisError;
 }

@@ -11,14 +11,13 @@ edition = "2024"
 path = "lib.rs"
 
 [features]
-default = ["axum", "postgres"]
+default = ["postgres"]
 # do not re-export dependencies
 no_re_exports = []
 # externals
 sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
 mysql = ["sea-orm/sqlx-mysql", "sqlx/mysql"]
 postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres", "macro_proc/postgres"]
-axum = ["dep:axum", "dep:async-graphql-axum", "dep:tower", "dep:tower-http"]
 tracing = ["dep:tracing", "dep:tracing-subscriber", "async-graphql/tracing"]
 # debug macro flags
 debug_macro_cli = ["macro_proc/debug_macro_cli"]
@@ -42,9 +41,9 @@ limit_x10 = ["macro_proc/limit_x10"]
 
 [dependencies]
 async-graphql = { version = "7.0.17", default-features = false, features = ["chrono", "chrono-duration", "chrono-tz", "dataloader", "decimal", "string_number", "boxed-trait"] }
-async-graphql-axum = { version = "7.0.17", default-features = false, optional = true }
+async-graphql-axum = { version = "7.0.17", default-features = false }
 async-trait = { version = "0.1.89", default-features = false }
-axum = { version = "0.8.6", default-features = false, optional = true, features = ["default", "http2", "tokio", "multipart"] }
+axum = { version = "0.8.6", default-features = false, features = ["default", "http2", "tokio", "multipart"] }
 chrono = { version = "0.4.42", default-features = false, features = ["now", "serde"] }
 macro_proc = { path = "./macro_proc", default-features = false }
 macro_proc_proc = { path = "./macro_proc_proc", default-features = false }
@@ -56,8 +55,8 @@ serde_with = { version = "3.14.1", default-features = false, features = ["macros
 sqlx = { version = "0.8.6", default-features = false, features = ["chrono", "json", "macros", "migrate", "runtime-tokio-rustls", "rust_decimal"] }
 thiserror = { version = "2.0.17", default-features = false }
 tokio = { version = "1.47.1", default-features = false, features = ["full"] }
-tower = { version = "0.5.2", default-features = false, optional = true }
-tower-http = { version = "0.6.6", default-features = false, optional = true, features = ["normalize-path"] }
+tower = { version = "0.5.2", default-features = false }
+tower-http = { version = "0.6.6", default-features = false, features = ["normalize-path"] }
 tracing = { version = "0.1.41", optional = true }
 tracing-subscriber = { version = "0.3.20", optional = true }
 ulid = { version = "1.2.1", default-features = false, features = ["std"] }

@@ -9,13 +9,6 @@ pub struct GrandLineContext {
 }
 
 impl GrandLineContext {
-    pub(crate) fn new(ctx: &ExtensionContext<'_>) -> Arc<Self> {
-        Arc::new(Self {
-            db: ctx.data_unchecked::<Arc<DatabaseConnection>>().clone(),
-            tx: Mutex::new(None),
-        })
-    }
-
     pub(crate) async fn tx(&self) -> Res<Arc<DatabaseTransaction>> {
         let mut guard = self.tx.lock().await;
         match &*guard {
