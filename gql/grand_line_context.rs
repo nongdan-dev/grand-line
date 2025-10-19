@@ -74,6 +74,6 @@ impl GrandLineContextImpl for ExtensionContext<'_> {
     }
 }
 
-fn try_unwrap(r: Result<&Arc<GrandLineContext>, Error>) -> Res<Arc<GrandLineContext>> {
+fn try_unwrap(r: Result<&Arc<GrandLineContext>, GraphQLError>) -> Res<Arc<GrandLineContext>> {
     r.cloned().map_err(|e| err_server!(Ctx404(e.message)))
 }

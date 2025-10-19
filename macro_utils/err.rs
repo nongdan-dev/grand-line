@@ -2,7 +2,7 @@
 #[macro_export]
 macro_rules! err_client {
     ($($v:tt)*) => {
-        GrandLineError::Client(ErrClient::$($v)*)
+        GrandLineError::Client(GrandLineErrorClient::$($v)*)
     };
 }
 
@@ -18,7 +18,7 @@ macro_rules! err_client_res {
 #[macro_export]
 macro_rules! err_server {
     ($($v:tt)*) => {
-        GrandLineError::Server(ErrServer::$($v)*)
+        GrandLineError::Server(GrandLineErrorServer::$($v)*)
     };
 }
 

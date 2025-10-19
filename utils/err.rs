@@ -1,7 +1,7 @@
 use crate::prelude::*;
 
 #[derive(ThisError, Debug)]
-pub enum ErrServer {
+pub enum GrandLineErrorServer {
     #[error("database error: {0}")]
     Db(#[from] DbErr),
     #[error("{0} column is not present in the model {1}")]
@@ -26,7 +26,7 @@ pub enum ErrServer {
 }
 
 #[derive(ThisError, Debug)]
-pub enum ErrClient {
+pub enum GrandLineErrorClient {
     #[error("404 data not found")]
     Db404,
 
@@ -39,14 +39,14 @@ pub enum ErrClient {
 #[derive(ThisError, Debug)]
 pub enum GrandLineError {
     #[error(transparent)]
-    Server(#[from] ErrServer),
+    Server(#[from] GrandLineErrorServer),
     #[error(transparent)]
-    Client(#[from] ErrClient),
+    Client(#[from] GrandLineErrorClient),
 }
 
 impl From<DbErr> for GrandLineError {
     fn from(e: DbErr) -> Self {
-        ErrServer::Db(e).into()
+        GrandLineErrorServer::Db(e).into()
     }
 }
 

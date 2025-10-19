@@ -32,11 +32,13 @@ mod re_exports {
     // common
     pub use async_graphql::MaybeUndefined as Undefined;
     pub use async_trait::async_trait;
+    pub use serde::{Deserialize, Serialize};
     pub use thiserror::Error as ThisError;
     pub use tokio::sync::Mutex;
     // common std
     pub use std::collections::{HashMap, HashSet};
     pub use std::error::Error;
+    pub use std::fmt::Display;
     pub use std::sync::{Arc, LazyLock};
 }
 
@@ -52,5 +54,6 @@ pub(crate) mod prelude {
     #[cfg(feature = "no_re_exports")]
     pub use re_exports::*;
 
-    pub use async_graphql::Error;
+    pub use async_graphql::Error as GraphQLError;
+    pub use std::error::Error;
 }
