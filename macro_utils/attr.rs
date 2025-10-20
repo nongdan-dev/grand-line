@@ -64,19 +64,22 @@ impl Attr {
         let debug = f!("`{}.{}`", model, f.ident.to_token_stream());
         let field = Some((s!(model), a.clone(), f.clone()));
         if raw(&attr) {
-            let err = f!("should match syntax #[{}(some_thing)]", attr);
+            let panic = || {
+                let err = f!("should match syntax #[{}(some_thing)]", attr);
+                pan!(err)
+            };
             let raw = a
                 .meta
                 .to_token_stream()
                 .to_string()
                 .trim()
                 .strip_prefix(&attr)
-                .unwrap_or_else(|| pan!(err))
+                .unwrap_or_else(panic)
                 .trim()
                 .strip_prefix("(")
-                .unwrap_or_else(|| pan!(err))
+                .unwrap_or_else(panic)
                 .strip_suffix(")")
-                .unwrap_or_else(|| pan!(err))
+                .unwrap_or_else(panic)
                 .trim()
                 .to_string();
             return Self {

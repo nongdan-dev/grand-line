@@ -6,7 +6,7 @@ struct MyQuery;
 #[Object]
 impl MyQuery {
     async fn one(&self) -> i32 {
-        1
+        0
     }
     async fn add(&self, a: i32, b: i32) -> i32 {
         a + b
@@ -59,7 +59,7 @@ async fn on_variable_type_mismatch() {
       }
     "#;
     let v = value!({
-        "a": 1,
+        "a": 0,
         "b": "not integer"
     });
 

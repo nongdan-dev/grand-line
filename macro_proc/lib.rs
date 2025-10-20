@@ -152,3 +152,15 @@ pub fn am_update(item: TokenStream) -> TokenStream {
 pub fn am_delete(item: TokenStream) -> TokenStream {
     expr_struct(item, "ActiveModel", "Set", "_delete")
 }
+
+/// Automatically derive ThisError, GrandLineErrDerive, Debug.
+#[proc_macro_attribute]
+pub fn grand_line_err(attr: TokenStream, item: TokenStream) -> TokenStream {
+    gen_grand_line_err(attr, item)
+}
+
+/// Automatically implement GrandLineErrImpl to handle error better.
+#[proc_macro_derive(GrandLineErrDerive, attributes(client, code))]
+pub fn grand_line_err_derive(item: TokenStream) -> TokenStream {
+    gen_grand_line_err_derive(item)
+}

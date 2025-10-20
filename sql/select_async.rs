@@ -40,7 +40,7 @@ where
     {
         match self.exists(db).await? {
             true => Ok(()),
-            false => err_client_res!(Db404),
+            false => err!(Db404),
         }
     }
 }
@@ -70,7 +70,7 @@ where
     {
         match self.one(db).await? {
             Some(v) => Ok(v),
-            None => err_client_res!(Db404),
+            None => err!(Db404),
         }
     }
 }
@@ -87,7 +87,7 @@ where
     {
         match self.one(db).await? {
             Some(v) => Ok(v),
-            None => err_client_res!(Db404),
+            None => err!(Db404),
         }
     }
 }

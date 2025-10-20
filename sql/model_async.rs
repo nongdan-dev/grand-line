@@ -18,7 +18,7 @@ where
                 .gql_select(ctx)?
                 .one(tx)
                 .await?
-                .ok_or_else(|| err_client!(Db404))?
+                .ok_or_else(|| MyErr::Db404)?
         } else {
             self._to_gql()
         };

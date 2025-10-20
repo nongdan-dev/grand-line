@@ -3,11 +3,8 @@
 #[macro_export]
 macro_rules! am_value {
     ($am:ident.$k:ident) => {
-        $am.$k.try_as_ref().ok_or_else(|| {
-            GrandLineError::Server(GrandLineErrorServer::DbAmF404(
-                stringify!($k),
-                am._model_name(),
-            ))
-        })
+        $am.$k
+            .try_as_ref()
+            .ok_or_else(|| grand_line::MyErr::DbAmField404(stringify!($k), am._model_name()))
     };
 }

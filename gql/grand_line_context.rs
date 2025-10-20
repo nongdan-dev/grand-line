@@ -34,12 +34,14 @@ impl GrandLineContext {
             Some(tx) => match Arc::try_unwrap(tx) {
                 Ok(tx) => {
                     tx.commit().await?;
-                    Ok(())
                 }
-                Err(_) => err_server_res!(TxCommit),
+                Err(_) => {
+                    err!(TxCommit)?;
+                }
             },
-            None => Ok(()),
+            None => {}
         }
+        Ok(())
     }
 
     async fn rollback(&self) -> Res<()> {
@@ -47,12 +49,14 @@ impl GrandLineContext {
             Some(tx) => match Arc::try_unwrap(tx) {
                 Ok(tx) => {
                     tx.rollback().await?;
-                    Ok(())
                 }
-                Err(_) => err_server_res!(TxRollback),
+                Err(_) => {
+                    err!(TxRollback)?;
+                }
             },
-            None => Ok(()),
+            None => {}
         }
+        Ok(())
     }
 }
 
@@ -75,5 +79,6 @@ impl GrandLineContextImpl for ExtensionContext<'_> {
 }
 
 fn try_unwrap(r: Result<&Arc<GrandLineContext>, GraphQLError>) -> Res<Arc<GrandLineContext>> {
-    r.cloned().map_err(|e| err_server!(Ctx404(e.message)))
+    let a = r.cloned().map_err(|e| MyErr::Ctx404(e.message))?;
+    Ok(a)
 }

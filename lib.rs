@@ -6,7 +6,7 @@ pub use sql::*;
 pub use utils::*;
 
 pub use macro_proc::*;
-pub use macro_utils::am_value;
+pub use macro_utils::{am_value, err};
 
 mod re_exports {
     pub use async_graphql;

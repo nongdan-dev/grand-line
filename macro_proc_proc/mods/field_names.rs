@@ -1,6 +1,5 @@
-use core::panic;
-
 use crate::prelude::*;
+use core::panic;
 use syn::{Fields, FieldsNamed, ItemStruct, parse_macro_input, punctuated::Punctuated};
 
 pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
