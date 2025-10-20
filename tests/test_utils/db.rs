@@ -3,57 +3,57 @@
 use super::*;
 use std::{ops::Deref, time::Duration};
 
-pub async fn db_1<E1>(e1: E1) -> Result<TmpDb, Box<dyn Error + Send + Sync>>
+pub async fn tmp_db_1<E1>(e1: E1) -> Res<TmpDb>
 where
     E1: EntityX,
 {
-    let db = db().await?;
-    create_table(&db, e1).await?;
-    Ok(db)
+    let tmp = tmp_db().await?;
+    create_table(&tmp.db, e1).await?;
+    Ok(tmp)
 }
 
-pub async fn db_2<E1, E2>(e1: E1, e2: E2) -> Result<TmpDb, Box<dyn Error + Send + Sync>>
+pub async fn tmp_db_2<E1, E2>(e1: E1, e2: E2) -> Res<TmpDb>
 where
     E1: EntityX,
     E2: EntityX,
 {
-    let db = db().await?;
-    create_table(&db, e1).await?;
-    create_table(&db, e2).await?;
-    Ok(db)
+    let tmp = tmp_db().await?;
+    create_table(&tmp.db, e1).await?;
+    create_table(&tmp.db, e2).await?;
+    Ok(tmp)
 }
 
-pub async fn db_3<E1, E2, E3>(e1: E1, e2: E2, e3: E3) -> Result<TmpDb, Box<dyn Error + Send + Sync>>
+pub async fn tmp_db_3<E1, E2, E3>(e1: E1, e2: E2, e3: E3) -> Res<TmpDb>
 where
     E1: EntityX,
     E2: EntityX,
     E3: EntityX,
 {
-    let db = db().await?;
-    create_table(&db, e1).await?;
-    create_table(&db, e2).await?;
-    create_table(&db, e3).await?;
-    Ok(db)
+    let tmp = tmp_db().await?;
+    create_table(&tmp.db, e1).await?;
+    create_table(&tmp.db, e2).await?;
+    create_table(&tmp.db, e3).await?;
+    Ok(tmp)
 }
 
-async fn db() -> Result<TmpDb, Box<dyn Error + Send + Sync>> {
+pub async fn tmp_db() -> Res<TmpDb> {
     #[cfg(feature = "postgres")]
     {
         let uri = "postgres://postgres:test_pwd@localhost:5432/test_db";
-        let db = TmpDb::new(uri).await?;
-        Ok(db)
+        let tmp = TmpDb::new(uri).await?;
+        Ok(tmp)
     }
     #[cfg(feature = "mysql")]
     {
         let uri = "mysql://root:test_pwd@localhost:3306/test_db";
-        let db = TmpDb::new(uri).await?;
-        Ok(db)
+        let tmp = TmpDb::new(uri).await?;
+        Ok(tmp)
     }
     #[cfg(feature = "sqlite")]
     {
         let uri = "sqlite::memory:";
-        let db = TmpDb::new(uri).await?;
-        Ok(db)
+        let tmp = TmpDb::new(uri).await?;
+        Ok(tmp)
     }
     #[cfg(not(any(feature = "postgres", feature = "mysql", feature = "sqlite")))]
     {
@@ -66,9 +66,9 @@ async fn db() -> Result<TmpDb, Box<dyn Error + Send + Sync>> {
 
 #[derive(Clone)]
 pub struct TmpDb {
-    name: String,
-    db: DatabaseConnection,
     ty: TmpDbType,
+    name: String,
+    pub db: DatabaseConnection,
 }
 
 #[derive(Clone)]
@@ -79,7 +79,7 @@ enum TmpDbType {
 }
 
 impl TmpDb {
-    pub async fn new(uri: &str) -> Result<Self, Box<dyn Error + Send + Sync>> {
+    pub async fn new(uri: &str) -> Res<Self> {
         match get_uri_scheme(uri).as_str() {
             "postgres" => Self::new_postgres(uri).await,
             "mysql" => Self::new_mysql(uri).await,
@@ -94,7 +94,7 @@ impl TmpDb {
         }
     }
 
-    async fn new_postgres(uri: &str) -> Result<Self, Box<dyn Error + Send + Sync>> {
+    async fn new_postgres(uri: &str) -> Res<Self> {
         let name = new_db_name();
         let db = conn(uri).await?;
 
@@ -111,7 +111,7 @@ impl TmpDb {
         })
     }
 
-    async fn new_mysql(uri: &str) -> Result<Self, Box<dyn Error + Send + Sync>> {
+    async fn new_mysql(uri: &str) -> Res<Self> {
         let name = new_db_name();
         let admin = conn(uri).await?;
 
@@ -128,7 +128,7 @@ impl TmpDb {
         })
     }
 
-    async fn new_sqlite(_: &str) -> Result<Self, Box<dyn Error + Send + Sync>> {
+    async fn new_sqlite(_: &str) -> Res<Self> {
         let name = "memory".to_string();
         let db = conn("sqlite::memory:").await?;
 
@@ -138,44 +138,25 @@ impl TmpDb {
             ty: TmpDbType::Sqlite,
         })
     }
-}
 
-impl Deref for TmpDb {
-    type Target = DatabaseConnection;
-    fn deref(&self) -> &Self::Target {
-        &self.db
-    }
-}
-
-impl AsRef<DatabaseConnection> for TmpDb {
-    fn as_ref(&self) -> &DatabaseConnection {
-        &self.db
-    }
-}
-
-impl Drop for TmpDb {
-    fn drop(&mut self) {
-        let name = self.name.clone();
-        let db = self.db.clone();
-        let ty = self.ty.clone();
-
-        let future = async move {
-            let _ = match ty.clone() {
-                TmpDbType::Postgres => cleanup_postgres(&name, &db).await,
-                TmpDbType::MySql { admin } => cleanup_mysql(&name, &db, admin).await,
-                TmpDbType::Sqlite => cleanup_sqlite(&db).await,
-            };
-        };
-
-        if let Ok(handle) = tokio::runtime::Handle::try_current() {
-            handle.spawn(future);
-        } else {
-            std::thread::spawn(|| {
-                if let Ok(runtime) = tokio::runtime::Runtime::new() {
-                    runtime.block_on(future);
-                }
-            });
-        }
+    pub async fn drop(&self) -> Res<()> {
+        Ok(match &self.ty {
+            TmpDbType::Postgres => {
+                let stmt = "SET search_path TO public;";
+                exec(&self.db, DbBackend::Postgres, &stmt).await?;
+                let stmt = f!("DROP SCHEMA IF EXISTS {} CASCADE;", self.name);
+                exec(&self.db, DbBackend::Postgres, &stmt).await?;
+                self.db.clone().close().await?;
+            }
+            TmpDbType::MySql { admin } => {
+                self.db.clone().close().await?;
+                let stmt = format!("DROP DATABASE IF EXISTS {};", self.name);
+                exec(admin, DbBackend::MySql, &stmt).await?;
+            }
+            TmpDbType::Sqlite => {
+                self.db.clone().close().await?;
+            }
+        })
     }
 }
 
@@ -198,7 +179,7 @@ fn replace_db_name(uri: &str, name: &str) -> String {
     }
 }
 
-async fn conn(uri: &str) -> Result<DatabaseConnection, Box<dyn Error + Send + Sync>> {
+async fn conn(uri: &str) -> Res<DatabaseConnection> {
     let mut c = ConnectOptions::new(uri);
     let d = Duration::from_secs(1);
     c.connect_timeout(d);
@@ -213,18 +194,14 @@ async fn conn(uri: &str) -> Result<DatabaseConnection, Box<dyn Error + Send + Sy
     Ok(db)
 }
 
-async fn exec(
-    db: &DatabaseConnection,
-    be: DbBackend,
-    stmt: &str,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
+async fn exec(db: &DatabaseConnection, be: DbBackend, stmt: &str) -> Res<()> {
     let stmt = Statement::from_string(be, stmt);
     db.execute(stmt).await?;
 
     Ok(())
 }
 
-async fn create_table<E>(db: &DatabaseConnection, e: E) -> Result<(), Box<dyn Error + Send + Sync>>
+async fn create_table<E>(db: &DatabaseConnection, e: E) -> Res<()>
 where
     E: EntityX,
 {
@@ -232,40 +209,6 @@ where
     let schema = DbSchema::new(backend);
     let stmt = schema.create_table_from_entity(e);
     db.execute(backend.build(&stmt)).await?;
-
-    Ok(())
-}
-
-async fn cleanup_postgres(
-    name: &str,
-    db: &DatabaseConnection,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let stmt = "SET search_path TO public;";
-    exec(db, DbBackend::Postgres, &stmt).await?;
-
-    let stmt = f!("DROP SCHEMA IF EXISTS {} CASCADE;", name);
-    exec(db, DbBackend::Postgres, &stmt).await?;
-
-    db.clone().close().await?;
-
-    Ok(())
-}
-
-async fn cleanup_mysql(
-    name: &str,
-    db: &DatabaseConnection,
-    admin: DatabaseConnection,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
-    db.clone().close().await?;
-
-    let stmt = format!("DROP DATABASE IF EXISTS {};", name);
-    exec(&admin, DbBackend::MySql, &stmt).await?;
-
-    Ok(())
-}
-
-async fn cleanup_sqlite(db: &DatabaseConnection) -> Result<(), Box<dyn Error + Send + Sync>> {
-    db.clone().close().await?;
 
     Ok(())
 }

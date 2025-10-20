@@ -5,6 +5,9 @@ macro_rules! am_value {
     ($am:ident.$k:ident) => {
         $am.$k
             .try_as_ref()
-            .ok_or_else(|| grand_line::MyErr::DbAmField404(stringify!($k), am._model_name()))
+            .ok_or_else(|| GrandLineInternalErr::DbAmField404 {
+                model: am._model_name(),
+                field: stringify!($k),
+            })
     };
 }

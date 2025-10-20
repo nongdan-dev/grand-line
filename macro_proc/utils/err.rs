@@ -1,13 +1,14 @@
 use crate::prelude::*;
 use syn::{
-    Data, DeriveInput, Error, Expr, ExprLit, Fields, Lit, Meta, MetaNameValue, parse_macro_input,
+    Data, DeriveInput, Error as SynErr, Expr, ExprLit, Fields, Lit, Meta, MetaNameValue,
+    parse_macro_input,
 };
 
 pub fn gen_grand_line_err(_: TokenStream, item: TokenStream) -> TokenStream {
     let item = Into::<Ts2>::into(item);
 
     quote! {
-        #[derive(ThisError, GrandLineErrDerive, Debug)]
+        #[derive(ThisErr, GrandLineErrDerive, Debug)]
         #item
     }
     .into()
@@ -18,9 +19,9 @@ pub fn gen_grand_line_err_derive(item: TokenStream) -> TokenStream {
     let name = &item.ident;
 
     let Data::Enum(d) = &item.data else {
-        return Error::new_spanned(
+        return SynErr::new_spanned(
             &item.ident,
-            "GrandLineErrDerive only support enum with ThisError",
+            "GrandLineErrDerive only support enum with ThisErr",
         )
         .to_compile_error()
         .into();

@@ -15,7 +15,7 @@ impl ContextX for Context<'_> {
     fn req_header(&self, k: &str) -> Res<String> {
         let req_headers = self
             .data::<HeaderMap>()
-            .map_err(|e| MyErr::CtxReqHeaders404(e.message))?;
+            .map_err(|e| MyErr::CtxReqHeaders404 { inner: e.message })?;
         let v = req_headers
             .get(k)
             .map(|v| v.to_str().ok().map(|v| v.to_string()))

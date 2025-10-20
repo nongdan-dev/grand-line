@@ -42,7 +42,7 @@ where
     fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<E::G>>> {
         let mut q = self;
         let cols = E::gql_look_ahead(ctx)?;
-        if cols.len() > 0 {
+        if !cols.is_empty() {
             q = q.select_only();
             for (c, col, expr) in cols {
                 match col {

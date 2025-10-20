@@ -1,24 +1,10 @@
-use std::fmt::{Debug, Formatter, Result as FmtResult};
-
 use crate::prelude::*;
-
-pub trait GrandLineErrImpl
-where
-    Self: Error + Send + Sync,
-{
-    fn code(&self) -> &'static str;
-    fn client(&self) -> bool;
-    fn client_code(&self) -> &'static str {
-        if self.client() {
-            self.code()
-        } else {
-            MyErr::ServerError.code()
-        }
-    }
-}
+use std::fmt::{Debug, Formatter, Result as FmtResult};
 
 #[derive(Clone)]
 pub struct GrandLineErr(pub Arc<dyn GrandLineErrImpl>);
+pub type Res<T> = Result<T, GrandLineErr>;
+
 impl Display for GrandLineErr {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         Display::fmt(&self.0, f)
@@ -34,12 +20,11 @@ impl Error for GrandLineErr {
         self.0.source()
     }
 }
-impl From<GrandLineErr> for ErrorExtensionValues {
+
+impl From<GrandLineErr> for ServerError {
     fn from(v: GrandLineErr) -> Self {
-        let mut m = ErrorExtensionValues::default();
-        m.set("code", v.0.client_code());
-        m
+        let mut e = Self::new(v.to_string(), None);
+        e.source = Some(Arc::new(v));
+        e
     }
 }
-
-pub type Res<T> = Result<T, GrandLineErr>;

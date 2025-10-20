@@ -3,7 +3,7 @@ mod test_utils;
 use test_utils::*;
 
 #[tokio::test]
-async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
+async fn default() -> Res<()> {
     mod test {
         use super::*;
 
@@ -19,11 +19,10 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     }
     use test::*;
 
-    let _db = db_1(User).await?;
-    let db = _db.as_ref();
-    let s = schema_q::<UserDetailQuery>(db);
+    let tmp = tmp_db_1(User).await?;
+    let s = schema_q::<UserDetailQuery>(&tmp.db);
 
-    let u = am_create!(User { a: 1 }).insert(db).await?;
+    let u = am_create!(User { a: 1 }).insert(&tmp.db).await?;
 
     let q = r#"
     query test($id: ID!) {
@@ -41,6 +40,6 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
         },
     });
 
-    exec_assert(&s, q, Some(&v), &expected).await?;
-    Ok(())
+    exec_assert(&s, q, Some(&v), &expected).await;
+    tmp.drop().await
 }

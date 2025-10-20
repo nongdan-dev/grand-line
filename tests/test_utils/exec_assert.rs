@@ -2,12 +2,7 @@
 
 use super::*;
 
-pub async fn exec_assert<Q, M, S>(
-    s: &Schema<Q, M, S>,
-    q: &str,
-    v: Option<&Value>,
-    expected: &Value,
-) -> Result<(), Box<dyn Error + Send + Sync>>
+pub async fn exec_assert<Q, M, S>(s: &Schema<Q, M, S>, q: &str, v: Option<&Value>, expected: &Value)
 where
     Q: ObjectType + Default + 'static,
     M: ObjectType + Default + 'static,
@@ -20,5 +15,4 @@ where
     let res = s.execute(req).await;
     assert!(res.errors.is_empty(), "{:#?}", res.errors);
     pretty_eq!(res.data, expected.clone());
-    Ok(())
 }

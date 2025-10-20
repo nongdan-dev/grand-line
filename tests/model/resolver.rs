@@ -3,7 +3,7 @@ mod test_utils;
 use test_utils::*;
 
 #[tokio::test]
-async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
+async fn sql_dep_cols() -> Res<()> {
     mod test {
         use super::*;
 
@@ -16,15 +16,12 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
             pub full_name: String,
         }
 
-        async fn resolve_full_name(
-            u: &UserGql,
-            _: &Context<'_>,
-        ) -> Result<String, Box<dyn Error + Send + Sync>> {
+        async fn resolve_full_name(u: &UserGql, _: &Context<'_>) -> Res<String> {
             let err = "should be selected from database already";
             let full_name = vec![
-                u.first_name.clone().ok_or_else(|| err)?,
-                u.middle_name.clone().ok_or_else(|| err)?,
-                u.last_name.clone().ok_or_else(|| err)?,
+                u.first_name.clone().unwrap_or_else(|| bug!(err)),
+                u.middle_name.clone().unwrap_or_else(|| bug!(err)),
+                u.last_name.clone().unwrap_or_else(|| bug!(err)),
             ]
             .join(" ");
             Ok(full_name)
@@ -35,16 +32,15 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     }
     use test::*;
 
-    let _db = db_1(User).await?;
-    let db = _db.as_ref();
-    let s = schema_q::<UserDetailQuery>(db);
+    let tmp = tmp_db_1(User).await?;
+    let s = schema_q::<UserDetailQuery>(&tmp.db);
 
     let u = am_create!(User {
         first_name: "Olivia",
         middle_name: "Anna",
         last_name: "Dunham",
     })
-    .insert(db)
+    .insert(&tmp.db)
     .await?;
 
     let q = r#"
@@ -63,12 +59,12 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
         },
     });
 
-    exec_assert(&s, q, Some(&v), &expected).await?;
-    Ok(())
+    exec_assert(&s, q, Some(&v), &expected).await;
+    tmp.drop().await
 }
 
 #[tokio::test]
-async fn sql_expr() -> Result<(), Box<dyn Error + Send + Sync>> {
+async fn sql_dep_exprs() -> Res<()> {
     mod test {
         use super::*;
 
@@ -83,14 +79,11 @@ async fn sql_expr() -> Result<(), Box<dyn Error + Send + Sync>> {
             d: i64,
         }
 
-        async fn resolve_d(
-            u: &UserGql,
-            _: &Context<'_>,
-        ) -> Result<i64, Box<dyn Error + Send + Sync>> {
+        async fn resolve_d(u: &UserGql, _: &Context<'_>) -> Res<i64> {
             let err = "should be selected from database already";
-            let a = u.a.ok_or_else(|| err)?;
-            let b = u.b.ok_or_else(|| err)?;
-            let c = u.c.ok_or_else(|| err)?;
+            let a = u.a.unwrap_or_else(|| bug!(err));
+            let b = u.b.unwrap_or_else(|| bug!(err));
+            let c = u.c.unwrap_or_else(|| bug!(err));
             let d = a + b + c;
             Ok(d)
         }
@@ -100,11 +93,10 @@ async fn sql_expr() -> Result<(), Box<dyn Error + Send + Sync>> {
     }
     use test::*;
 
-    let _db = db_1(User).await?;
-    let db = _db.as_ref();
-    let s = schema_q::<UserDetailQuery>(db);
+    let tmp = tmp_db_1(User).await?;
+    let s = schema_q::<UserDetailQuery>(&tmp.db);
 
-    let u = am_create!(User { a: 1 }).insert(db).await?;
+    let u = am_create!(User { a: 1 }).insert(&tmp.db).await?;
 
     let q = r#"
     query test($id: ID!) {
@@ -122,6 +114,6 @@ async fn sql_expr() -> Result<(), Box<dyn Error + Send + Sync>> {
         },
     });
 
-    exec_assert(&s, q, Some(&v), &expected).await?;
-    Ok(())
+    exec_assert(&s, q, Some(&v), &expected).await;
+    tmp.drop().await
 }

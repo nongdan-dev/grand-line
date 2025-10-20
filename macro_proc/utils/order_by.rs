@@ -1,6 +1,6 @@
 use crate::prelude::*;
 use syn::{
-    Ident, Token, bracketed,
+    Ident, Result as SynRes, Token, bracketed,
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
@@ -12,7 +12,7 @@ struct Item {
 }
 
 impl Parse for Item {
-    fn parse(s: ParseStream) -> syn::Result<Self> {
+    fn parse(s: ParseStream) -> SynRes<Self> {
         let model = s.parse::<Ident>()?;
         let c;
         bracketed!(c in s);

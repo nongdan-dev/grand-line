@@ -2,9 +2,10 @@
 mod test_utils;
 use test_utils::*;
 
-struct MyQuery;
+#[derive(Default)]
+struct Query;
 #[Object]
-impl MyQuery {
+impl Query {
     async fn one(&self) -> i32 {
         0
     }
@@ -13,8 +14,8 @@ impl MyQuery {
     }
 }
 
-fn schema() -> Schema<MyQuery, EmptyMutation, EmptySubscription> {
-    Schema::build(MyQuery, EmptyMutation, EmptySubscription).finish()
+fn schema() -> Schema<Query, EmptyMutation, EmptySubscription> {
+    Schema::build(Query, EmptyMutation, EmptySubscription).finish()
 }
 
 #[tokio::test]
@@ -26,8 +27,14 @@ async fn on_parse_error() {
 
     let e = &r.errors[0];
 
-    assert!(e.source.is_none(), "parse error source should be None");
-    assert!(e.path.is_empty(), "parse error path should be empty");
+    assert!(
+        e.source.is_none(),
+        "parse request error source should be none"
+    );
+    assert!(
+        e.path.is_empty(),
+        "parse request error path should be empty"
+    );
 }
 
 #[tokio::test]
@@ -41,7 +48,7 @@ async fn on_unknown_field() {
 
     assert!(
         e.source.is_none(),
-        "unknown field error source should be None"
+        "unknown field error source should be none"
     );
     assert!(
         e.path.is_empty(),
@@ -72,7 +79,7 @@ async fn on_variable_type_mismatch() {
 
     assert!(
         e.source.is_none(),
-        "variable type mismatch error source should be None"
+        "variable type mismatch error source should be none"
     );
     assert!(
         e.path.is_empty(),

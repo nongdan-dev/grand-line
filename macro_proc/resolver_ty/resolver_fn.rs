@@ -48,8 +48,7 @@ where
             };
             Ok(r)
         };
-        // TODO: use our error enum to only return client error
-        output = quote!(Result<#output, Box<dyn Error + Send + Sync>>);
+        output = quote!(Res<#output>);
 
         quote! {
             // TODO: copy #[graphql...] and comments from the original field

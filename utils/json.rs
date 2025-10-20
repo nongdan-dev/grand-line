@@ -1,13 +1,16 @@
 use crate::prelude::*;
 use serde::{Serialize, de::DeserializeOwned};
+use serde_json::{from_value, to_value};
 
 /// Helper to quickly convert json.
 pub trait JsonHelper: Sized + Serialize + DeserializeOwned {
-    fn to_json(self) -> Result<JsonValue, serde_json::Error> {
-        serde_json::to_value(self)
+    fn to_json(self) -> Res<JsonValue> {
+        let r = to_value(self)?;
+        Ok(r)
     }
-    fn from_json(v: JsonValue) -> Result<Self, serde_json::Error> {
-        serde_json::from_value(v)
+    fn from_json(v: JsonValue) -> Res<Self> {
+        let r = from_value(v)?;
+        Ok(r)
     }
 }
 

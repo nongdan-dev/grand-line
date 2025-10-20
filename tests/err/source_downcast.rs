@@ -8,17 +8,18 @@ enum MyErr {
     Test,
 }
 
-struct MyQuery;
+#[derive(Default)]
+struct Query;
 #[Object]
-impl MyQuery {
+impl Query {
     async fn my_err(&self) -> Res<i64> {
         Err(MyErr::Test)?;
         Ok(0)
     }
 }
 
-fn schema() -> Schema<MyQuery, EmptyMutation, EmptySubscription> {
-    Schema::build(MyQuery, EmptyMutation, EmptySubscription).finish()
+fn schema() -> Schema<Query, EmptyMutation, EmptySubscription> {
+    Schema::build(Query, EmptyMutation, EmptySubscription).finish()
 }
 
 #[tokio::test]
@@ -29,12 +30,15 @@ async fn should_be_my_err() {
     assert!(r.errors.len() == 1, "response should have an error");
 
     let e = &r.errors[0];
-    assert!(e.message == "test", "error message should match");
+    assert!(e.message == "test", "error message should be `test`");
 
     let box_dyn = e
         .source
         .as_deref()
         .and_then(|e| e.downcast_ref::<GrandLineErr>());
     assert!(box_dyn.is_some(), "downcast to GrandLineErr should be some");
-    assert!(box_dyn.unwrap().0.code() == "Test", "code should match");
+    assert!(
+        box_dyn.unwrap().0.code() == "Test",
+        "error code should be `Test`"
+    );
 }

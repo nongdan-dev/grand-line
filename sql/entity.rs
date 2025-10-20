@@ -71,7 +71,9 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
         let col = Self::_sql_cols()
             .get("id")
             .cloned()
-            .ok_or_else(|| MyErr::BugId404(Self::_model_name()))?;
+            .ok_or_else(|| MyErr::BugId404 {
+                model: Self::_model_name(),
+            })?;
         Ok(col)
     }
     /// Quickly build condition id eq.
@@ -85,8 +87,10 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
     }
     /// Get deleted at column.
     fn _col_deleted_at() -> Res<Self::Column> {
-        let col = Self::_col_deleted_at_opt()
-            .ok_or_else(|| MyErr::DbCfgField404("deleted_at", Self::_model_name()))?;
+        let col = Self::_col_deleted_at_opt().ok_or_else(|| MyErr::DbCfgField404 {
+            model: Self::_model_name(),
+            field: "deleted_at",
+        })?;
         Ok(col)
     }
     /// Quickly build condition include deleted.

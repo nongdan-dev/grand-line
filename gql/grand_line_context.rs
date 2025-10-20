@@ -67,18 +67,18 @@ pub trait GrandLineContextImpl {
 impl GrandLineContextImpl for Context<'_> {
     #[inline(always)]
     fn grand_line_context(&self) -> Res<Arc<GrandLineContext>> {
-        try_unwrap(self.data::<Arc<GrandLineContext>>())
+        map_err(self.data::<Arc<GrandLineContext>>())
     }
 }
 
 impl GrandLineContextImpl for ExtensionContext<'_> {
     #[inline(always)]
     fn grand_line_context(&self) -> Res<Arc<GrandLineContext>> {
-        try_unwrap(self.data::<Arc<GrandLineContext>>())
+        map_err(self.data::<Arc<GrandLineContext>>())
     }
 }
 
-fn try_unwrap(r: Result<&Arc<GrandLineContext>, GraphQLError>) -> Res<Arc<GrandLineContext>> {
-    let a = r.cloned().map_err(|e| MyErr::Ctx404(e.message))?;
+fn map_err(r: Result<&Arc<GrandLineContext>, GraphQLErr>) -> Res<Arc<GrandLineContext>> {
+    let a = r.cloned().map_err(|e| MyErr::Ctx404 { inner: e.message })?;
     Ok(a)
 }

@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
 /// Extension to insert GrandLineContext on each request, then cleanup at the end of each request.
+/// The extension also handle error automatically to only expose client errors to the client.
 pub struct GrandLineExtension;
 
 impl ExtensionFactory for GrandLineExtension {
@@ -22,7 +23,7 @@ impl Extension for GrandLineExtensionImpl {
     ) -> ServerResult<Request> {
         let db = ctx
             .data::<Arc<DatabaseConnection>>()
-            .map_err(|e| ServerError::new(e.message, None))?;
+            .map_err(|e| MyErr::CtxDb404 { inner: e.message })?;
         let gl = GrandLineContext {
             db: db.clone(),
             tx: Mutex::new(None),
@@ -41,14 +42,33 @@ impl Extension for GrandLineExtensionImpl {
         match ctx.grand_line_context() {
             Ok(gl) => {
                 if let Err(e) = gl.cleanup(!r.errors.is_empty()).await {
-                    r.errors.push(ServerError::new(e.to_string(), None));
+                    r.errors.push(e.into());
                 }
             }
             Err(e) => {
-                r.errors.push(ServerError::new(e.to_string(), None));
+                r.errors.push(e.into());
             }
         };
-        // TODO: use our error enum to only return client error
+        for e in &mut r.errors {
+            if e.source.is_none() {
+                e.extensions = Some(MyErr::SchemaInvalid.extensions());
+                continue;
+            }
+            let gl = e
+                .source
+                .as_deref()
+                .and_then(|e| e.downcast_ref::<GrandLineErr>());
+            if let Some(GrandLineErr(gl)) = gl
+                && gl.client()
+            {
+                e.extensions = Some(gl.extensions());
+            } else {
+                eprintln!("{}", e.message);
+                e.message = MyErr::InternalServer.to_string();
+                e.source = None;
+                e.extensions = Some(MyErr::InternalServer.extensions())
+            }
+        }
         r
     }
 }

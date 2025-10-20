@@ -2,48 +2,57 @@
 mod test_utils;
 use test_utils::*;
 
+#[model]
+pub struct User {
+    pub name: String,
+}
+
+#[detail(User)]
+fn resolver() {}
+
+#[search(User)]
+fn resolver() {
+    (None, None)
+}
+#[count(User)]
+fn resolver() {
+    None
+}
+
+#[delete(User)]
+fn resolver() {}
+
+type MySchema = Schema<Query, Mutation, EmptySubscription>;
+#[derive(Default, MergedObject)]
+struct Query(UserDetailQuery, UserSearchQuery, UserCountQuery);
+#[derive(Default, MergedObject)]
+struct Mutation(UserDeleteMutation);
+
+async fn prepare_test_data() -> Res<TestData> {
+    let tmp = tmp_db_1(User).await?;
+    let s = schema_qm::<Query, Mutation>(&tmp.db);
+
+    let u1 = am_create!(User { name: "Olivia" }).insert(&tmp.db).await?;
+    let u2 = am_create!(User { name: "Peter" }).insert(&tmp.db).await?;
+    let _ = User::soft_delete_by_id(&u1.id)?.exec(&tmp.db).await?;
+
+    Ok(TestData {
+        tmp,
+        s,
+        id1: u1.id,
+        id2: u2.id,
+    })
+}
+struct TestData {
+    tmp: TmpDb,
+    s: MySchema,
+    id1: String,
+    id2: String,
+}
+
 #[tokio::test]
-async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
-    mod test {
-        use super::*;
-
-        #[model]
-        pub struct User {
-            pub name: String,
-        }
-
-        #[detail(User)]
-        fn resolver() {}
-
-        #[search(User)]
-        fn resolver() {
-            (None, None)
-        }
-        #[count(User)]
-        fn resolver() {
-            None
-        }
-
-        #[delete(User)]
-        fn resolver() {}
-    }
-    use test::*;
-
-    #[derive(Default, MergedObject)]
-    struct Query(UserDetailQuery, UserSearchQuery, UserCountQuery);
-    #[derive(Default, MergedObject)]
-    struct Mutation(UserDeleteMutation);
-
-    let _db = db_1(User).await?;
-    let db = _db.as_ref();
-    let s = schema_qm::<Query, Mutation>(db);
-
-    let u1 = am_create!(User { name: "Olivia" }).insert(db).await?;
-    let u2 = am_create!(User { name: "Peter" }).insert(db).await?;
-    let _ = User::soft_delete_by_id(&u1.id)?.exec(db).await?;
-
-    // ========================================================================
-    // detail
+async fn detail() -> Res<()> {
+    let d = prepare_test_data().await?;
 
     let q = r#"
     query test($id: ID!) {
@@ -53,15 +62,43 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     }
     "#;
     let v1 = value!({
-        "id": u1.id.clone(),
+        "id": d.id1.clone(),
     });
     let expected = value!({
         "userDetail": null,
     });
-    exec_assert(&s, q, Some(&v1), &expected).await?;
+    exec_assert(&d.s, q, Some(&v1), &expected).await;
 
-    // ========================================================================
-    // search
+    d.tmp.drop().await
+}
+
+#[tokio::test]
+async fn detail_include_deleted() -> Res<()> {
+    let d = prepare_test_data().await?;
+
+    let q = r#"
+    query test($id: ID!) {
+        userDetail(id: $id, includeDeleted: true) {
+            name
+        }
+    }
+    "#;
+    let v1 = value!({
+        "id": d.id1.clone(),
+    });
+    let expected = value!({
+        "userDetail": {
+            "name": "Olivia",
+        },
+    });
+    exec_assert(&d.s, q, Some(&v1), &expected).await;
+
+    d.tmp.drop().await
+}
+
+#[tokio::test]
+async fn search() -> Res<()> {
+    let d = prepare_test_data().await?;
 
     let q = r#"
     query test {
@@ -75,7 +112,14 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
             "name": "Peter",
         }],
     });
-    exec_assert(&s, q, None, &expected).await?;
+    exec_assert(&d.s, q, None, &expected).await;
+
+    d.tmp.drop().await
+}
+
+#[tokio::test]
+async fn search_filter_deleted_at() -> Res<()> {
+    let d = prepare_test_data().await?;
 
     let q = r#"
     query test {
@@ -89,7 +133,7 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
             "name": "Olivia",
         }],
     });
-    exec_assert(&s, q, None, &expected).await?;
+    exec_assert(&d.s, q, None, &expected).await;
 
     let q = r#"
     query test {
@@ -113,7 +157,14 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
             "name": "Peter",
         }],
     });
-    exec_assert(&s, q, None, &expected).await?;
+    exec_assert(&d.s, q, None, &expected).await;
+
+    d.tmp.drop().await
+}
+
+#[tokio::test]
+async fn search_include_deleted() -> Res<()> {
+    let d = prepare_test_data().await?;
 
     let q = r#"
     query test {
@@ -122,10 +173,21 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
         }
     }
     "#;
-    exec_assert(&s, q, None, &expected).await?;
+    let expected = value!({
+        "userSearch": [{
+            "name": "Olivia",
+        }, {
+            "name": "Peter",
+        }],
+    });
+    exec_assert(&d.s, q, None, &expected).await;
 
-    // ========================================================================
-    // count
+    d.tmp.drop().await
+}
+
+#[tokio::test]
+async fn count() -> Res<()> {
+    let d = prepare_test_data().await?;
 
     let q = r#"
     query test {
@@ -135,14 +197,24 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     let expected = value!({
         "userCount": 1,
     });
-    exec_assert(&s, q, None, &expected).await?;
+    exec_assert(&d.s, q, None, &expected).await;
+
+    d.tmp.drop().await
+}
+
+#[tokio::test]
+async fn count_filter_deleted_at() -> Res<()> {
+    let d = prepare_test_data().await?;
 
     let q = r#"
     query test {
         userCount(filter: { deletedAt_ne: null })
     }
     "#;
-    exec_assert(&s, q, None, &expected).await?;
+    let expected = value!({
+        "userCount": 1,
+    });
+    exec_assert(&d.s, q, None, &expected).await;
 
     let q = r#"
     query test {
@@ -159,17 +231,31 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
     let expected = value!({
         "userCount": 2,
     });
-    exec_assert(&s, q, None, &expected).await?;
+    exec_assert(&d.s, q, None, &expected).await;
+
+    d.tmp.drop().await
+}
+
+#[tokio::test]
+async fn count_include_deleted() -> Res<()> {
+    let d = prepare_test_data().await?;
 
     let q = r#"
     query test {
         userCount(includeDeleted: true)
     }
     "#;
-    exec_assert(&s, q, None, &expected).await?;
+    let expected = value!({
+        "userCount": 2,
+    });
+    exec_assert(&d.s, q, None, &expected).await;
 
-    // ========================================================================
-    // delete
+    d.tmp.drop().await
+}
+
+#[tokio::test]
+async fn soft_delete_by_default() -> Res<()> {
+    let d = prepare_test_data().await?;
 
     let q = r#"
     mutation test($id: ID!) {
@@ -178,26 +264,33 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
         }
     }
     "#;
+    let v = value!({
+        "id": d.id2.clone(),
+    });
     let expected = value!({
         "userDelete": {
-            "id": u2.id.clone(),
+            "id": d.id2.clone(),
         },
     });
-    let v2 = value!({
-        "id": u2.id.clone(),
-    });
-    exec_assert(&s, q, Some(&v2), &expected).await?;
+    exec_assert(&d.s, q, Some(&v), &expected).await;
 
-    match User::find_by_id(&u2.id).one(db).await? {
+    match User::find_by_id(&d.id2).one(&d.tmp.db).await? {
         Some(u) => assert!(
             u.deleted_at != None,
             "it should have soft delete by default, found deleted_at=None",
         ),
         None => assert!(
             false,
-            "it should have soft delete by default: found None returned from db",
+            "it should have soft delete by default, found None returned from db",
         ),
     }
+
+    d.tmp.drop().await
+}
+
+#[tokio::test]
+async fn delete_permanent() -> Res<()> {
+    let d = prepare_test_data().await?;
 
     let q = r#"
     mutation test($id: ID!) {
@@ -206,9 +299,17 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
         }
     }
     "#;
-    exec_assert(&s, q, Some(&v2), &expected).await?;
+    let v = value!({
+        "id": d.id2.clone(),
+    });
+    let expected = value!({
+        "userDelete": {
+            "id": d.id2.clone(),
+        },
+    });
+    exec_assert(&d.s, q, Some(&v), &expected).await;
 
-    match User::find_by_id(&u2.id).count(db).await? {
+    match User::find_by_id(&d.id2).count(&d.tmp.db).await? {
         count => assert!(
             count == 0,
             "it should delete permanently in db, found count={}",
@@ -216,5 +317,5 @@ async fn default() -> Result<(), Box<dyn Error + Send + Sync>> {
         ),
     }
 
-    Ok(())
+    d.tmp.drop().await
 }
