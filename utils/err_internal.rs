@@ -11,11 +11,6 @@ pub enum MyErr {
     #[error("internal server error")]
     #[client]
     InternalServer,
-    /// Generic code for all schema invalid client requests
-    /// to generalize error extensions for all cases.
-    #[error("schema invalid client request")]
-    #[client]
-    SchemaInvalid,
 
     #[error("not found in database")]
     #[client]

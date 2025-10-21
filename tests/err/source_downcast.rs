@@ -32,13 +32,15 @@ async fn should_be_my_err() {
     let e = &r.errors[0];
     assert!(e.message == "test", "error message should be `test`");
 
-    let box_dyn = e
+    let code = e
         .source
         .as_deref()
-        .and_then(|e| e.downcast_ref::<GrandLineErr>());
-    assert!(box_dyn.is_some(), "downcast to GrandLineErr should be some");
-    assert!(
-        box_dyn.unwrap().0.code() == "Test",
-        "error code should be `Test`"
-    );
+        .and_then(|e| e.downcast_ref::<GrandLineErr>())
+        .unwrap_or_else(|| {
+            let err = "downcast to GrandLineErr should be some";
+            bug!(err)
+        })
+        .0
+        .code();
+    assert!(code == "Test", "error code should be `Test`");
 }

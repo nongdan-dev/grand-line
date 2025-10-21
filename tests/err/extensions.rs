@@ -24,7 +24,7 @@ impl Query {
         Ok(0)
     }
     async fn std(&self) -> Result<i64, Box<dyn Error + Send + Sync>> {
-        Err("any other error such as std should not be exposed to the client too")?;
+        Err("any other error such as std should not be exposed to the client")?;
         Ok(0)
     }
 }

@@ -51,7 +51,6 @@ impl Extension for GrandLineExtensionImpl {
         };
         for e in &mut r.errors {
             if e.source.is_none() {
-                e.extensions = Some(MyErr::SchemaInvalid.extensions());
                 continue;
             }
             let gl = e
