@@ -1,9 +1,10 @@
 use crate::prelude::*;
 
 /// Helper trait to abstract extra methods into sea_orm entity.
-pub trait EntityX: EntityTrait<Model = Self::M> {
+pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = Self::C> {
     type M: ModelX<Self>;
     type A: ActiveModelX<Self>;
+    type C: ColumnX<Self>;
     type F: Filter<Self>;
     type O: OrderBy<Self>;
     type G: GqlModel<Self>;
@@ -18,7 +19,7 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
 
     /// Get sql columns map with rust snake field name.
     /// Should be generated in the model macro.
-    fn _sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>>;
+    fn _sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::C>>;
 
     /// Get sql exprs map with rust snake field name.
     /// Should be generated in the model macro.
@@ -27,18 +28,10 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
     /// Get rust snake field sql columns and exprs, from gql camel field.
     /// To look ahead and select only requested fields in the gql context.
     /// Should be generated in the model macro.
-    fn _gql_select() -> &'static LazyLock<HashMap<&'static str, Vec<&'static str>>>;
+    fn _gql_select() -> &'static LazyLock<HashMap<&'static str, HashSet<&'static str>>>;
 
     /// Look ahead for sql columns and exprs, from requested fields in the gql context.
-    fn gql_look_ahead(
-        ctx: &Context<'_>,
-    ) -> Res<
-        Vec<(
-            &'static str,
-            Option<Self::Column>,
-            Option<sea_query::SimpleExpr>,
-        )>,
-    > {
+    fn gql_look_ahead(ctx: &Context<'_>) -> Res<Vec<LookaheadX<Self>>> {
         let f = ctx.look_ahead().selection_fields();
         if f.len() != 1 {
             err!(LookAhead)?;
@@ -58,7 +51,11 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
                 let (col, expr) = (sql_cols.get(c), sql_exprs.get(c));
                 match (col, expr) {
                     (None, None) => None,
-                    _ => Some((*c, col.copied(), expr.cloned())),
+                    _ => Some(LookaheadX {
+                        c: *c,
+                        col: col.copied(),
+                        expr: expr.cloned(),
+                    }),
                 }
             })
             .collect::<Vec<_>>();
@@ -67,7 +64,7 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
     }
 
     /// Get primary id column.
-    fn _col_id() -> Res<Self::Column> {
+    fn _col_id() -> Res<Self::C> {
         let col = Self::_sql_cols()
             .get("id")
             .cloned()
@@ -82,11 +79,11 @@ pub trait EntityX: EntityTrait<Model = Self::M> {
     }
 
     /// Get deleted at column.
-    fn _col_deleted_at_opt() -> Option<Self::Column> {
+    fn _col_deleted_at_opt() -> Option<Self::C> {
         Self::_sql_cols().get("deleted_at").cloned()
     }
     /// Get deleted at column.
-    fn _col_deleted_at() -> Res<Self::Column> {
+    fn _col_deleted_at() -> Res<Self::C> {
         let col = Self::_col_deleted_at_opt().ok_or_else(|| MyErr::DbCfgField404 {
             model: Self::_model_name(),
             field: "deleted_at",

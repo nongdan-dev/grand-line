@@ -27,6 +27,7 @@ impl Extension for GrandLineExtensionImpl {
         let gl = GrandLineContext {
             db: db.clone(),
             tx: Mutex::new(None),
+            loaders: Mutex::new(HashMap::new()),
         };
         next.run(ctx, request.data(Arc::new(gl))).await
     }

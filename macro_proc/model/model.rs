@@ -195,12 +195,14 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // ------------------------------------------------------------------------
     // gql
-    let (mut gql_struk, mut gql_resolver, gql_into, sql_cols) = gql_fields(&gfields);
-    let mut gql_select = gql_virtuals(&vgens);
-    let (gql_struk2, gql_resolver2, gql_select2, sql_exprs) = gql_exprs(&exprs);
+    let (mut gql_struk, mut gql_resolver, gql_into, sql_cols, mut gql_select, get_cols) =
+        gql_fields(&gfields);
+    let gql_select2 = gql_virtuals(&vgens);
+    gql_select.extend(gql_select2);
+    let (gql_struk2, gql_resolver2, gql_select3, sql_exprs) = gql_exprs(&exprs);
     gql_struk.extend(gql_struk2);
     gql_resolver.extend(gql_resolver2);
-    gql_select.extend(gql_select2);
+    gql_select.extend(gql_select3);
     for f in vgens {
         gql_resolver.push(f.resolver_fn());
     }
@@ -218,6 +220,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             )]
             #[sea_orm(table_name=#sql_alias)]
             #item
+
 
             #[derive(
                 Debug,
@@ -252,7 +255,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #(#sql_exprs)*
                 m
             });
-            static GQL_SELECT: LazyLock<HashMap<&'static str, Vec<&'static str>>> = LazyLock::new(|| {
+            static GQL_SELECT: LazyLock<HashMap<&'static str, HashSet<&'static str>>> = LazyLock::new(|| {
                 let mut m = HashMap::new();
                 #(#gql_select)*
                 m
@@ -261,6 +264,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             impl EntityX for Entity {
                 type M = Model;
                 type A = ActiveModel;
+                type C = Column;
                 type F = #filter;
                 type O = #order_by;
                 type G = #gql;
@@ -270,13 +274,13 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn _limit_config() -> LimitConfig {
                     #limit_config
                 }
-                fn _sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::Column>> {
+                fn _sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::C>> {
                     &SQL_COLS
                 }
                 fn _sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> {
                     &SQL_EXPRS
                 }
-                fn _gql_select() -> &'static LazyLock<HashMap<&'static str, Vec<&'static str>>> {
+                fn _gql_select() -> &'static LazyLock<HashMap<&'static str, HashSet<&'static str>>> {
                     &GQL_SELECT
                 }
             }
@@ -325,10 +329,18 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
 
+            impl ColumnX<Entity> for Column {}
+
             impl GqlModel<Entity> for #gql {
                 fn _set_id(mut self, v: &str) -> Self {
                     self.id = Some(v.to_string());
                     self
+                }
+                fn _get_col(&self, col: Column) -> Option<String> {
+                    match col {
+                        #(#get_cols)*
+                        _ => None
+                    }
                 }
             }
 

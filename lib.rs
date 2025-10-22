@@ -37,9 +37,11 @@ mod re_exports {
     pub use thiserror::Error as ThisErr;
     pub use tokio::sync::Mutex;
     // common std
+    pub use std::any::{Any, TypeId};
     pub use std::collections::{HashMap, HashSet};
     pub use std::error::Error;
     pub use std::fmt::Display;
+    pub use std::hash::{Hash, Hasher};
     pub use std::sync::{Arc, LazyLock};
 }
 
@@ -57,5 +59,6 @@ pub(crate) mod prelude {
 
     // alias and explicit use to avoid ambiguous
     pub use async_graphql::Error as GraphQLErr;
+    pub use std::any::Any;
     pub use std::error::Error;
 }

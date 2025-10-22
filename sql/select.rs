@@ -14,6 +14,12 @@ where
         C: ChainSelect<E>;
 
     /// Select only columns from requested fields in the graphql context.
+    fn _gql_select(
+        self,
+        look_ahead: &Vec<LookaheadX<E>>,
+        col: E::C,
+    ) -> Res<Selector<SelectModel<E::G>>>;
+    /// Select only columns from requested fields in the graphql context.
     fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<E::G>>>;
 
     /// Select only id for the graphql delete response.
@@ -39,24 +45,34 @@ where
         c.chain_select(self)
     }
 
-    fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<E::G>>> {
+    fn _gql_select(
+        self,
+        look_ahead: &Vec<LookaheadX<E>>,
+        col: E::C,
+    ) -> Res<Selector<SelectModel<E::G>>> {
         let mut q = self;
-        let cols = E::gql_look_ahead(ctx)?;
-        if !cols.is_empty() {
-            q = q.select_only();
-            for (c, col, expr) in cols {
-                match col {
-                    Some(col) => q = q.select_column(col),
-                    None => {}
+        q = q.select_only();
+        q = q.select_column(col);
+        for l in look_ahead {
+            match l.col {
+                Some(c) => {
+                    if c.as_str() != col.as_str() {
+                        q = q.select_column(c)
+                    }
                 }
-                match expr {
-                    Some(expr) => q = q.column_as(expr, c),
-                    None => {}
-                }
+                None => {}
+            }
+            match l.expr.clone() {
+                Some(expr) => q = q.column_as(expr, l.c),
+                None => {}
             }
         }
         let r = q.into_model::<E::G>();
         Ok(r)
+    }
+    fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<E::G>>> {
+        let look_ahead = E::gql_look_ahead(ctx)?;
+        self._gql_select(&look_ahead, E::_col_id()?)
     }
 
     fn gql_select_id(self) -> Res<Selector<SelectModel<E::G>>> {

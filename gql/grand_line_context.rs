@@ -6,6 +6,7 @@ use crate::prelude::*;
 pub struct GrandLineContext {
     pub(crate) db: Arc<DatabaseConnection>,
     pub(crate) tx: Mutex<Option<Arc<DatabaseTransaction>>>,
+    pub(crate) loaders: Mutex<HashMap<String, Arc<dyn Any + Send + Sync>>>,
 }
 
 impl GrandLineContext {
@@ -22,6 +23,7 @@ impl GrandLineContext {
     }
 
     pub(crate) async fn cleanup(&self, error: bool) -> Res<()> {
+        self.loaders.lock().await.clear();
         if error {
             self.rollback().await
         } else {

@@ -9,7 +9,7 @@ where
 {
     // Convert sql model to gql model, with checking virtual fields from context.
     async fn to_gql(self, ctx: &Context<'_>) -> Res<E::G> {
-        let r = if E::gql_look_ahead(ctx)?.iter().any(|(_, _, e)| e.is_some()) {
+        let r = if E::gql_look_ahead(ctx)?.iter().any(|l| l.expr.is_some()) {
             let _tx = ctx.tx().await?;
             let tx = _tx.as_ref();
             let id = self._get_id();

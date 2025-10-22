@@ -44,6 +44,11 @@ pub enum MyErr {
         field: &'static str,
     },
 
+    #[error("failed to downcast data loader from arc dyn any")]
+    LoaderDowncast,
+    #[error("failed to get value from column in gql model for data loader")]
+    LoaderColumnValue,
+
     #[error("json error: {inner}")]
     Json {
         #[from]

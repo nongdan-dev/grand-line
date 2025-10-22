@@ -1,6 +1,7 @@
 mod active_model;
 mod active_model_async;
 mod chain_select;
+mod column;
 mod entity;
 mod entity_async;
 mod filter;
@@ -17,6 +18,7 @@ mod select_async;
 pub use active_model::*;
 pub use active_model_async::*;
 pub use chain_select::*;
+pub use column::*;
 pub use entity::*;
 pub use entity_async::*;
 pub use filter::*;
