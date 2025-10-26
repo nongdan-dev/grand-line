@@ -3,18 +3,18 @@ mod test_utils;
 use test_utils::*;
 
 #[tokio::test]
-async fn default() -> Res<()> {
+async fn t() -> Res<()> {
     mod test {
         use super::*;
 
         #[model]
         pub struct User {
             #[has_many]
-            pub emails: Email,
+            pub aliases: Alias,
         }
         #[model]
-        pub struct Email {
-            pub address: String,
+        pub struct Alias {
+            pub name: String,
             pub user_id: String,
         }
 
@@ -23,22 +23,23 @@ async fn default() -> Res<()> {
     }
     use test::*;
 
-    let tmp = tmp_db_2(User, Email).await?;
+    let tmp = tmp_db!(User, Alias);
     let s = schema_q::<UserDetailQuery>(&tmp.db);
 
-    let u = am_create!(User).insert(&tmp.db).await?;
-    let _ = am_create!(Email {
-        address: "email@example.com",
-        user_id: u.id.clone(),
-    })
-    .insert(&tmp.db)
-    .await?;
+    let u = db_create!(&tmp.db, User);
+    let _ = db_create!(
+        &tmp.db,
+        Alias {
+            name: "Liv",
+            user_id: u.id.clone(),
+        },
+    );
 
     let q = r#"
     query test($id: ID!) {
         userDetail(id: $id) {
-            emails {
-                address
+            aliases {
+                name
             }
         }
     }
@@ -48,8 +49,8 @@ async fn default() -> Res<()> {
     });
     let expected = value!({
         "userDetail": {
-            "emails": [{
-                "address": "email@example.com",
+            "aliases": [{
+                "name": "Liv",
             }],
         },
     });

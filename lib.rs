@@ -28,7 +28,7 @@ mod re_exports {
     pub use {tracing, tracing_subscriber};
 
     // utils
-    pub use macro_proc_proc::{PartialEqString, field_names};
+    pub use macro_utils_proc::{PartialEqString, field_names};
     // common
     pub use async_graphql::MaybeUndefined as Undefined;
     pub use async_trait::async_trait;
@@ -36,20 +36,15 @@ mod re_exports {
     pub use serde_json::Error as JsonErr;
     pub use thiserror::Error as ThisErr;
     pub use tokio::sync::Mutex;
-    // common std
-    pub use std::any::{Any, TypeId};
-    pub use std::collections::{HashMap, HashSet};
-    pub use std::error::Error;
-    pub use std::fmt::Display;
-    pub use std::hash::{Hash, Hasher};
-    pub use std::sync::{Arc, LazyLock};
+
+    macro_utils::use_common_std!();
 }
 
 #[cfg(not(feature = "no_re_exports"))]
 pub use re_exports::*;
 
-#[allow(unused_imports)]
-pub(crate) mod prelude {
+#[allow(unused_imports, ambiguous_glob_reexports)]
+pub mod prelude {
     pub use crate::*;
     pub use async_graphql::{extensions::*, *};
     pub use sea_orm::{entity::prelude::*, prelude::*, *};
@@ -58,7 +53,8 @@ pub(crate) mod prelude {
     pub use re_exports::*;
 
     // alias and explicit use to avoid ambiguous
-    pub use async_graphql::Error as GraphQLErr;
+    pub use async_graphql::{Error as GraphQLErr, Schema, Value};
+    pub use sea_orm::Schema as DbSchema;
     pub use std::any::Any;
     pub use std::error::Error;
 }

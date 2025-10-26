@@ -7,8 +7,8 @@ where
     E: EntityX<A = Self>,
     Self: ActiveModelX<E>,
 {
-    /// Set delete at and update db.
-    /// It also checks if the model has configured with deleted at column or not.
+    /// Set deleted_at and update db.
+    /// It also checks if the model has configured with deleted_at column or not.
     async fn soft_delete<D>(self, db: &D) -> Res<E::M>
     where
         D: ConnectionTrait,

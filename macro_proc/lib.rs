@@ -9,19 +9,13 @@ mod prelude {
     pub use crate::model::*;
     pub use crate::resolver_ty::*;
     pub use crate::utils::*;
-    pub use heck::*;
-    pub use macro_proc_proc::*;
-    pub use macro_utils::*;
-    pub use maplit::*;
-    pub use proc_macro::TokenStream;
-    pub use proc_macro2::TokenStream as Ts2;
-    pub use quote::*;
 
-    // common std
-    pub use std::collections::{HashMap, HashSet};
-    pub use std::error::Error;
-    pub use std::fmt::Display;
-    pub use std::sync::{Arc, LazyLock};
+    pub use macro_utils::*;
+    pub use macro_utils_proc::*;
+    pub use proc_macro::TokenStream;
+
+    use_common_macro_utils!();
+    use_common_std!();
 }
 
 use crate::prelude::*;
@@ -149,8 +143,41 @@ pub fn am_update(item: TokenStream) -> TokenStream {
 /// It will also wrap the active model with ActiveModelX::_delete
 /// to get default values on this operation.
 #[proc_macro]
-pub fn am_delete(item: TokenStream) -> TokenStream {
+pub fn am_soft_delete(item: TokenStream) -> TokenStream {
     expr_struct(item, "ActiveModel", "Set", "_delete")
+}
+
+/// Helper to quickly create an active model using am_create
+/// then call insert with db and await.
+#[proc_macro]
+pub fn db_create(item: TokenStream) -> TokenStream {
+    gen_db_action("create", "insert", item)
+}
+
+/// Helper to quickly create an active model using am_update
+/// then call update with db and await.
+#[proc_macro]
+pub fn db_update(item: TokenStream) -> TokenStream {
+    gen_db_action("update", "update", item)
+}
+
+/// Helper to quickly create an active model using am_soft_delete
+/// then call soft_delete with db and await.
+#[proc_macro]
+pub fn db_soft_delete(item: TokenStream) -> TokenStream {
+    gen_db_action("soft_delete", "soft_delete", item)
+}
+
+/// Helper to quickly call soft_delete_by_id with db and await.
+#[proc_macro]
+pub fn db_soft_delete_by_id(item: TokenStream) -> TokenStream {
+    gen_db_soft_delete_by_id(item)
+}
+
+/// Helper to quickly call soft_delete_many with db and await.
+#[proc_macro]
+pub fn db_soft_delete_many(item: TokenStream) -> TokenStream {
+    gen_db_soft_delete_many(item)
 }
 
 /// Automatically derive ThisErr, GrandLineErrDerive, Debug.

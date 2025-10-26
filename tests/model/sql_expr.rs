@@ -3,7 +3,7 @@ mod test_utils;
 use test_utils::*;
 
 #[tokio::test]
-async fn default() -> Res<()> {
+async fn t() -> Res<()> {
     mod test {
         use super::*;
 
@@ -19,10 +19,10 @@ async fn default() -> Res<()> {
     }
     use test::*;
 
-    let tmp = tmp_db_1(User).await?;
+    let tmp = tmp_db!(User);
     let s = schema_q::<UserDetailQuery>(&tmp.db);
 
-    let u = am_create!(User { a: 1 }).insert(&tmp.db).await?;
+    let u = db_create!(&tmp.db, User { a: 1 });
 
     let q = r#"
     query test($id: ID!) {

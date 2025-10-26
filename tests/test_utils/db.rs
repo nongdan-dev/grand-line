@@ -1,40 +1,7 @@
 #![allow(dead_code)]
 
 use super::*;
-use std::{ops::Deref, time::Duration};
-
-pub async fn tmp_db_1<E1>(e1: E1) -> Res<TmpDb>
-where
-    E1: EntityX,
-{
-    let tmp = tmp_db().await?;
-    create_table(&tmp.db, e1).await?;
-    Ok(tmp)
-}
-
-pub async fn tmp_db_2<E1, E2>(e1: E1, e2: E2) -> Res<TmpDb>
-where
-    E1: EntityX,
-    E2: EntityX,
-{
-    let tmp = tmp_db().await?;
-    create_table(&tmp.db, e1).await?;
-    create_table(&tmp.db, e2).await?;
-    Ok(tmp)
-}
-
-pub async fn tmp_db_3<E1, E2, E3>(e1: E1, e2: E2, e3: E3) -> Res<TmpDb>
-where
-    E1: EntityX,
-    E2: EntityX,
-    E3: EntityX,
-{
-    let tmp = tmp_db().await?;
-    create_table(&tmp.db, e1).await?;
-    create_table(&tmp.db, e2).await?;
-    create_table(&tmp.db, e3).await?;
-    Ok(tmp)
-}
+use std::time::Duration;
 
 pub async fn tmp_db() -> Res<TmpDb> {
     #[cfg(feature = "postgres")]
@@ -201,7 +168,7 @@ async fn exec(db: &DatabaseConnection, be: DbBackend, stmt: &str) -> Res<()> {
     Ok(())
 }
 
-async fn create_table<E>(db: &DatabaseConnection, e: E) -> Res<()>
+pub async fn create_table<E>(db: &DatabaseConnection, e: E) -> Res<()>
 where
     E: EntityX,
 {

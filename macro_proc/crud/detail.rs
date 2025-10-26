@@ -12,9 +12,7 @@ pub fn gen_detail(attr: TokenStream, item: TokenStream) -> TokenStream {
         r.inputs = quote! {
             id: String,
         };
-        if !a.ra.no_include_deleted {
-            r.inputs = push_include_deleted(&r.inputs);
-        }
+        r.inputs = push_include_deleted(r.inputs, !a.ra.no_include_deleted);
     }
 
     if !a.resolver_output {

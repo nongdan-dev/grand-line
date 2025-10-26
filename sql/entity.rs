@@ -78,11 +78,11 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
         Self::_col_id().map(|c| Condition::all().add(c.eq(id)))
     }
 
-    /// Get deleted at column.
+    /// Get deleted_at column.
     fn _col_deleted_at_opt() -> Option<Self::C> {
         Self::_sql_cols().get("deleted_at").cloned()
     }
-    /// Get deleted at column.
+    /// Get deleted_at column.
     fn _col_deleted_at() -> Res<Self::C> {
         let col = Self::_col_deleted_at_opt().ok_or_else(|| MyErr::DbCfgField404 {
             model: Self::_model_name(),
@@ -101,14 +101,14 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
         }
     }
 
-    /// Set delete at with filter by id.
-    /// It also checks if the model has configured with deleted at column or not.
+    /// Set deleted_at with filter by id.
+    /// It also checks if the model has configured with deleted_at column or not.
     fn soft_delete_by_id(id: &str) -> Res<UpdateMany<Self>> {
         Self::soft_delete_many()?.by_id(id)
     }
 
-    /// Set delete at without any filter.
-    /// It also checks if the model has configured with deleted at column or not.
+    /// Set deleted_at without any filter.
+    /// It also checks if the model has configured with deleted_at column or not.
     fn soft_delete_many() -> Res<UpdateMany<Self>> {
         Self::_col_deleted_at()?;
         let am = <Self::A as Default>::default()._delete();

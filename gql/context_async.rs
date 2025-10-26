@@ -11,19 +11,30 @@ where
         self.grand_line_context()?.tx().await
     }
 
-    async fn load_data<E>(&self, col: E::C, id: String) -> Res<Option<E::G>>
+    async fn load_data<E>(
+        &self,
+        col: E::C,
+        id: String,
+        include_deleted: Option<bool>,
+    ) -> Res<Option<E::G>>
     where
         E: EntityX;
 }
 
 #[async_trait]
 impl ContextXAsync for Context<'_> {
-    async fn load_data<E>(&self, col: E::C, id: String) -> Res<Option<E::G>>
+    async fn load_data<E>(
+        &self,
+        col: E::C,
+        id: String,
+        include_deleted: Option<bool>,
+    ) -> Res<Option<E::G>>
     where
         E: EntityX,
     {
         let look_ahead = E::gql_look_ahead(self)?;
-        let key = col.to_loader_key(&look_ahead);
+        let include_deleted = E::_cond_deleted_at(include_deleted);
+        let key = col.to_loader_key(&look_ahead, include_deleted.is_some());
         let gl = self.grand_line_context()?;
         let mut guard = gl.loaders.lock().await;
         let a = if let Some(a) = guard.get(&key) {
@@ -36,6 +47,7 @@ impl ContextXAsync for Context<'_> {
                     tx: gl.tx().await?,
                     col,
                     look_ahead,
+                    include_deleted,
                 },
                 tokio::spawn,
             ));

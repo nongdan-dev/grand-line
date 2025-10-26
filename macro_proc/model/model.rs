@@ -238,7 +238,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             impl ActiveModelBehavior for ActiveModel {
                 // no support for ActiveModelBehavior
-                // instead use the following macros: default, am_create, am_update, am_delete
+                // instead use the following macros: default, am_create, am_update, am_soft_delete
             }
             #[derive(Debug, EnumIter, DeriveRelation)]
             pub enum Relation {

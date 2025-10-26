@@ -16,9 +16,7 @@ impl GenRelation {
     }
     fn input_one(&self) -> Ts2 {
         let mut inputs = ts2!();
-        if !self.ra.no_include_deleted {
-            inputs = push_include_deleted(&inputs);
-        }
+        inputs = push_include_deleted(inputs, !self.ra.no_include_deleted);
         inputs
     }
     fn input_many(&self) -> Ts2 {
@@ -30,9 +28,7 @@ impl GenRelation {
             order_by: Option<Vec<#order_by>>,
             page: Option<Pagination>,
         };
-        if !self.ra.no_include_deleted {
-            inputs = push_include_deleted(&inputs);
-        }
+        inputs = push_include_deleted(inputs, !self.ra.no_include_deleted);
         inputs
     }
 
@@ -71,64 +67,50 @@ impl GenRelation {
         }
     }
 
-    fn body_belongs_to(&self) -> Ts2 {
+    fn body_one(&self) -> Ts2 {
         let model = self.ra.to();
         let column = self.column();
         let col = self.col();
+        let include_deleted = get_include_deleted(!self.ra.no_include_deleted);
         let r = quote! {
-            ctx.load_data::<#model>(#column::#col, id).await?
+            ctx.load_data::<#model>(#column::#col, id, #include_deleted).await?
         };
         self.body_utils(r, false)
     }
-    fn body_has_one(&self) -> Ts2 {
+    fn body_many(&self, extra_cond: Ts2) -> Ts2 {
         let model = self.ra.to();
-        let column = self.column();
-        let col = self.col();
+        let include_deleted = get_include_deleted(!self.ra.no_include_deleted);
         let r = quote! {
-            ctx.load_data::<#model>(#column::#col, id).await?
-        };
-        self.body_utils(r, false)
-    }
-    fn body_has_many(&self) -> Ts2 {
-        let include_deleted = if !self.ra.no_include_deleted {
-            quote!(include_deleted)
-        } else {
-            quote!(None)
-        };
-
-        let model = self.ra.to();
-        let column = self.column();
-        let col = self.col();
-        let r = quote! {
-            let c = Condition::all().add(#column::#col.eq(id));
-            #model::gql_search(ctx, tx, Some(c), filter, None, order_by, None, page, #include_deleted).await?
+            #extra_cond
+            #model::gql_search(ctx, tx, Some(extra_cond), filter, None, order_by, None, page, #include_deleted).await?
         };
         self.body_utils(r, true)
     }
-    fn body_many_to_many(&self) -> Ts2 {
-        let include_deleted = if !self.ra.no_include_deleted {
-            quote!(include_deleted)
-        } else {
-            quote!(None)
-        };
 
-        let model = self.ra.to();
+    fn body_has_many(&self) -> Ts2 {
+        let column = self.column();
+        let col = self.col();
+        let extra_cond = quote! {
+            let extra_cond = Condition::all().add(#column::#col.eq(id));
+        };
+        self.body_many(extra_cond)
+    }
+    fn body_many_to_many(&self) -> Ts2 {
         let column = self.column();
         let col = self.col();
         let through = self.ra.through();
         let through_column = ty_column(&through);
         let through_key_col = pascal!(self.ra.key_str());
         let through_other_key_col = pascal!(self.ra.other_key());
-        let r = quote! {
+        let extra_cond = quote! {
             let sub = #through::find()
                 .select_only()
                 .column(#through_column::#through_other_key_col)
                 .filter(#through_column::#through_key_col.eq(id))
                 .into_query();
-            let c = Condition::all().add(#column::#col.in_subquery(sub));
-            #model::gql_search(ctx, tx, Some(c), filter, None, order_by, None, page, #include_deleted).await?
+            let extra_cond = Condition::all().add(#column::#col.in_subquery(sub));
         };
-        self.body_utils(r, true)
+        self.body_many(extra_cond)
     }
 }
 
@@ -168,8 +150,8 @@ impl ResolverFn for GenRelation {
     }
     fn body(&self) -> Ts2 {
         match self.ty {
-            RelationTy::BelongsTo => self.body_belongs_to(),
-            RelationTy::HasOne => self.body_has_one(),
+            RelationTy::BelongsTo => self.body_one(),
+            RelationTy::HasOne => self.body_one(),
             RelationTy::HasMany => self.body_has_many(),
             RelationTy::ManyToMany => self.body_many_to_many(),
         }

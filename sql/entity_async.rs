@@ -10,7 +10,7 @@ where
     async fn gql_search<D>(
         ctx: &Context<'_>,
         db: &D,
-        condition: Option<Condition>,
+        extra_cond: Option<Condition>,
         filter: Option<Self::F>,
         filter_extra: Option<Self::F>,
         order_by: Option<Vec<Self::O>>,
@@ -24,7 +24,7 @@ where
         let f = filter.combine(filter_extra);
         let r = Self::find()
             .include_deleted(include_deleted.or_else(|| Some(f.has_deleted_at())))
-            .filter_opt(condition)
+            .filter_opt(extra_cond)
             .chain(f)
             .chain(order_by.combine(order_by_default))
             .chain(page.inner(Self::_limit_config()))

@@ -3,19 +3,12 @@ mod mods;
 #[allow(unused_imports)]
 mod prelude {
     pub use crate::mods::*;
+
     pub use macro_utils::*;
-
-    pub use heck::*;
-    pub use maplit::*;
     pub use proc_macro::TokenStream;
-    pub use proc_macro2::TokenStream as Ts2;
-    pub use quote::*;
 
-    // common std
-    pub use std::collections::{HashMap, HashSet};
-    pub use std::error::Error;
-    pub use std::fmt::Display;
-    pub use std::sync::{Arc, LazyLock};
+    use_common_macro_utils!();
+    use_common_std!();
 }
 
 use crate::prelude::*;

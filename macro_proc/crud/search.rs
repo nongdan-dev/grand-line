@@ -17,9 +17,7 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
             order_by: Option<Vec<#order_by>>,
             page: Option<Pagination>,
         };
-        if !a.ra.no_include_deleted {
-            r.inputs = push_include_deleted(&r.inputs);
-        }
+        r.inputs = push_include_deleted(r.inputs, !a.ra.no_include_deleted);
     }
 
     if !a.resolver_output {

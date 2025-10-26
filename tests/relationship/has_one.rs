@@ -3,17 +3,17 @@ mod test_utils;
 use test_utils::*;
 
 #[tokio::test]
-async fn default() -> Res<()> {
+async fn t() -> Res<()> {
     mod test {
         use super::*;
 
         #[model]
         pub struct User {
             #[has_one]
-            pub profile: Profile,
+            pub person: Person,
         }
         #[model]
-        pub struct Profile {
+        pub struct Person {
             pub gender: String,
             pub user_id: String,
         }
@@ -23,21 +23,22 @@ async fn default() -> Res<()> {
     }
     use test::*;
 
-    let tmp = tmp_db_2(User, Profile).await?;
+    let tmp = tmp_db!(User, Person);
     let s = schema_q::<UserDetailQuery>(&tmp.db);
 
-    let u = am_create!(User).insert(&tmp.db).await?;
-    let _ = am_create!(Profile {
-        gender: "Binary",
-        user_id: u.id.clone(),
-    })
-    .insert(&tmp.db)
-    .await?;
+    let u = db_create!(&tmp.db, User);
+    let _ = db_create!(
+        &tmp.db,
+        Person {
+            gender: "Unknown",
+            user_id: u.id.clone(),
+        },
+    );
 
     let q = r#"
     query test($id: ID!) {
         userDetail(id: $id) {
-            profile {
+            person {
                 gender
             }
         }
@@ -48,8 +49,8 @@ async fn default() -> Res<()> {
     });
     let expected = value!({
         "userDetail": {
-            "profile": {
-                "gender": "Binary",
+            "person": {
+                "gender": "Unknown",
             },
         },
     });

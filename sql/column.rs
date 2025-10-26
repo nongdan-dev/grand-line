@@ -6,12 +6,17 @@ where
     E: EntityX,
     Self: ColumnTrait,
 {
-    fn to_string_with_model_name(&self) -> String {
-        format!("{}.{}", E::_model_name(), self.as_str())
-    }
-    fn to_loader_key(&self, look_ahead: &Vec<LookaheadX<E>>) -> String {
-        self.to_string_with_model_name()
+    fn to_loader_key(&self, look_ahead: &Vec<LookaheadX<E>>, include_deleted: bool) -> String {
+        let include_deleted = if include_deleted {
+            "include_deleted-"
+        } else {
+            ""
+        };
+        E::_model_name().to_owned()
+            + "."
+            + self.as_str()
             + "-"
+            + include_deleted
             + &look_ahead
                 .iter()
                 .map(|l| l.c.to_owned())

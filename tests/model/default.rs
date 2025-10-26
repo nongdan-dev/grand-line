@@ -22,10 +22,10 @@ async fn insert_defaults() -> Res<()> {
     }
     use test::*;
 
-    let tmp = tmp_db_1(User).await?;
+    let tmp = tmp_db!(User);
     let s = schema_q::<UserDetailQuery>(&tmp.db);
 
-    let u = am_create!(User { c: 9 }).insert(&tmp.db).await?;
+    let u = db_create!(&tmp.db, User { c: 9 });
 
     pretty_eq!(u.a, "I love you");
     pretty_eq!(u.b, 3000);

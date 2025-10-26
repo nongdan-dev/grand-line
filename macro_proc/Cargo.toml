@@ -34,8 +34,8 @@ limit_x10 = []
 [dependencies]
 colored = { version = "3.0.0", optional = true }
 heck = "0.5.0"
-macro_proc_proc = { path = "../macro_proc_proc" }
 macro_utils = { path = "../macro_utils" }
+macro_utils_proc = { path = "../macro_utils_proc" }
 maplit = "1.0.2"
 prettyplease = { version = "0.2.37", optional = true }
 proc-macro2 = "1.0.101"

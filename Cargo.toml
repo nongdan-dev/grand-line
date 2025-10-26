@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "macro_proc", "macro_proc_proc", "macro_utils"]
+members = [".", "macro_proc", "macro_utils", "macro_utils_proc"]
 resolver = "2"
 
 [package]
@@ -46,8 +46,8 @@ async-trait = { version = "0.1.89", default-features = false }
 axum = { version = "0.8.6", default-features = false, features = ["default", "http2", "tokio", "multipart"] }
 chrono = { version = "0.4.42", default-features = false, features = ["now", "serde"] }
 macro_proc = { path = "./macro_proc", default-features = false }
-macro_proc_proc = { path = "./macro_proc_proc", default-features = false }
 macro_utils = { path = "./macro_utils", default-features = false }
+macro_utils_proc = { path = "./macro_utils_proc", default-features = false }
 sea-orm = { version = "1.1.16", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
 serde = { version = "1.0.228", default-features = false, features = ["derive", "std"] }
 serde_json = { version = "1.0.145", default-features = false }

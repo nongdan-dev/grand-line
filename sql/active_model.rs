@@ -49,7 +49,7 @@ where
 
     /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
     /// We need to have this method instead to get default values on delete.
-    /// This will be used together with the macro grand_line::am_delete.
+    /// This will be used together with the macro grand_line::am_soft_delete.
     fn _delete(mut self) -> Self {
         self = self._update();
         if let Set(Some(v)) = self._get_updated_at() {

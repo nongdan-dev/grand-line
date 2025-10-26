@@ -917,8 +917,8 @@ dependencies = [
  "axum",
  "chrono",
  "macro_proc",
- "macro_proc_proc",
  "macro_utils",
+ "macro_utils_proc",
  "pretty_assertions",
  "sea-orm",
  "serde",
@@ -1386,25 +1386,10 @@ version = "0.0.0"
 dependencies = [
  "colored",
  "heck 0.5.0",
- "macro_proc_proc",
  "macro_utils",
+ "macro_utils_proc",
  "maplit",
  "prettyplease",
- "proc-macro2",
- "quote",
- "serde",
- "strum 0.27.2",
- "strum_macros 0.27.2",
- "syn 2.0.106",
-]
-
-[[package]]
-name = "macro_proc_proc"
-version = "0.0.0"
-dependencies = [
- "heck 0.5.0",
- "macro_utils",
- "maplit",
  "proc-macro2",
  "quote",
  "serde",
@@ -1418,6 +1403,21 @@ name = "macro_utils"
 version = "0.0.0"
 dependencies = [
  "heck 0.5.0",
+ "maplit",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "strum 0.27.2",
+ "strum_macros 0.27.2",
+ "syn 2.0.106",
+]
+
+[[package]]
+name = "macro_utils_proc"
+version = "0.0.0"
+dependencies = [
+ "heck 0.5.0",
+ "macro_utils",
  "maplit",
  "proc-macro2",
  "quote",

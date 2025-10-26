@@ -8,9 +8,20 @@ pub static TY_INCLUDE_DELETED: LazyLock<HashSet<String>> = LazyLock::new(|| {
     set
 });
 
-pub fn push_include_deleted(inputs: &Ts2) -> Ts2 {
-    quote! {
-        #inputs
-        include_deleted: Option<bool>,
+pub fn push_include_deleted(inputs: Ts2, include_deleted: bool) -> Ts2 {
+    if include_deleted {
+        quote! {
+            #inputs
+            include_deleted: Option<bool>,
+        }
+    } else {
+        inputs
+    }
+}
+pub fn get_include_deleted(include_deleted: bool) -> Ts2 {
+    if include_deleted {
+        quote!(include_deleted)
+    } else {
+        quote!(None)
     }
 }
