@@ -73,7 +73,7 @@ impl GenRelation {
         let col = self.col();
         let include_deleted = get_include_deleted(!self.ra.no_include_deleted);
         let r = quote! {
-            ctx.load_data::<#model>(#column::#col, id, #include_deleted).await?
+            #model::gql_load(ctx, #column::#col, id, #include_deleted).await?
         };
         self.body_utils(r, false)
     }

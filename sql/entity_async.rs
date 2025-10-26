@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use async_graphql::dataloader::DataLoader;
 
 /// Abstract extra entity async methods implementation.
 #[async_trait]
@@ -85,6 +86,37 @@ where
         }
         let r = Self::G::default()._set_id(id);
         Ok(r)
+    }
+
+    async fn gql_load(
+        ctx: &Context<'_>,
+        col: Self::C,
+        id: String,
+        include_deleted: Option<bool>,
+    ) -> Res<Option<Self::G>> {
+        let look_ahead = Self::gql_look_ahead(ctx)?;
+        let include_deleted = Self::_cond_deleted_at(include_deleted);
+        let key = col.to_loader_key(&look_ahead, include_deleted.is_some());
+        let gl = ctx.grand_line_context()?;
+        let mut guard = gl.loaders.lock().await;
+        let a = if let Some(a) = guard.get(&key) {
+            a.clone()
+                .downcast::<DataLoader<LoaderX<Self>>>()
+                .map_err(|_| MyErr::LoaderDowncast)?
+        } else {
+            let a = Arc::new(DataLoader::new(
+                LoaderX {
+                    tx: gl.tx().await?,
+                    col,
+                    look_ahead,
+                    include_deleted,
+                },
+                tokio::spawn,
+            ));
+            guard.insert(key, a.clone());
+            a
+        };
+        a.as_ref().load_one(id).await
     }
 }
 
