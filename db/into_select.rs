@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::prelude::*;
 
 /// Helper trait to create sea_orm Select from types like Filter, OrderBy...
 pub trait IntoSelect<E: EntityX> {

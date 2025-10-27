@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::prelude::*;
 use sea_query::SimpleExpr;
 
 #[derive(Clone)]

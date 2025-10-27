@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::prelude::*;
 
 /// Abstract extra Select methods implementation.
 pub trait SelectX<E>

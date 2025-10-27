@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::prelude::*;
 
 /// Extension to insert GrandLineContext on each request, then cleanup at the end of each request.
 /// The extension also handle error automatically to only expose client errors to the client.

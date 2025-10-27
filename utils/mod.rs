@@ -7,6 +7,6 @@ mod ulid;
 pub use chrono::*;
 pub use err::*;
 pub use err_impl::*;
-pub use err_internal::*;
+pub use err_internal::GrandLineInternalCommonErr;
 pub use json::*;
 pub use ulid::*;

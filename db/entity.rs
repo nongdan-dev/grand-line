@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::prelude::*;
 
 /// Helper trait to abstract extra methods into sea_orm entity.
 pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = Self::C> {
@@ -32,16 +32,11 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
 
     /// Look ahead for sql columns and exprs, from requested fields in the gql context.
     fn gql_look_ahead(ctx: &Context<'_>) -> Res<Vec<LookaheadX<Self>>> {
-        let f = ctx.look_ahead().selection_fields();
-        if f.len() != 1 {
-            err!(LookAhead)?;
-        }
-
         let sql_cols = Self::_sql_cols();
         let sql_exprs = Self::_sql_exprs();
         let gql_select = Self::_gql_select();
 
-        let r = f[0]
+        let r = ctx.try_look_ahead()?[0]
             .selection_set()
             .filter_map(|f| gql_select.get(f.name().to_string().as_str()))
             .flat_map(|c| c.iter().copied())

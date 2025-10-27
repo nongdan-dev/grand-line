@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::prelude::*;
 
 /// Abstract gql model methods implementation.
 pub trait GqlModel<E>

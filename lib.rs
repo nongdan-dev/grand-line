@@ -1,8 +1,8 @@
-mod gql;
-mod sql;
+mod db;
+mod graphql;
 mod utils;
-pub use gql::*;
-pub use sql::*;
+pub use db::*;
+pub use graphql::*;
 pub use utils::*;
 
 pub use macro_proc::*;

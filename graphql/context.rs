@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::prelude::*;
 use axum::http::HeaderMap;
 use std::{net::IpAddr, str::FromStr};
 
@@ -6,12 +6,20 @@ pub trait ContextX
 where
     Self: GrandLineContextImpl,
 {
+    fn try_look_ahead(&self) -> Res<Vec<SelectionField<'_>>>;
     fn req_header(&self, k: &str) -> Res<String>;
     fn req_ip(&self) -> Res<String>;
     fn req_ua(&self) -> Res<String>;
 }
 
 impl ContextX for Context<'_> {
+    fn try_look_ahead(&self) -> Res<Vec<SelectionField<'_>>> {
+        let f = self.look_ahead().selection_fields();
+        if f.len() != 1 {
+            err!(LookAhead)?;
+        }
+        Ok(f)
+    }
     fn req_header(&self, k: &str) -> Res<String> {
         let req_headers = self
             .data::<HeaderMap>()

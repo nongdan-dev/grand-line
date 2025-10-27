@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::prelude::*;
 use async_graphql::dataloader::Loader;
 
 pub struct LoaderX<E>

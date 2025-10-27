@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::prelude::*;
 
 /// Abstract extra QueryFilter methods implementation.
 pub trait QueryFilterX<E>

@@ -93,7 +93,7 @@ fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
     } else if pg.contains_key(op_str) {
         quote! {
             if let Some(v) = this.#name {
-                use sea_orm::sea_query::extension::postgres::PgExpr;
+                use sea_query::extension::postgres::PgExpr;
                 c = c.add(Expr::col(Column::#col).#op(v));
             }
         }

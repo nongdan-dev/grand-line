@@ -13,7 +13,7 @@ where
             if self.client() {
                 self.code()
             } else {
-                MyErr::InternalServer.code()
+                GrandLineInternalGraphQLErr::InternalServer.code()
             },
         );
         m

@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::prelude::*;
 
 /// Abstract extra active model methods implementation.
 pub trait ActiveModelX<E>

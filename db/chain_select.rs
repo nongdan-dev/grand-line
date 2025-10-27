@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::prelude::*;
 
 /// Helper trait to chain sea_orm Select of different types like Filter, OrderBy...
 pub trait ChainSelect<E>

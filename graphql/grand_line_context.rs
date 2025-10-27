@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use super::prelude::*;
 
 /// GrandLineContext should be constructed on each request.
 /// We will get it in the resolvers to manage per-request db transaction, graphql loaders, cache...
