@@ -95,7 +95,7 @@ where
     ) -> Res<Option<Self::G>> {
         let look_ahead = Self::gql_look_ahead(ctx)?;
         let include_deleted = Self::_cond_deleted_at(include_deleted);
-        let key = col.to_loader_key(&look_ahead, include_deleted.is_some());
+        let key = col.build_loader_key(&look_ahead, include_deleted.is_some());
         ctx.data_loader(key, col, look_ahead, include_deleted)
             .await?
             .as_ref()

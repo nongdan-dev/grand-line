@@ -8,7 +8,7 @@ where
     Self: ModelX<E>,
 {
     // Convert sql model to gql model, with checking virtual fields from context.
-    async fn to_gql(self, ctx: &Context<'_>) -> Res<E::G> {
+    async fn into_gql(self, ctx: &Context<'_>) -> Res<E::G> {
         let r = if E::gql_look_ahead(ctx)?.iter().any(|l| l.expr.is_some()) {
             let _tx = ctx.tx().await?;
             let tx = _tx.as_ref();
@@ -18,9 +18,9 @@ where
                 .gql_select(ctx)?
                 .one(tx)
                 .await?
-                .ok_or_else(|| MyErr::Db404)?
+                .ok_or(MyErr::Db404)?
         } else {
-            self._to_gql()
+            self._into_gql()
         };
         Ok(r)
     }

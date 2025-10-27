@@ -6,22 +6,22 @@ pub fn gen_partial_eq_string(input: TokenStream) -> TokenStream {
     quote! {
         impl PartialEq<&str> for #ty {
             fn eq(&self, other: &&str) -> bool {
-                self.to_string() == *other
+                self.as_ref() == *other
             }
         }
         impl PartialEq<String> for #ty {
             fn eq(&self, other: &String) -> bool {
-                self.to_string() == *other
+                self.as_ref() == other.as_str()
             }
         }
         impl PartialEq<#ty> for &str {
             fn eq(&self, other: &#ty) -> bool {
-                *self == other.to_string()
+                *self == other.as_ref()
             }
         }
         impl PartialEq<#ty> for String {
             fn eq(&self, other: &#ty) -> bool {
-                *self == other.to_string()
+                self.as_str() == other.as_ref()
             }
         }
     }

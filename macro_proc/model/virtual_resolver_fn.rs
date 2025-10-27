@@ -1,5 +1,5 @@
 use crate::prelude::*;
 
 pub trait VirtualResolverFn: ResolverFn {
-    fn sql_deps(&self) -> Vec<String>;
+    fn sql_dep(&self) -> Vec<String>;
 }

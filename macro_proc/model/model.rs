@@ -46,13 +46,19 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // ------------------------------------------------------------------------
     // parse macro attributes, extract and validate fields
     let model_str = s!(model);
-    let (defs, virs, exprs, gfields, fields) = attr_parse(&model_str, &fields);
+    let ModelDeriveAttr {
+        defaults,
+        virtuals,
+        exprs,
+        gql_fields,
+        sql_fields,
+    } = model_derive_attr(&model_str, &fields);
 
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
     // get the original model name in snake case for sql table, non-plural
     item.ident = ident!("Model");
-    item.fields = Fields::Named(fields);
+    item.fields = Fields::Named(sql_fields);
     let module = snake!(model);
     let sql = ty_sql(&model);
     let gql = ty_gql(&model);
@@ -73,21 +79,21 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // ------------------------------------------------------------------------
     // active model default
-    let mut am_defs = vec![];
-    let mut self_am_defs = vec![];
-    for a in defs {
+    let mut am_defaults = vec![];
+    let mut self_am_defaults = vec![];
+    for a in defaults {
         let mut raw_str = a.raw();
         if raw_str.starts_with("\"") || raw_str.starts_with("r#") {
-            raw_str = raw_str + ".to_string()"
+            raw_str += ".to_string()"
         }
         let raw = ts2!(raw_str);
         let name = ts2!(a.field_name());
-        am_defs.push(quote! {
+        am_defaults.push(quote! {
             if !matches!(am.#name, Set(_)) {
                 am.#name = Set(#raw);
             }
         });
-        self_am_defs.push(quote! {
+        self_am_defaults.push(quote! {
             if !matches!(self.#name, Set(_)) {
                 self.#name = Set(#raw);
             }
@@ -140,7 +146,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // filter / order_by
     let (mut filter_struk, mut filter_query) = (vec![], vec![]);
     let (mut order_by_struk, mut order_by_query) = (vec![], vec![]);
-    for (f, _) in &gfields {
+    for (f, _) in &gql_fields {
         filter(f, &mut filter_struk, &mut filter_query);
         order_by(f, &mut order_by_struk, &mut order_by_query);
     }
@@ -167,8 +173,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // ------------------------------------------------------------------------
     // virtual resolvers
-    let mut vgens = Vec::<Box<dyn VirtualResolverFn>>::new();
-    for attrs in virs {
+    let mut virtual_resolvers = Vec::<Box<dyn VirtualResolverFn>>::new();
+    for attrs in virtuals {
         let map = attrs
             .into_iter()
             .map(|a| (a.attr.clone(), a))
@@ -177,7 +183,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             .iter()
             .filter_map(|v| map.get(&s!(v)).map(move |a| (a, v)))
         {
-            vgens.push(match v {
+            virtual_resolvers.push(match v {
                 VirtualTy::Relation(ty) => Box::new(GenRelation {
                     ty: ty.clone(),
                     ra: a.clone().into_with_validate(),
@@ -195,15 +201,28 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // ------------------------------------------------------------------------
     // gql
-    let (mut gql_struk, mut gql_resolver, gql_into, sql_cols, mut gql_select, get_cols) =
-        gql_fields(&gfields);
-    let gql_select2 = gql_virtuals(&vgens);
+    let GqlAttr {
+        struk: mut gql_struk,
+        resolver: mut gql_resolver,
+        into: gql_into,
+        cols: gql_cols,
+        select: mut gql_select,
+        get_col: gql_get_col,
+    } = gql_attr(&gql_fields);
+    let GqlAttrVirtuals {
+        select: gql_select2,
+    } = gql_attr_virtuals(&virtual_resolvers);
     gql_select.extend(gql_select2);
-    let (gql_struk2, gql_resolver2, gql_select3, sql_exprs) = gql_exprs(&exprs);
+    let GqlAttrExprs {
+        struk: gql_struk2,
+        resolver: gql_resolver2,
+        select: gql_select2,
+        exprs: gql_exprs,
+    } = gql_exprs_ts2(&exprs);
     gql_struk.extend(gql_struk2);
     gql_resolver.extend(gql_resolver2);
-    gql_select.extend(gql_select3);
-    for f in vgens {
+    gql_select.extend(gql_select2);
+    for f in virtual_resolvers {
         gql_resolver.push(f.resolver_fn());
     }
 
@@ -220,7 +239,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             )]
             #[sea_orm(table_name=#sql_alias)]
             #item
-
 
             #[derive(
                 Debug,
@@ -245,14 +263,14 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 // TODO:
             }
 
-            static SQL_COLS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {
+            static GQL_COLS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {
                 let mut m = HashMap::new();
-                #(#sql_cols)*
+                #(#gql_cols)*
                 m
             });
-            static SQL_EXPRS: LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> = LazyLock::new(|| {
+            static GQL_EXPRS: LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> = LazyLock::new(|| {
                 let mut m = HashMap::new();
-                #(#sql_exprs)*
+                #(#gql_exprs)*
                 m
             });
             static GQL_SELECT: LazyLock<HashMap<&'static str, HashSet<&'static str>>> = LazyLock::new(|| {
@@ -274,11 +292,11 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn _limit_config() -> LimitConfig {
                     #limit_config
                 }
-                fn _sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::C>> {
-                    &SQL_COLS
+                fn _gql_cols() -> &'static LazyLock<HashMap<&'static str, Self::C>> {
+                    &GQL_COLS
                 }
-                fn _sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> {
-                    &SQL_EXPRS
+                fn _gql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> {
+                    &GQL_EXPRS
                 }
                 fn _gql_select() -> &'static LazyLock<HashMap<&'static str, HashSet<&'static str>>> {
                     &GQL_SELECT
@@ -289,7 +307,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn _get_id(&self) -> String {
                     self.id.clone()
                 }
-                fn _to_gql(self) -> #gql {
+                fn _into_gql(self) -> #gql {
                     #gql {
                         #(#gql_into)*
                         ..Default::default()
@@ -299,7 +317,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             impl ActiveModelX<Entity> for ActiveModel {
                 fn _set_default_values(mut self) -> Self {
-                    #(#self_am_defs)*
+                    #(#self_am_defaults)*
                     self
                 }
                 fn _get_id(&self) -> ActiveValue<String> {
@@ -338,7 +356,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
                 fn _get_col(&self, col: Column) -> Option<String> {
                     match col {
-                        #(#get_cols)*
+                        #(#gql_get_col)*
                         _ => None
                     }
                 }
@@ -369,7 +387,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
             impl IntoCondition for #filter {
-                fn into_condition(&self) -> Condition {
+                fn into_condition(self) -> Condition {
                     let this = self.clone();
                     let mut c = Condition::all();
                     #(#filter_query)*
@@ -387,8 +405,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
             impl ChainSelect<Entity> for #order_by {
-                fn chain_select(&self, q: Select<Entity>) -> Select<Entity> {
-                    match *self {
+                fn chain_select(self, q: Select<Entity>) -> Select<Entity> {
+                    match self {
                         #(#order_by_query)*
                     }
                 }

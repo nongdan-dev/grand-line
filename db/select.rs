@@ -16,7 +16,7 @@ where
     /// Select only columns from requested fields in the graphql context.
     fn _gql_select(
         self,
-        look_ahead: &Vec<LookaheadX<E>>,
+        look_ahead: &[LookaheadX<E>],
         col: E::C,
     ) -> Res<Selector<SelectModel<E::G>>>;
     /// Select only columns from requested fields in the graphql context.
@@ -47,24 +47,20 @@ where
 
     fn _gql_select(
         self,
-        look_ahead: &Vec<LookaheadX<E>>,
+        look_ahead: &[LookaheadX<E>],
         col: E::C,
     ) -> Res<Selector<SelectModel<E::G>>> {
         let mut q = self;
         q = q.select_only();
         q = q.select_column(col);
         for l in look_ahead {
-            match l.col {
-                Some(c) => {
-                    if c.as_str() != col.as_str() {
-                        q = q.select_column(c)
-                    }
-                }
-                None => {}
+            if let Some(c) = l.col
+                && c.as_str() != col.as_str()
+            {
+                q = q.select_column(c)
             }
-            match l.expr.clone() {
-                Some(expr) => q = q.column_as(expr, l.c),
-                None => {}
+            if let Some(expr) = l.expr.clone() {
+                q = q.column_as(expr, l.c)
             }
         }
         let r = q.into_model::<E::G>();

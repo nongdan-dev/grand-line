@@ -32,31 +32,29 @@ impl GrandLineContext {
     }
 
     async fn commit(&self) -> Res<()> {
-        match self.tx.lock().await.take() {
-            Some(tx) => match Arc::try_unwrap(tx) {
+        if let Some(tx) = self.tx.lock().await.take() {
+            match Arc::try_unwrap(tx) {
                 Ok(tx) => {
                     tx.commit().await?;
                 }
                 Err(_) => {
                     err!(TxCommit)?;
                 }
-            },
-            None => {}
+            }
         }
         Ok(())
     }
 
     async fn rollback(&self) -> Res<()> {
-        match self.tx.lock().await.take() {
-            Some(tx) => match Arc::try_unwrap(tx) {
+        if let Some(tx) = self.tx.lock().await.take() {
+            match Arc::try_unwrap(tx) {
                 Ok(tx) => {
                     tx.rollback().await?;
                 }
                 Err(_) => {
                     err!(TxRollback)?;
                 }
-            },
-            None => {}
+            }
         }
         Ok(())
     }

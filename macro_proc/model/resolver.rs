@@ -5,7 +5,7 @@ pub struct GenResolver {
 }
 
 impl VirtualResolverFn for GenResolver {
-    fn sql_deps(&self) -> Vec<String> {
+    fn sql_dep(&self) -> Vec<String> {
         self.a.sql_dep.clone()
     }
 }

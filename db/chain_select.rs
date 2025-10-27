@@ -6,7 +6,7 @@ where
     E: EntityX,
 {
     /// Helper to chain sea_orm Select of different types like Filter, OrderBy...
-    fn chain_select(&self, q: Select<E>) -> Select<E>;
+    fn chain_select(self, q: Select<E>) -> Select<E>;
 }
 
 /// Automatically implement ChainSelect for Option<ChainSelect>.
@@ -15,7 +15,7 @@ where
     E: EntityX,
     C: ChainSelect<E>,
 {
-    fn chain_select(&self, q: Select<E>) -> Select<E> {
+    fn chain_select(self, q: Select<E>) -> Select<E> {
         match self {
             Some(c) => c.chain_select(q),
             None => q,
@@ -29,7 +29,7 @@ where
     E: EntityX,
     C: ChainSelect<E>,
 {
-    fn chain_select(&self, mut q: Select<E>) -> Select<E> {
+    fn chain_select(self, mut q: Select<E>) -> Select<E> {
         for c in self {
             q = c.chain_select(q)
         }
@@ -42,7 +42,7 @@ impl<E> ChainSelect<E> for PaginationInner
 where
     E: EntityX,
 {
-    fn chain_select(&self, q: Select<E>) -> Select<E> {
+    fn chain_select(self, q: Select<E>) -> Select<E> {
         q.offset(self.offset).limit(self.limit)
     }
 }

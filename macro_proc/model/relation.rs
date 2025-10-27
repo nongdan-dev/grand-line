@@ -56,7 +56,7 @@ impl GenRelation {
     }
 
     fn column(&self) -> Ts2 {
-        ty_column(&self.ra.to())
+        ty_column(self.ra.to())
     }
     fn col(&self) -> Ts2 {
         match self.ty {
@@ -115,7 +115,7 @@ impl GenRelation {
 }
 
 impl VirtualResolverFn for GenRelation {
-    fn sql_deps(&self) -> Vec<String> {
+    fn sql_dep(&self) -> Vec<String> {
         vec![self.sql_dep_str()]
     }
 }

@@ -36,7 +36,7 @@ impl AttrValidate for CrudAttr {
 
 impl CrudAttr {
     pub fn validate(&self, r: &ResolverTyItem) {
-        if !self.resolver_inputs && s!(r.inputs) != "" {
+        if !self.resolver_inputs && !s!(r.inputs).is_empty() {
             let err = f!(
                 "{} inputs must be empty unless resolver_inputs=true, found `{}`",
                 r.gql_name,
@@ -65,11 +65,9 @@ impl CrudAttr {
             );
             pan!(err);
         }
-        if !self.ra.no_tx {
-            if self.ra.no_ctx {
-                let err = f!("{} tx requires ctx", r.gql_name);
-                pan!(err);
-            }
+        if !self.ra.no_tx && self.ra.no_ctx {
+            let err = f!("{} tx requires ctx", r.gql_name);
+            pan!(err);
         }
     }
 }

@@ -6,7 +6,7 @@ where
     E: EntityX,
     Self: ColumnTrait,
 {
-    fn to_loader_key(&self, look_ahead: &Vec<LookaheadX<E>>, include_deleted: bool) -> String {
+    fn build_loader_key(&self, look_ahead: &[LookaheadX<E>], include_deleted: bool) -> String {
         let include_deleted = if include_deleted {
             "include_deleted-"
         } else {
@@ -35,7 +35,7 @@ where
                 s.push(',');
             }
             first = false;
-            s.push_str(&l.c);
+            s.push_str(l.c);
         }
 
         s

@@ -19,35 +19,36 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
 
     /// Get sql columns map with rust snake field name.
     /// Should be generated in the model macro.
-    fn _sql_cols() -> &'static LazyLock<HashMap<&'static str, Self::C>>;
+    fn _gql_cols() -> &'static LazyLock<HashMap<&'static str, Self::C>>;
 
     /// Get sql exprs map with rust snake field name.
     /// Should be generated in the model macro.
-    fn _sql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>>;
+    fn _gql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>>;
 
-    /// Get rust snake field sql columns and exprs, from gql camel field.
+    /// Get rust snake field name sql columns, from gql camel field.
     /// To look ahead and select only requested fields in the gql context.
     /// Should be generated in the model macro.
     fn _gql_select() -> &'static LazyLock<HashMap<&'static str, HashSet<&'static str>>>;
 
     /// Look ahead for sql columns and exprs, from requested fields in the gql context.
     fn gql_look_ahead(ctx: &Context<'_>) -> Res<Vec<LookaheadX<Self>>> {
-        let sql_cols = Self::_sql_cols();
-        let sql_exprs = Self::_sql_exprs();
+        let gql_cols = Self::_gql_cols();
+        let gql_exprs = Self::_gql_exprs();
         let gql_select = Self::_gql_select();
 
-        let r = ctx.try_look_ahead()?[0]
+        let r = ctx
+            .try_look_ahead()?
             .selection_set()
             .filter_map(|f| gql_select.get(f.name().to_string().as_str()))
             .flat_map(|c| c.iter().copied())
             .collect::<HashSet<_>>()
             .iter()
             .filter_map(|c| {
-                let (col, expr) = (sql_cols.get(c), sql_exprs.get(c));
+                let (col, expr) = (gql_cols.get(c), gql_exprs.get(c));
                 match (col, expr) {
                     (None, None) => None,
                     _ => Some(LookaheadX {
-                        c: *c,
+                        c,
                         col: col.copied(),
                         expr: expr.cloned(),
                     }),
@@ -60,7 +61,7 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
 
     /// Get primary id column.
     fn _col_id() -> Res<Self::C> {
-        let col = Self::_sql_cols()
+        let col = Self::_gql_cols()
             .get("id")
             .cloned()
             .ok_or_else(|| MyErr::BugId404 {
@@ -73,13 +74,22 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
         Self::_col_id().map(|c| Condition::all().add(c.eq(id)))
     }
 
+    /// Get created_at column.
+    fn _col_created_at() -> Option<Self::C> {
+        Self::_gql_cols().get("created_at").cloned()
+    }
+    /// Get updated_at column.
+    fn _col_updated_at() -> Option<Self::C> {
+        Self::_gql_cols().get("updated_at").cloned()
+    }
+
     /// Get deleted_at column.
-    fn _col_deleted_at_opt() -> Option<Self::C> {
-        Self::_sql_cols().get("deleted_at").cloned()
+    fn _col_deleted_at() -> Option<Self::C> {
+        Self::_gql_cols().get("deleted_at").cloned()
     }
     /// Get deleted_at column.
-    fn _col_deleted_at() -> Res<Self::C> {
-        let col = Self::_col_deleted_at_opt().ok_or_else(|| MyErr::DbCfgField404 {
+    fn _check_col_deleted_at() -> Res<Self::C> {
+        let col = Self::_col_deleted_at().ok_or_else(|| MyErr::DbCfgField404 {
             model: Self::_model_name(),
             field: "deleted_at",
         })?;
@@ -89,10 +99,7 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
     fn _cond_deleted_at(include_deleted: Option<bool>) -> Option<Condition> {
         match include_deleted {
             Some(true) => None,
-            _ => match Self::_col_deleted_at_opt() {
-                Some(c) => Some(Condition::all().add(c.is_null())),
-                None => None,
-            },
+            _ => Self::_col_deleted_at().map(|c| Condition::all().add(c.is_null())),
         }
     }
 
@@ -105,7 +112,7 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
     /// Set deleted_at without any filter.
     /// It also checks if the model has configured with deleted_at column or not.
     fn soft_delete_many() -> Res<UpdateMany<Self>> {
-        Self::_col_deleted_at()?;
+        Self::_check_col_deleted_at()?;
         let am = <Self::A as Default>::default()._delete();
         let r = Self::update_many().set(am);
         Ok(r)

@@ -23,7 +23,7 @@ pub fn gen_create(attr: TokenStream, item: TokenStream) -> TokenStream {
             let am: #am = {
                 #body
             };
-            am.insert(tx).await?.to_gql(ctx).await?
+            am.insert(tx).await?.into_gql(ctx).await?
         }
     }
 

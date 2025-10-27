@@ -41,18 +41,13 @@ pub fn gen_grand_line_err_derive(item: TokenStream) -> TokenStream {
 
         let mut code = None;
         for attr in &v.attrs {
-            if attr.path().is_ident("code") {
-                match &attr.meta {
-                    Meta::NameValue(MetaNameValue { value, .. }) => {
-                        if let Expr::Lit(ExprLit {
-                            lit: Lit::Str(s), ..
-                        }) = value
-                        {
-                            code = Some(s.value());
-                        }
-                    }
-                    _ => {}
-                }
+            if attr.path().is_ident("code")
+                && let Meta::NameValue(MetaNameValue { value, .. }) = &attr.meta
+                && let Expr::Lit(ExprLit {
+                    lit: Lit::Str(s), ..
+                }) = value
+            {
+                code = Some(s.value());
             }
         }
         let code = code.unwrap_or_else(|| s!(&v_ident));

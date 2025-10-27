@@ -1,33 +1,32 @@
 use crate::prelude::*;
 use syn::{Attribute, Field, FieldsNamed, punctuated::Punctuated, token::Comma};
 
+pub struct ModelDeriveAttr {
+    pub defaults: Vec<Attr>,
+    pub virtuals: Vec<Vec<Attr>>,
+    pub exprs: Vec<Vec<Attr>>,
+    pub gql_fields: Vec<(Field, Vec<Attr>)>,
+    pub sql_fields: FieldsNamed,
+}
+
 /// Parse macro attributes, extract and validate fields.
-pub fn attr_parse(
-    model: &str,
-    fields: &Punctuated<Field, Comma>,
-) -> (
-    Vec<Attr>,
-    Vec<Vec<Attr>>,
-    Vec<Vec<Attr>>,
-    Vec<(Field, Vec<Attr>)>,
-    FieldsNamed,
-) {
-    let (mut defs, mut virs, mut exprs, mut gql, mut sql) =
+pub fn model_derive_attr(model: &str, fields: &Punctuated<Field, Comma>) -> ModelDeriveAttr {
+    let (mut defaults, mut virtuals, mut exprs, mut gql, mut sql) =
         (vec![], vec![], vec![], vec![], vec![]);
 
     for f in fields {
-        let attrs = Attr::from_field(model, &f, &|a| ATTR_RAW.contains(a));
+        let attrs = Attr::from_field(model, f, &|a| ATTR_RAW.contains(a));
         attr_validate(&attrs);
         // default
         if let Some(def) = attrs.iter().find(|a| a.attr == AttrTy::Default).cloned() {
-            defs.push(def);
+            defaults.push(def);
         }
         // virtuals
         if let Some(v) = attr_is_virtual(&attrs) {
             if v == VirtualTy::SqlExpr {
                 exprs.push(attrs);
             } else {
-                virs.push(attrs);
+                virtuals.push(attrs);
             }
             continue;
         }
@@ -43,15 +42,20 @@ pub fn attr_parse(
         }
     }
 
-    let fields = FieldsNamed {
-        brace_token: Default::default(),
-        named: Punctuated::from_iter(sql),
-    };
-    (defs, virs, exprs, gql, fields)
+    ModelDeriveAttr {
+        defaults,
+        virtuals,
+        exprs,
+        gql_fields: gql,
+        sql_fields: FieldsNamed {
+            brace_token: Default::default(),
+            named: Punctuated::from_iter(sql),
+        },
+    }
 }
 
 /// Validate or panic.
-fn attr_validate(attrs: &Vec<Attr>) {
+fn attr_validate(attrs: &[Attr]) {
     // ensure it should not have more than one of our attributes
     let map = AttrTy::all()
         .iter()
@@ -76,7 +80,7 @@ fn attr_validate(attrs: &Vec<Attr>) {
 
 /// All virtual attributes.
 /// If any of these attributes matched, we should extract the whole field out.
-fn attr_is_virtual(attrs: &Vec<Attr>) -> Option<VirtualTy> {
+fn attr_is_virtual(attrs: &[Attr]) -> Option<VirtualTy> {
     let map = VirtualTy::all()
         .iter()
         .map(|v| (s!(v), v.clone()))
@@ -84,13 +88,13 @@ fn attr_is_virtual(attrs: &Vec<Attr>) -> Option<VirtualTy> {
     attrs
         .iter()
         .filter_map(|a| map.get(&a.attr))
-        .nth(0)
+        .next()
         .cloned()
 }
 
 /// Filter to only keep related attrs for the sql model.
 /// If any of these attributes matched, we should removed them out of the field.
-fn attr_sql(attrs: &Vec<Attr>) -> Vec<Attribute> {
+fn attr_sql(attrs: &[Attr]) -> Vec<Attribute> {
     let mut tobe_removed = AttrTy::all().iter().map(|a| s!(a)).collect::<HashSet<_>>();
     tobe_removed.insert(s!(AttrTy::Graphql));
     attrs
@@ -101,17 +105,17 @@ fn attr_sql(attrs: &Vec<Attr>) -> Vec<Attribute> {
 }
 
 /// Check if we should not include this field in the gql model.
-fn attr_is_gql_skip(attrs: &Vec<Attr>) -> bool {
+fn attr_is_gql_skip(attrs: &[Attr]) -> bool {
     attrs.iter().any(|a| a.is("graphql") && a.has("skip"))
 }
 
 /// Filter to only keep related attrs for the gql model.
-fn attr_gql(attrs: &Vec<Attr>) -> Vec<Attribute> {
-    let ne = vec![
+fn attr_gql(attrs: &[Attr]) -> Vec<Attribute> {
+    let ne = [
         // TODO: currently remove all attrs for the gql model
         "",
     ]
-    .iter()
+    .into_iter()
     .map(|a| s!(a))
     .collect::<HashSet<_>>();
     attrs

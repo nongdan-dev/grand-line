@@ -30,7 +30,7 @@ where
         if !self._get_id().is_set() {
             self = self._set_id(&ulid());
         }
-        if !self._get_created_at().is_set() {
+        if !self._get_created_at().is_set() && E::_col_created_at().is_some() {
             self = self._set_created_at(now());
         }
         self = self._set_default_values();
@@ -41,7 +41,7 @@ where
     /// We need to have this method instead to get default values on update.
     /// This will be used together with the macro grand_line::am_update.
     fn _update(mut self) -> Self {
-        if !self._get_updated_at().is_set() {
+        if !self._get_updated_at().is_set() && E::_col_updated_at().is_some() {
             self = self._set_updated_at(now());
         }
         self
@@ -54,7 +54,7 @@ where
         self = self._update();
         if let Set(Some(v)) = self._get_updated_at() {
             self = self._set_deleted_at(v);
-        } else {
+        } else if E::_col_updated_at().is_some() || E::_col_deleted_at().is_some() {
             let now = now();
             self = self._set_updated_at(now)._set_deleted_at(now);
         }

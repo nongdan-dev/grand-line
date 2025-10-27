@@ -4,7 +4,7 @@ use syn::{Expr, ExprStruct, Lit, parse_macro_input};
 pub fn expr_struct(item: TokenStream, suf: &str, wrap: &str, method: &str) -> TokenStream {
     let mut item = Into::<Ts2>::into(item).to_string().trim().to_owned();
     if !item.ends_with("}") {
-        item = item + "{}";
+        item += "{}";
     }
     let item = Into::<TokenStream>::into(ts2!(item));
     let item = parse_macro_input!(item as ExprStruct);
@@ -13,7 +13,7 @@ pub fn expr_struct(item: TokenStream, suf: &str, wrap: &str, method: &str) -> To
     let name = ts2!(model, suf);
 
     let rest = item.rest.to_token_stream();
-    let rest = if s!(rest).trim() == "" {
+    let rest = if s!(rest).trim().is_empty() {
         quote!(..Default::default())
     } else {
         quote!(..#rest)
@@ -42,7 +42,7 @@ pub fn expr_struct(item: TokenStream, suf: &str, wrap: &str, method: &str) -> To
         }
     };
 
-    if method != "" {
+    if !method.is_empty() {
         let method = ts2!(method);
         quote!(#r.#method())
     } else {

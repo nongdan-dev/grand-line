@@ -5,8 +5,8 @@ pub trait AttrDebug {
     fn err(&self, err: &str) -> String {
         [self.attr_debug(), s!(err)]
             .iter()
+            .filter(|v| !v.is_empty())
             .cloned()
-            .filter(|v| v != "")
             .collect::<Vec<_>>()
             .join(" ")
     }

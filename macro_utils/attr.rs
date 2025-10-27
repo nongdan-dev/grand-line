@@ -305,7 +305,7 @@ impl Attr {
 
 impl AttrDebug for Attr {
     fn attr_debug(&self) -> String {
-        if self.debug == "" {
+        if self.debug.is_empty() {
             f!("macro `{}`:", self.attr)
         } else {
             f!("{} attr `{}`:", self.debug, self.attr)

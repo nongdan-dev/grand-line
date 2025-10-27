@@ -1,21 +1,22 @@
 fmt:
 	cargo fmt \
-	&& dprint fmt;
+	&& dprint fmt \
+	&& cargo clippy;
 
 check:
-	make fmt \
+	make fmt -Bs \
 	&& cargo check;
 
 test:
-	make check \
+	make check -Bs \
 	&& cargo test;
 
 test_mysql:
-	make check \
+	make check -Bs \
 	&& cargo test --no-default-features --features mysql;
 
 test_sqlite:
-	make check \
+	make check -Bs \
 	&& cargo test --no-default-features --features sqlite;
 
 update:

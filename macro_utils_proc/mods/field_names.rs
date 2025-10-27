@@ -87,6 +87,6 @@ impl From<Attr> for FieldNamesAttr {
 }
 impl AttrValidate for FieldNamesAttr {
     fn attr_fields(_: &Attr) -> Vec<String> {
-        vec!["skip", "virt"].iter().map(|f| s!(f)).collect()
+        ["skip", "virt"].map(|f| s!(f)).to_vec()
     }
 }

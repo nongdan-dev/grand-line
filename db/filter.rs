@@ -28,20 +28,20 @@ where
         if self._has_deleted_at() {
             return true;
         }
-        if let Some(and) = self._get_and() {
-            if and.iter().any(|f| f.has_deleted_at()) {
-                return true;
-            }
+        if let Some(and) = self._get_and()
+            && and.iter().any(|f| f.has_deleted_at())
+        {
+            return true;
         }
-        if let Some(or) = self._get_or() {
-            if or.iter().any(|f| f.has_deleted_at()) {
-                return true;
-            }
+        if let Some(or) = self._get_or()
+            && or.iter().any(|f| f.has_deleted_at())
+        {
+            return true;
         }
-        if let Some(not) = self._get_not() {
-            if not.has_deleted_at() {
-                return true;
-            }
+        if let Some(not) = self._get_not()
+            && not.has_deleted_at()
+        {
+            return true;
         }
         false
     }
@@ -53,7 +53,7 @@ where
     E: EntityX,
     F: Filter<E>,
 {
-    fn chain_select(&self, q: Select<E>) -> Select<E> {
+    fn chain_select(self, q: Select<E>) -> Select<E> {
         q.filter(self.into_condition())
     }
 }

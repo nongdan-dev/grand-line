@@ -32,11 +32,7 @@ where
             .await?;
         let mut map = HashMap::<String, E::G>::new();
         for g in r {
-            map.insert(
-                g._get_col(self.col)
-                    .ok_or_else(|| MyErr::LoaderColumnValue)?,
-                g,
-            );
+            map.insert(g._get_col(self.col).ok_or(MyErr::LoaderColumnValue)?, g);
         }
         Ok(map)
     }

@@ -44,26 +44,28 @@ impl RelationAttr {
     }
 
     pub fn key_str(&self) -> String {
-        let v = self.inner.str(Self::F_KEY);
-        let v = v.unwrap_or_else(|| match self.inner.attr == RelationTy::BelongsTo {
-            true => snake_str!(self.inner.field_name(), "id"),
-            false => snake_str!(self.inner.field_model(), "id"),
-        });
-        v
+        self.inner.str(Self::F_KEY).unwrap_or_else(|| {
+            match self.inner.attr == RelationTy::BelongsTo {
+                true => snake_str!(self.inner.field_name(), "id"),
+                false => snake_str!(self.inner.field_model(), "id"),
+            }
+        })
     }
     pub fn through(&self) -> Ts2 {
-        let v = self.inner.str(Self::F_THROUGH);
-        let v = v.unwrap_or_else(|| match self.inner.attr == RelationTy::ManyToMany {
-            true => pascal_str!(self.inner.field_model(), "in", self.inner.field_ty()),
-            false => self.bug(Self::F_THROUGH),
+        let v = self.inner.str(Self::F_THROUGH).unwrap_or_else(|| {
+            match self.inner.attr == RelationTy::ManyToMany {
+                true => pascal_str!(self.inner.field_model(), "in", self.inner.field_ty()),
+                false => self.bug(Self::F_THROUGH),
+            }
         });
         ts2!(v)
     }
     pub fn other_key(&self) -> Ts2 {
-        let v = self.inner.str(Self::F_OTHER_KEY);
-        let v = v.unwrap_or_else(|| match self.inner.attr == RelationTy::ManyToMany {
-            true => snake_str!(self.inner.field_ty(), "id"),
-            false => self.bug(Self::F_OTHER_KEY),
+        let v = self.inner.str(Self::F_OTHER_KEY).unwrap_or_else(|| {
+            match self.inner.attr == RelationTy::ManyToMany {
+                true => snake_str!(self.inner.field_ty(), "id"),
+                false => self.bug(Self::F_OTHER_KEY),
+            }
         });
         ts2!(v)
     }

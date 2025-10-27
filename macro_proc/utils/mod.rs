@@ -1,5 +1,4 @@
 mod attr_default_flags;
-mod attr_parse;
 mod attr_ty;
 mod err;
 mod expr_struct;
@@ -13,7 +12,6 @@ mod naming;
 mod order_by;
 mod unwrap_option;
 pub use attr_default_flags::*;
-pub use attr_parse::*;
 pub use attr_ty::*;
 pub use err::*;
 pub use expr_struct::*;

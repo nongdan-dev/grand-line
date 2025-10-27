@@ -15,11 +15,11 @@ pub struct ResolverTyItem {
 impl ResolverTyItem {
     pub fn init(mut self, operation: &str, crud: &str, crud_model: &str) -> (Self, Ts2, Ts2) {
         if self.gql_name == "resolver" {
-            if crud == "" {
+            if crud.is_empty() {
                 let err = "resolver name must be different than the reserved keyword `resolver`";
                 pan!(err);
             }
-            if crud_model == "" {
+            if crud_model.is_empty() {
                 let err = "empty model name should be validated earlier";
                 pan!(err);
             }

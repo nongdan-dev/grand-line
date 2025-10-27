@@ -1,13 +1,20 @@
 use crate::prelude::*;
 use syn::Field;
 
-pub fn gql_fields(
-    gfields: &Vec<(Field, Vec<Attr>)>,
-) -> (Vec<Ts2>, Vec<Ts2>, Vec<Ts2>, Vec<Ts2>, Vec<Ts2>, Vec<Ts2>) {
-    let (mut struk, mut resolver, mut into, mut cols, mut select, mut get_cols) =
+pub struct GqlAttr {
+    pub struk: Vec<Ts2>,
+    pub resolver: Vec<Ts2>,
+    pub into: Vec<Ts2>,
+    pub cols: Vec<Ts2>,
+    pub select: Vec<Ts2>,
+    pub get_col: Vec<Ts2>,
+}
+
+pub fn gql_attr(gql_fields: &Vec<(Field, Vec<Attr>)>) -> GqlAttr {
+    let (mut struk, mut resolver, mut into, mut cols, mut select, mut get_col) =
         (vec![], vec![], vec![], vec![], vec![], vec![]);
 
-    for (f, _) in gfields {
+    for (f, _) in gql_fields {
         let name = f.ident.to_token_stream();
         let ty = f.ty.to_token_stream();
         let (opt, uw_str) = unwrap_option_str(&ty);
@@ -35,29 +42,47 @@ pub fn gql_fields(
         });
 
         if uw_str == "String" {
-            get_cols.push(quote! {
+            get_col.push(quote! {
                 Column::#col => self.#name.clone(),
             });
         }
     }
 
-    (struk, resolver, into, cols, select, get_cols)
+    GqlAttr {
+        struk,
+        resolver,
+        into,
+        cols,
+        select,
+        get_col,
+    }
 }
 
-pub fn gql_virtuals(virs: &Vec<Box<dyn VirtualResolverFn>>) -> Vec<Ts2> {
+pub struct GqlAttrVirtuals {
+    pub select: Vec<Ts2>,
+}
+
+pub fn gql_attr_virtuals(virtual_resolvers: &Vec<Box<dyn VirtualResolverFn>>) -> GqlAttrVirtuals {
     let mut select = vec![];
-    for v in virs {
+    for v in virtual_resolvers {
         let gql_name = v.gql_name();
-        for name_str in v.sql_deps() {
+        for name_str in v.sql_dep() {
             select.push(quote! {
                 m.entry(#gql_name).or_insert_with(HashSet::new).insert(#name_str);
             });
         }
     }
-    select
+    GqlAttrVirtuals { select }
 }
 
-pub fn gql_exprs(exprs: &Vec<Vec<Attr>>) -> (Vec<Ts2>, Vec<Ts2>, Vec<Ts2>, Vec<Ts2>) {
+pub struct GqlAttrExprs {
+    pub struk: Vec<Ts2>,
+    pub resolver: Vec<Ts2>,
+    pub select: Vec<Ts2>,
+    pub exprs: Vec<Ts2>,
+}
+
+pub fn gql_exprs_ts2(exprs: &Vec<Vec<Attr>>) -> GqlAttrExprs {
     let (mut struk, mut resolver, mut select, mut gql_exprs) = (vec![], vec![], vec![], vec![]);
 
     for e in exprs {
@@ -83,7 +108,12 @@ pub fn gql_exprs(exprs: &Vec<Vec<Attr>>) -> (Vec<Ts2>, Vec<Ts2>, Vec<Ts2>, Vec<T
         });
     }
 
-    (struk, resolver, select, gql_exprs)
+    GqlAttrExprs {
+        struk,
+        resolver,
+        select,
+        exprs: gql_exprs,
+    }
 }
 
 fn push_struk_resolver(name: &Ts2, ty: &Ts2, struk: &mut Vec<Ts2>, resolver: &mut Vec<Ts2>) {
