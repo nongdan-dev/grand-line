@@ -5,7 +5,7 @@ use serde::Serialize;
 pub trait Filter<E>
 where
     E: EntityX,
-    Self: IntoCondition + Default + Serialize + Send + Sync + Sized,
+    Self: IntoCondition + ChainSelect<E> + Default + Serialize + Send + Sync + Sized,
 {
     /// Combine filter and filter_extra to use in abstract methods.
     /// Should be generated in the model macro.
@@ -47,18 +47,7 @@ where
     }
 }
 
-/// Automatically implement ChainSelect for Filter
-impl<E, F> ChainSelect<E> for F
-where
-    E: EntityX,
-    F: Filter<E>,
-{
-    fn chain_select(self, q: Select<E>) -> Select<E> {
-        q.filter(self.into_condition())
-    }
-}
-
-/// Automatically implement for Option<Filter>.
+/// Automatically implement FilterImpl for Option<Filter>.
 pub trait FilterImpl<E>
 where
     E: EntityX,
@@ -69,7 +58,7 @@ where
     fn has_deleted_at(&self) -> bool;
 }
 
-/// Automatically implement for Option<Filter>.
+/// Automatically implement FilterImpl for Option<Filter>.
 impl<E, F> FilterImpl<E> for Option<F>
 where
     E: EntityX,

@@ -44,11 +44,11 @@ where
     where
         D: ConnectionTrait,
     {
-        let filter = filter.combine(filter_extra);
-        let include_deleted = include_deleted.or_else(|| Some(filter.has_deleted_at()));
+        let f = filter.combine(filter_extra);
+        let include_deleted = include_deleted.or_else(|| Some(f.has_deleted_at()));
         let r = Self::find()
             .include_deleted(include_deleted)
-            .filter_opt(filter.map(|f| f.into_condition()))
+            .chain(f)
             .count(db)
             .await?;
         Ok(r)

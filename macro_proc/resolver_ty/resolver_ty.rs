@@ -18,7 +18,7 @@ impl ResolverTy {
         let r = quote! {
             mod #m {
                 pub use super::*;
-                pub use sea_orm::{entity::prelude::*, prelude::*, *};
+                pub use grand_line::macro_prelude::*;
 
                 #[derive(Default)]
                 pub struct #ty;

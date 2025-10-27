@@ -32,6 +32,7 @@ mod re_exports {
     // common
     pub use async_graphql::MaybeUndefined as Undefined;
     pub use async_trait::async_trait;
+    pub use sea_orm::sea_query::{IntoCondition, SimpleExpr};
     pub use serde::{Deserialize, Serialize};
     pub use serde_json::Error as JsonErr;
     pub use thiserror::Error as ThisErr;
@@ -42,6 +43,13 @@ mod re_exports {
 
 #[cfg(not(feature = "no_re_exports"))]
 pub use re_exports::*;
+
+#[allow(unused_imports)]
+pub mod macro_prelude {
+    #[cfg(feature = "no_re_exports")]
+    pub use sea_orm::sea_query::{IntoCondition, SimpleExpr};
+    pub use sea_orm::{entity::prelude::*, prelude::*, *};
+}
 
 #[allow(unused_imports, ambiguous_glob_reexports)]
 pub mod prelude {

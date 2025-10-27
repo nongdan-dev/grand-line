@@ -23,7 +23,7 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
 
     /// Get sql exprs map with rust snake field name.
     /// Should be generated in the model macro.
-    fn _gql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>>;
+    fn _gql_exprs() -> &'static LazyLock<HashMap<&'static str, SimpleExpr>>;
 
     /// Get rust snake field name sql columns, from gql camel field.
     /// To look ahead and select only requested fields in the gql context.

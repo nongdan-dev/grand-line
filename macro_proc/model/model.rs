@@ -229,7 +229,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let r = quote! {
         mod #module {
             use super::*;
-            pub use sea_orm::{entity::prelude::*, prelude::*, *};
+            pub use grand_line::macro_prelude::*;
 
             #[derive(
                 Debug,
@@ -268,7 +268,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #(#gql_cols)*
                 m
             });
-            static GQL_EXPRS: LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> = LazyLock::new(|| {
+            static GQL_EXPRS: LazyLock<HashMap<&'static str, SimpleExpr>> = LazyLock::new(|| {
                 let mut m = HashMap::new();
                 #(#gql_exprs)*
                 m
@@ -295,7 +295,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn _gql_cols() -> &'static LazyLock<HashMap<&'static str, Self::C>> {
                     &GQL_COLS
                 }
-                fn _gql_exprs() -> &'static LazyLock<HashMap<&'static str, sea_query::SimpleExpr>> {
+                fn _gql_exprs() -> &'static LazyLock<HashMap<&'static str, SimpleExpr>> {
                     &GQL_EXPRS
                 }
                 fn _gql_select() -> &'static LazyLock<HashMap<&'static str, HashSet<&'static str>>> {
@@ -392,6 +392,12 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                     let mut c = Condition::all();
                     #(#filter_query)*
                     c
+                }
+            }
+            /// This must be here since it is conflicted with foreign trait IntoCondition.
+            impl ChainSelect<Entity> for #filter {
+                fn chain_select(self, q: Select<Entity>) -> Select<Entity> {
+                    q.filter(self.into_condition())
                 }
             }
 

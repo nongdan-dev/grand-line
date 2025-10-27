@@ -6,10 +6,10 @@ pub enum MyErr {
     #[client]
     InternalServer,
 
-    #[error("failed to get request ip address")]
+    #[error("ip address is missing from the request")]
     #[client]
     CtxReqIp404,
-    #[error("failed to get request user agent")]
+    #[error("user agent is missing from the request")]
     #[client]
     CtxReqUa404,
 
@@ -18,18 +18,18 @@ pub enum MyErr {
     #[error("rollback error: transaction is still in use elsewhere")]
     TxRollback,
 
-    #[error("no grand line context in the async graphql context: {inner}")]
+    #[error("context has no grand line context: {inner}")]
     Ctx404 { inner: String },
-    #[error("no sea orm database in the async graphql context: {inner}")]
+    #[error("context has no sea orm database: {inner}")]
     CtxDb404 { inner: String },
-    #[error("no request headers in the async graphql context: {inner}")]
+    #[error("context has no request headers: {inner}")]
     CtxReqHeaders404 { inner: String },
 
     #[error("look ahead selection fields len should be 1")]
     LookAhead,
-    #[error("failed to downcast data loader from arc dyn any")]
+    #[error("data loader failed to downcast from arc dyn any")]
     LoaderDowncast,
-    #[error("failed to get value from column in gql model for data loader")]
+    #[error("data loader failed to get value from column in gql model")]
     LoaderColumnValue,
 }
 pub type GrandLineInternalGraphQLErr = MyErr;

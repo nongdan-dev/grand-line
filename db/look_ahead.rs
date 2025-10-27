@@ -1,5 +1,4 @@
 use super::prelude::*;
-use sea_query::SimpleExpr;
 
 #[derive(Clone)]
 pub struct LookaheadX<E>
