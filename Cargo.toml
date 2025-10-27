@@ -48,13 +48,13 @@ chrono = { version = "0.4.42", default-features = false, features = ["now", "ser
 macro_proc = { path = "./macro_proc", default-features = false, features = [] }
 macro_utils = { path = "./macro_utils", default-features = false, features = [] }
 macro_utils_proc = { path = "./macro_utils_proc", default-features = false, features = [] }
-sea-orm = { version = "1.1.16", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
+sea-orm = { version = "1.1.17", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
 serde = { version = "1.0.228", default-features = false, features = ["derive", "std"] }
 serde_json = { version = "1.0.145", default-features = false, features = [] }
-serde_with = { version = "3.14.1", default-features = false, features = ["macros"] }
+serde_with = { version = "3.15.1", default-features = false, features = ["macros"] }
 sqlx = { version = "0.8.6", default-features = false, features = ["chrono", "json", "macros", "migrate", "runtime-tokio-rustls", "rust_decimal"] }
 thiserror = { version = "2.0.17", default-features = false, features = [] }
-tokio = { version = "1.47.1", default-features = false, features = ["full"] }
+tokio = { version = "1.48.0", default-features = false, features = ["full"] }
 tower = { version = "0.5.2", default-features = false, features = [] }
 tower-http = { version = "0.6.6", default-features = false, features = ["normalize-path"] }
 tracing = { version = "0.1.41", optional = true, default-features = false, features = [] }

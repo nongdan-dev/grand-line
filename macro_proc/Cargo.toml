@@ -38,9 +38,9 @@ macro_utils = { path = "../macro_utils", default-features = false, features = []
 macro_utils_proc = { path = "../macro_utils_proc", default-features = false, features = [] }
 maplit = { version = "1.0.2", default-features = false, features = [] }
 prettyplease = { version = "0.2.37", optional = true, default-features = false, features = [] }
-proc-macro2 = { version = "1.0.101", default-features = false, features = [] }
+proc-macro2 = { version = "1.0.103", default-features = false, features = [] }
 quote = { version = "1.0.41", default-features = false, features = [] }
 serde = { version = "1.0.228", default-features = false, features = ["derive", "std"] }
 strum = { version = "0.27.2", default-features = false, features = [] }
 strum_macros = { version = "0.27.2", default-features = false, features = [] }
-syn = { version = "2.0.106", default-features = false, features = ["default"] }
+syn = { version = "2.0.108", default-features = false, features = ["default"] }
