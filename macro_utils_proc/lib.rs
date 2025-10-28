@@ -1,16 +1,14 @@
+#![allow(unused_imports, ambiguous_glob_reexports)]
+
 mod mods;
 
-#[allow(unused_imports)]
 mod prelude {
     pub use crate::mods::*;
-
-    pub use macro_utils::*;
+    pub use _macro_utils::*;
     pub use proc_macro::TokenStream;
-
     use_common_macro_utils!();
     use_common_std!();
 }
-
 use crate::prelude::*;
 
 #[proc_macro_derive(PartialEqString)]

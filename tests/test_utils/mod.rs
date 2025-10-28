@@ -1,4 +1,4 @@
-#![allow(unused_imports)]
+#![allow(unused_imports, ambiguous_glob_reexports)]
 
 mod db;
 mod exec_assert;
@@ -7,8 +7,7 @@ pub use db::*;
 pub use exec_assert::*;
 pub use schema::*;
 
+#[cfg(test)]
+pub use _macro_utils::*;
 pub use grand_line::prelude::*;
-pub use macro_utils::*;
-
-// alias and explicit use to avoid ambiguous
 pub use pretty_assertions::assert_eq as pretty_eq;

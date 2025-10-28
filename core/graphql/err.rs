@@ -22,15 +22,6 @@ pub enum MyErr {
     Ctx404 { inner: String },
     #[error("context has no sea orm database: {inner}")]
     CtxDb404 { inner: String },
-    #[error("context has no request headers: {inner}")]
-    CtxReqHeaders404 { inner: String },
-
-    #[error("look ahead selection fields len should be 1")]
-    LookAhead,
-    #[error("data loader failed to downcast from arc dyn any")]
-    LoaderDowncast,
-    #[error("data loader failed to get value from column in gql model")]
-    LoaderColumnValue,
 }
 pub type GrandLineInternalGraphQLErr = MyErr;
 

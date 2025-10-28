@@ -1,10 +1,10 @@
 [package]
-name = "macro_utils"
+name = "_macro_utils"
 version = "0.0.0"
 edition = "2024"
 
 [lib]
-name = "macro_utils"
+name = "_macro_utils"
 path = "lib.rs"
 
 [dependencies]

@@ -21,6 +21,14 @@ pub enum MyErr {
         model: &'static str,
         field: &'static str,
     },
+
+    #[error("look ahead selection fields len should be 1")]
+    LookAhead,
+    #[error("data loader failed to downcast from arc dyn any")]
+    LoaderDowncast,
+    #[error("data loader failed to get value from column in gql model")]
+    LoaderColumnValue,
+
     #[error("FRAMEWORK BUG: id column is not present in the model {model}")]
     BugId404 { model: &'static str },
 }

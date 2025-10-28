@@ -8,7 +8,7 @@ pub enum MyErr {
         inner: JsonErr,
     },
 }
-pub type GrandLineInternalCommonErr = MyErr;
+pub type GrandLineInternalCoreErr = MyErr;
 
 impl From<JsonErr> for GrandLineErr {
     fn from(v: JsonErr) -> Self {

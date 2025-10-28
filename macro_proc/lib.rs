@@ -1,23 +1,21 @@
+#![allow(unused_imports, ambiguous_glob_reexports)]
+
 mod crud;
 mod model;
 mod resolver_ty;
 mod utils;
 
-#[allow(unused_imports)]
 mod prelude {
     pub use crate::crud::*;
     pub use crate::model::*;
     pub use crate::resolver_ty::*;
     pub use crate::utils::*;
-
-    pub use macro_utils::*;
-    pub use macro_utils_proc::*;
+    pub use _macro_utils::*;
+    pub use _macro_utils_proc::*;
     pub use proc_macro::TokenStream;
-
     use_common_macro_utils!();
     use_common_std!();
 }
-
 use crate::prelude::*;
 
 // ============================================================================

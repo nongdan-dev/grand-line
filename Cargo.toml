@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "macro_proc", "macro_utils", "macro_utils_proc"]
+members = [".", "axum", "core"]
 resolver = "2"
 
 [package]
@@ -8,58 +8,47 @@ version = "0.0.0"
 edition = "2024"
 
 [lib]
+name = "grand_line"
 path = "lib.rs"
 
 [features]
-default = ["postgres"]
-# do not re-export dependencies
-no_re_exports = []
-# externals
-sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
-mysql = ["sea-orm/sqlx-mysql", "sqlx/mysql"]
-postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres", "macro_proc/postgres"]
-tracing = ["dep:tracing", "dep:tracing-subscriber", "async-graphql/tracing"]
+default = ["postgres", "axum"]
+axum = ["dep:_axum"]
+# do not re-export dependencies or aliases
+no_reexport_dep = []
+no_reexport_alias = []
+# db
+sqlite = ["_core/sqlite"]
+mysql = ["_core/mysql"]
+postgres = ["_core/postgres"]
+# tracing
+tracing = ["_core/tracing"]
 # debug macro flags
-debug_macro_cli = ["macro_proc/debug_macro_cli"]
-debug_macro_file = ["macro_proc/debug_macro_file"]
+debug_macro_cli = ["_core/debug_macro_cli"]
+debug_macro_file = ["_core/debug_macro_file"]
 # model flags
-no_created_at = ["macro_proc/no_created_at"]
-no_updated_at = ["macro_proc/no_updated_at"]
-no_deleted_at = ["macro_proc/no_deleted_at"]
-no_by_id = ["macro_proc/no_by_id"]
+no_created_at = ["_core/no_created_at"]
+no_updated_at = ["_core/no_updated_at"]
+no_deleted_at = ["_core/no_deleted_at"]
+no_by_id = ["_core/no_by_id"]
 # resolver flags
-resolver_inputs = ["macro_proc/resolver_inputs"]
-resolver_output = ["macro_proc/resolver_output"]
-no_tx = ["macro_proc/no_tx"]
-no_ctx = ["macro_proc/no_ctx"]
-no_include_deleted = ["macro_proc/no_include_deleted"]
-no_permanent_delete = ["macro_proc/no_permanent_delete"]
+resolver_inputs = ["_core/resolver_inputs"]
+resolver_output = ["_core/resolver_output"]
+no_tx = ["_core/no_tx"]
+no_ctx = ["_core/no_ctx"]
+no_include_deleted = ["_core/no_include_deleted"]
+no_permanent_delete = ["_core/no_permanent_delete"]
 # limit flags
-limit_x2 = ["macro_proc/limit_x2"]
-limit_x5 = ["macro_proc/limit_x5"]
-limit_x10 = ["macro_proc/limit_x10"]
+limit_x2 = ["_core/limit_x2"]
+limit_x5 = ["_core/limit_x5"]
+limit_x10 = ["_core/limit_x10"]
 
 [dependencies]
-async-graphql = { version = "7.0.17", default-features = false, features = ["chrono", "chrono-duration", "chrono-tz", "dataloader", "decimal", "string_number", "boxed-trait"] }
-async-graphql-axum = { version = "7.0.17", default-features = false, features = [] }
-async-trait = { version = "0.1.89", default-features = false, features = [] }
-axum = { version = "0.8.6", default-features = false, features = ["default", "http2", "tokio", "multipart"] }
-chrono = { version = "0.4.42", default-features = false, features = ["now", "serde"] }
-macro_proc = { path = "./macro_proc", default-features = false, features = [] }
-macro_utils = { path = "./macro_utils", default-features = false, features = [] }
-macro_utils_proc = { path = "./macro_utils_proc", default-features = false, features = [] }
-sea-orm = { version = "1.1.17", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
-serde = { version = "1.0.228", default-features = false, features = ["derive", "std"] }
-serde_json = { version = "1.0.145", default-features = false, features = [] }
-serde_with = { version = "3.15.1", default-features = false, features = ["macros"] }
-sqlx = { version = "0.8.6", default-features = false, features = ["chrono", "json", "macros", "migrate", "runtime-tokio-rustls", "rust_decimal"] }
-thiserror = { version = "2.0.17", default-features = false, features = [] }
-tokio = { version = "1.48.0", default-features = false, features = ["full"] }
-tower = { version = "0.5.2", default-features = false, features = [] }
-tower-http = { version = "0.6.6", default-features = false, features = ["normalize-path"] }
-tracing = { version = "0.1.41", optional = true, default-features = false, features = [] }
-tracing-subscriber = { version = "0.3.20", optional = true, default-features = false, features = [] }
-ulid = { version = "1.2.1", default-features = false, features = ["std"] }
+_axum = { path = "./axum", optional = true, default-features = false, features = [] }
+_core = { path = "./core", default-features = false, features = [] }
 
 [dev-dependencies]
+_macro_utils = { path = "./macro_utils", default-features = false, features = [] }
 pretty_assertions = { version = "1.4.1", default-features = false, features = ["std"] }
+serde = { version = "1.0.228", default-features = false, features = ["derive", "std"] }
+thiserror = { version = "2.0.17", default-features = false, features = [] }

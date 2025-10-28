@@ -229,7 +229,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let r = quote! {
         mod #module {
             use super::*;
-            pub use grand_line::macro_prelude::*;
+            pub use sea_orm::{entity::prelude::*, prelude::*, *};
 
             #[derive(
                 Debug,

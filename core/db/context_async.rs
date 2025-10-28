@@ -2,14 +2,9 @@ use super::prelude::*;
 use async_graphql::dataloader::DataLoader;
 
 #[async_trait]
-pub trait ContextXAsync
-where
-    Self: GrandLineContextImpl,
-{
-    #[inline(always)]
-    async fn tx(&self) -> Res<Arc<DatabaseTransaction>> {
-        self.grand_line_context()?.tx().await
-    }
+pub trait ContextDbAsyncImpl {
+    async fn tx(&self) -> Res<Arc<DatabaseTransaction>>;
+
     async fn data_loader<E>(
         &self,
         key: String,
@@ -22,7 +17,11 @@ where
 }
 
 #[async_trait]
-impl ContextXAsync for Context<'_> {
+impl ContextDbAsyncImpl for Context<'_> {
+    #[inline(always)]
+    async fn tx(&self) -> Res<Arc<DatabaseTransaction>> {
+        self.grand_line_context()?.tx().await
+    }
     async fn data_loader<E>(
         &self,
         key: String,

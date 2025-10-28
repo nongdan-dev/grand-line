@@ -13,6 +13,87 @@ dependencies = [
 ]
 
 [[package]]
+name = "_axum"
+version = "0.0.0"
+dependencies = [
+ "_core",
+ "async-graphql-axum",
+ "axum",
+ "thiserror 2.0.17",
+ "tower",
+ "tower-http",
+]
+
+[[package]]
+name = "_core"
+version = "0.0.0"
+dependencies = [
+ "_macro_proc",
+ "_macro_utils",
+ "_macro_utils_proc",
+ "async-graphql",
+ "async-trait",
+ "chrono",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sqlx",
+ "thiserror 2.0.17",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "ulid",
+]
+
+[[package]]
+name = "_macro_proc"
+version = "0.0.0"
+dependencies = [
+ "_macro_utils",
+ "_macro_utils_proc",
+ "colored",
+ "heck 0.5.0",
+ "maplit",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "strum 0.27.2",
+ "strum_macros 0.27.2",
+ "syn 2.0.108",
+]
+
+[[package]]
+name = "_macro_utils"
+version = "0.0.0"
+dependencies = [
+ "heck 0.5.0",
+ "maplit",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "strum 0.27.2",
+ "strum_macros 0.27.2",
+ "syn 2.0.108",
+]
+
+[[package]]
+name = "_macro_utils_proc"
+version = "0.0.0"
+dependencies = [
+ "_macro_utils",
+ "heck 0.5.0",
+ "maplit",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "strum 0.27.2",
+ "strum_macros 0.27.2",
+ "syn 2.0.108",
+]
+
+[[package]]
 name = "ahash"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -896,27 +977,12 @@ dependencies = [
 name = "grand-line"
 version = "0.0.0"
 dependencies = [
- "async-graphql",
- "async-graphql-axum",
- "async-trait",
- "axum",
- "chrono",
- "macro_proc",
- "macro_utils",
- "macro_utils_proc",
+ "_axum",
+ "_core",
+ "_macro_utils",
  "pretty_assertions",
- "sea-orm",
  "serde",
- "serde_json",
- "serde_with",
- "sqlx",
  "thiserror 2.0.17",
- "tokio",
- "tower",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "ulid",
 ]
 
 [[package]]
@@ -1352,53 +1418,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "234cf4f4a04dc1f57e24b96cc0cd600cf2af460d4161ac5ecdd0af8e1f3b2a38"
 dependencies = [
  "hashbrown 0.15.5",
-]
-
-[[package]]
-name = "macro_proc"
-version = "0.0.0"
-dependencies = [
- "colored",
- "heck 0.5.0",
- "macro_utils",
- "macro_utils_proc",
- "maplit",
- "prettyplease",
- "proc-macro2",
- "quote",
- "serde",
- "strum 0.27.2",
- "strum_macros 0.27.2",
- "syn 2.0.108",
-]
-
-[[package]]
-name = "macro_utils"
-version = "0.0.0"
-dependencies = [
- "heck 0.5.0",
- "maplit",
- "proc-macro2",
- "quote",
- "serde",
- "strum 0.27.2",
- "strum_macros 0.27.2",
- "syn 2.0.108",
-]
-
-[[package]]
-name = "macro_utils_proc"
-version = "0.0.0"
-dependencies = [
- "heck 0.5.0",
- "macro_utils",
- "maplit",
- "proc-macro2",
- "quote",
- "serde",
- "strum 0.27.2",
- "strum_macros 0.27.2",
- "syn 2.0.108",
 ]
 
 [[package]]
