@@ -1,9 +1,9 @@
 #![allow(unused_imports, ambiguous_glob_reexports)]
 
-mod mods;
+mod macros;
 
 mod prelude {
-    pub use crate::mods::*;
+    pub use crate::macros::*;
     pub use _macro_utils::*;
     pub use proc_macro::TokenStream;
     use_common_macro_utils!();

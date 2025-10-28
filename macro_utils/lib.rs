@@ -1,8 +1,8 @@
 #![allow(unused_imports, ambiguous_glob_reexports)]
 
+mod attr;
 mod macros;
-mod mods;
-pub use mods::*;
+pub use attr::*;
 
 mod prelude {
     pub use crate::*;

@@ -1,0 +1,14 @@
+[package]
+name = "_authenticate"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+name = "_authenticate"
+path = "lib.rs"
+
+[dependencies]
+_axum = { path = "../axum", default-features = false, features = [] }
+_core = { path = "../core", default-features = false, features = [] }
+serde = { version = "1.0.228", default-features = false, features = ["derive", "std"] }
+thiserror = { version = "2.0.17", default-features = false, features = [] }

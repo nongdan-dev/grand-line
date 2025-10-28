@@ -45,6 +45,7 @@ pub mod prelude {
 
     pub use crate::alias::*;
     pub use crate::export::*;
+    pub use crate::reexport::*;
 
     // explicit with alias to fix ambiguous
     pub use async_graphql::{Error as GraphQLErr, Schema, Value};

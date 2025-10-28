@@ -225,6 +225,11 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     for f in virtual_resolvers {
         gql_resolver.push(f.resolver_fn());
     }
+    let gql_into_default = if gql_struk.len() > gql_into.len() {
+        quote!(..Default::default())
+    } else {
+        ts2!()
+    };
 
     let r = quote! {
         mod #module {
@@ -310,7 +315,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn _into_gql(self) -> #gql {
                     #gql {
                         #(#gql_into)*
-                        ..Default::default()
+                        #gql_into_default
                     }
                 }
             }

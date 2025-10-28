@@ -1,21 +1,15 @@
 #![allow(unused_imports, ambiguous_glob_reexports)]
 
 mod context;
-mod utils;
+mod model;
 
 pub mod export {
     pub use crate::context::*;
-    pub use crate::utils::*;
-}
-
-pub mod reexport {
-    pub use async_graphql_axum;
-    pub use axum;
-    pub use tower;
-    pub use tower_http;
+    pub use crate::model::*;
 }
 
 pub mod prelude {
     pub use crate::export::*;
+    pub use _axum::prelude::*;
     pub use _core::prelude::*;
 }

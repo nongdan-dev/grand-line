@@ -2,7 +2,7 @@ use super::prelude::*;
 use async_graphql::dataloader::DataLoader;
 
 #[async_trait]
-pub trait ContextDbAsyncImpl {
+pub trait DbAsyncContext {
     async fn tx(&self) -> Res<Arc<DatabaseTransaction>>;
 
     async fn data_loader<E>(
@@ -17,7 +17,7 @@ pub trait ContextDbAsyncImpl {
 }
 
 #[async_trait]
-impl ContextDbAsyncImpl for Context<'_> {
+impl DbAsyncContext for Context<'_> {
     #[inline(always)]
     async fn tx(&self) -> Res<Arc<DatabaseTransaction>> {
         self.grand_line_context()?.tx().await

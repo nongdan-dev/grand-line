@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "axum", "core"]
+members = [".", "authenticate", "axum", "core"]
 resolver = "2"
 
 [package]
@@ -12,8 +12,9 @@ name = "grand_line"
 path = "lib.rs"
 
 [features]
-default = ["postgres", "axum"]
+default = ["postgres", "axum", "authenticate"]
 axum = ["dep:_axum"]
+authenticate = ["dep:_authenticate"]
 # do not re-export dependencies or aliases
 no_reexport_dep = []
 no_reexport_alias = []
@@ -44,6 +45,7 @@ limit_x5 = ["_core/limit_x5"]
 limit_x10 = ["_core/limit_x10"]
 
 [dependencies]
+_authenticate = { path = "./authenticate", optional = true, default-features = false, features = [] }
 _axum = { path = "./axum", optional = true, default-features = false, features = [] }
 _core = { path = "./core", default-features = false, features = [] }
 
