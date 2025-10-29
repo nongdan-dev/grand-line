@@ -6,10 +6,10 @@ use cookie::{
 };
 use std::{net::IpAddr, str::FromStr};
 
-const FORWARDED_FOR: &str = "x-forwarded-for";
-const SOCKET_ADDR: &str = "x-socket-addr";
-const USER_AGENT: &str = "user-agent";
-const COOKIE: &str = "cookie";
+const FORWARDED_FOR: &str = "X-Forwarded-For";
+const SOCKET_ADDR: &str = "X-Socket-Addr";
+const USER_AGENT: &str = "User-Agent";
+const COOKIE: &str = "Set-Cookie";
 
 pub trait HttpContext {
     fn get_header(&self, k: &str) -> Res<String>;

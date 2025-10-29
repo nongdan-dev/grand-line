@@ -4,5 +4,5 @@ use crate::prelude::*;
 pub struct User {
     pub email: String,
     #[graphql(skip)]
-    pub hashed_password: String,
+    pub password_hashed: String,
 }

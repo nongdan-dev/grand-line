@@ -13,8 +13,8 @@ path = "lib.rs"
 
 [features]
 default = ["postgres", "axum", "authenticate"]
-axum = ["dep:_axum"]
-authenticate = ["dep:_authenticate"]
+axum = ["_axum"]
+authenticate = ["_authenticate"]
 # do not re-export dependencies or aliases
 no_reexport_dep = []
 no_reexport_alias = []
@@ -23,7 +23,7 @@ sqlite = ["_core/sqlite"]
 mysql = ["_core/mysql"]
 postgres = ["_core/postgres"]
 # tracing
-tracing = ["_core/tracing"]
+tracing = ["_core/tracing", "_axum/tracing"]
 # debug macro flags
 debug_macro_cli = ["_core/debug_macro_cli"]
 debug_macro_file = ["_core/debug_macro_file"]

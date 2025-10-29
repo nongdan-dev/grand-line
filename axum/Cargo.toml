@@ -7,10 +7,13 @@ edition = "2024"
 name = "_axum"
 path = "lib.rs"
 
+[features]
+tracing = ["axum/tracing"]
+
 [dependencies]
 _core = { path = "../core", default-features = false, features = [] }
 async-graphql-axum = { version = "7.0.17", default-features = false, features = [] }
-axum = { version = "0.8.6", default-features = false, features = ["default", "http2", "tokio", "multipart"] }
+axum = { version = "0.8.6", default-features = false, features = ["http1", "http2", "json", "query", "tokio", "multipart"] }
 cookie = { version = "0.18.1", default-features = false, features = [] }
 thiserror = { version = "2.0.17", default-features = false, features = [] }
 tower = { version = "0.5.2", default-features = false, features = [] }

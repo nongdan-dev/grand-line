@@ -13,7 +13,7 @@ sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
 mysql = ["sea-orm/sqlx-mysql", "sqlx/mysql"]
 postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres", "_macro_proc/postgres"]
 # tracing
-tracing = ["dep:tracing", "dep:tracing-subscriber", "async-graphql/tracing"]
+tracing = ["dep:tracing", "tracing-subscriber", "async-graphql/tracing"]
 # debug macro flags
 debug_macro_cli = ["_macro_proc/debug_macro_cli"]
 debug_macro_file = ["_macro_proc/debug_macro_file"]

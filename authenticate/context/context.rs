@@ -1,13 +1,14 @@
 use crate::prelude::*;
 
-const AUTHORIZATION: &str = "authorization";
+const AUTHORIZATION: &str = "Authorization";
 const BEARER: &str = "Bearer ";
 const LOGIN_SESSION: &str = "login_session";
+const LOGIN_SESSION_EXPIRES: i64 = 30 * 24 * 60 * 60 * 1000;
 
 pub trait AuthenticateContext {
     fn get_header_authorization(&self) -> Res<String>;
     fn get_cookie_login_session(&self) -> Res<String>;
-    fn set_cookie_login_session(&self, v: &str);
+    fn set_cookie_login_session(&self, s: &LoginSessionSql) -> Res<()>;
 }
 
 impl AuthenticateContext for Context<'_> {
@@ -21,7 +22,9 @@ impl AuthenticateContext for Context<'_> {
         Ok(v)
     }
 
-    fn set_cookie_login_session(&self, v: &str) {
-        self.insert_http_header(LOGIN_SESSION, v);
+    fn set_cookie_login_session(&self, s: &LoginSessionSql) -> Res<()> {
+        let token = qs_token(&s.id, &s.secret)?;
+        self.set_cookie(LOGIN_SESSION, &token, LOGIN_SESSION_EXPIRES);
+        Ok(())
     }
 }
