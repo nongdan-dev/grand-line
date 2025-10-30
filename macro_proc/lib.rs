@@ -76,6 +76,11 @@ pub fn delete(attr: TokenStream, item: TokenStream) -> TokenStream {
 // utils
 
 #[proc_macro_attribute]
+pub fn enunn(attr: TokenStream, item: TokenStream) -> TokenStream {
+    gen_enunn(attr, item)
+}
+
+#[proc_macro_attribute]
 pub fn gql_input(attr: TokenStream, item: TokenStream) -> TokenStream {
     gen_gql_input(attr, item)
 }

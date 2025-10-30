@@ -32,7 +32,7 @@ impl Query {
 #[tokio::test]
 async fn should_only_expose_client_errors() -> Res<()> {
     let tmp = tmp_db().await?;
-    let s = schema_q::<Query>(&tmp.db);
+    let s = schema_q::<Query>(&tmp.db).finish();
 
     check(&s, "{ client }", MyErr::Client).await;
     check(
@@ -58,7 +58,7 @@ where
     assert!(
         e.message == expected_message,
         "error message should match `{}`",
-        expected_message,
+        expected_message
     );
 
     if let Some(extensions) = e.extensions.as_ref() {
@@ -71,7 +71,7 @@ where
             assert!(
                 false,
                 "error extensions code should match `{}`",
-                expected_code,
+                expected_code
             );
         }
     } else {

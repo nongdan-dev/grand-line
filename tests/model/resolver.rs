@@ -33,7 +33,7 @@ async fn sql_dep_cols() -> Res<()> {
     use test::*;
 
     let tmp = tmp_db!(User);
-    let s = schema_q::<UserDetailQuery>(&tmp.db);
+    let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
     let u = db_create!(
         &tmp.db,
@@ -41,7 +41,7 @@ async fn sql_dep_cols() -> Res<()> {
             first_name: "Olivia",
             middle_name: "Anna",
             last_name: "Dunham",
-        },
+        }
     );
 
     let q = r#"
@@ -95,7 +95,7 @@ async fn sql_dep_exprs() -> Res<()> {
     use test::*;
 
     let tmp = tmp_db!(User);
-    let s = schema_q::<UserDetailQuery>(&tmp.db);
+    let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
     let u = db_create!(&tmp.db, User { a: 1 });
 

@@ -203,23 +203,26 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // gql
     let GqlAttr {
         struk: mut gql_struk,
+        defaults: mut gql_defaults,
         resolver: mut gql_resolver,
         into: gql_into,
         cols: gql_cols,
         select: mut gql_select,
         get_col: gql_get_col,
-    } = gql_attr(&gql_fields);
+    } = gql_attr(&model_str, &gql_fields);
     let GqlAttrVirtuals {
         select: gql_select2,
     } = gql_attr_virtuals(&virtual_resolvers);
     gql_select.extend(gql_select2);
     let GqlAttrExprs {
         struk: gql_struk2,
+        defaults: gql_defaults2,
         resolver: gql_resolver2,
         select: gql_select2,
         exprs: gql_exprs,
-    } = gql_exprs_ts2(&exprs);
+    } = gql_exprs_ts2(&model_str, &exprs);
     gql_struk.extend(gql_struk2);
+    gql_defaults.extend(gql_defaults2);
     gql_resolver.extend(gql_resolver2);
     gql_select.extend(gql_select2);
     for f in virtual_resolvers {
@@ -239,7 +242,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             #[derive(
                 Debug,
                 Clone,
-                Default,
                 DeriveEntityModel,
             )]
             #[sea_orm(table_name=#sql_alias)]
@@ -248,7 +250,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             #[derive(
                 Debug,
                 Clone,
-                Default,
                 FromQueryResult,
             )]
             pub struct #gql {
@@ -363,6 +364,13 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                     match col {
                         #(#gql_get_col)*
                         _ => None
+                    }
+                }
+            }
+            impl Default for #gql {
+                fn default() -> Self {
+                    Self {
+                        #(#gql_defaults)*
                     }
                 }
             }

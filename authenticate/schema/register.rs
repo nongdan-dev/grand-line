@@ -12,18 +12,21 @@ async fn register() -> String {
 
     try_email_should_not_exist(tx, &data.email.0).await?;
 
-    // TODO: check if this email has been requested to register recently?
+    // TODO: check if this email has been requested register recently
 
-    let t = am_create!(AuthTicket {
-        ty: AUTH_TICKET_REGISTER.to_string(),
-        email: data.email.0,
-        password_hashed: password_hash(&data.password)?,
-        otp: secret_otp_6digits(),
-    })
-    .insert(tx)
-    .await?;
+    let t = db_create!(
+        tx,
+        AuthTicket {
+            ty: AuthTicketTy::Register,
+            email: data.email.0,
+            data: AuthTicketDataRegister {
+                password_hashed: password_hash(&data.password)?,
+            }
+            .to_json()?,
+        }
+    );
 
-    // TODO: send email otp
+    // TODO: trigger event otp
 
     t.id
 }
@@ -51,27 +54,30 @@ async fn registerResolve() -> LoginSessionGql {
 
     // TODO: check otp expired
 
+    let tdata = AuthTicketDataRegister::from_json(t.data)?;
+
     try_email_should_not_exist(tx, &t.email).await?;
 
-    let u = am_create!(User {
-        email: t.email,
-        password_hashed: t.password_hashed,
-    })
-    .insert(tx)
-    .await?;
-
-    let s = am_create!(LoginSession {
-        user_id: u.id,
-        secret: secret_256bit(),
-    })
-    .insert(tx)
-    .await?;
-
-    ctx.set_cookie_login_session(&s)?;
+    let u = db_create!(
+        tx,
+        User {
+            email: t.email,
+            password_hashed: tdata.password_hashed,
+        }
+    );
+    let ls = db_create!(
+        tx,
+        LoginSession {
+            user_id: u.id,
+            ip: ctx.get_ip()?,
+            ua: ctx.get_ua()?,
+        }
+    );
+    ctx.set_cookie_login_session(&ls)?;
 
     // TODO: trigger register success event
 
-    s.into_gql(ctx).await?
+    ls.into_gql(ctx).await?
 }
 
 async fn try_email_should_not_exist(tx: &DatabaseTransaction, email: &String) -> Res<()> {

@@ -20,7 +20,7 @@ async fn t() -> Res<()> {
     use test::*;
 
     let tmp = tmp_db!(User);
-    let s = schema_q::<UserDetailQuery>(&tmp.db);
+    let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
     let u = db_create!(&tmp.db, User { a: 1 });
 

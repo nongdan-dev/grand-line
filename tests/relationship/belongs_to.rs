@@ -24,7 +24,7 @@ async fn t() -> Res<()> {
     use test::*;
 
     let tmp = tmp_db!(User, Alias);
-    let s = schema_q::<AliasDetailQuery>(&tmp.db);
+    let s = schema_q::<AliasDetailQuery>(&tmp.db).finish();
 
     let u = db_create!(&tmp.db, User { name: "Olivia" });
     let f = db_create!(&tmp.db, Alias { user_id: u.id });

@@ -1,5 +1,6 @@
 mod attr_default_flags;
 mod attr_ty;
+mod enunn;
 mod err;
 mod expr_struct;
 mod gen_db_action;
@@ -13,6 +14,7 @@ mod order_by;
 mod unwrap_option;
 pub use attr_default_flags::*;
 pub use attr_ty::*;
+pub use enunn::*;
 pub use err::*;
 pub use expr_struct::*;
 pub use gen_db_action::*;

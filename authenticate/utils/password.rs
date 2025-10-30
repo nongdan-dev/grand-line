@@ -16,13 +16,11 @@ pub fn password_hash(password: &str) -> Res<String> {
     Ok(password_hashed)
 }
 
-pub fn password_compare(password: &str, password_hashed: &str) -> Res<bool> {
+pub fn password_compare(password: &str, password_hashed: &str) -> bool {
     match PasswordHash::new(password_hashed) {
-        Ok(v) => match Argon2::default().verify_password(password.as_bytes(), &v) {
-            Ok(_) => Ok(true),
-            Err(PasswordHashErr::Password) => Ok(false),
-            Err(e) => Err(MyErr::from(e))?,
-        },
-        Err(e) => Err(MyErr::from(e))?,
+        Ok(v) => Argon2::default()
+            .verify_password(password.as_bytes(), &v)
+            .is_ok(),
+        _ => false,
     }
 }

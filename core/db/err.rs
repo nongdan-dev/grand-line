@@ -21,6 +21,11 @@ pub enum MyErr {
         model: &'static str,
         field: &'static str,
     },
+    #[error("`{field}` have no value in the gql model `{model}`")]
+    DbGqlField404 {
+        model: &'static str,
+        field: &'static str,
+    },
 
     #[error("look ahead selection fields len should be 1")]
     LookAhead,

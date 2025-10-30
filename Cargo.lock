@@ -90,8 +90,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde",
- "strum 0.27.2",
- "strum_macros 0.27.2",
  "syn 2.0.108",
 ]
 
@@ -105,8 +103,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "serde",
- "strum 0.27.2",
- "strum_macros 0.27.2",
  "syn 2.0.108",
 ]
 

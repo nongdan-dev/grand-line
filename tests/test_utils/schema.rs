@@ -2,39 +2,37 @@
 
 use super::*;
 
-pub fn schema_q<Q>(db: &DatabaseConnection) -> Schema<Q, EmptyMutation, EmptySubscription>
+pub fn schema_q<Q>(db: &DatabaseConnection) -> SchemaBuilder<Q, EmptyMutation, EmptySubscription>
 where
     Q: ObjectType + Default + 'static,
 {
     let sb = Schema::build(Q::default(), EmptyMutation, EmptySubscription);
-    finish(sb, db)
+    extension(sb, db)
 }
-pub fn schema_m<M>(db: &DatabaseConnection) -> Schema<EmptyQuery, M, EmptySubscription>
+pub fn schema_m<M>(db: &DatabaseConnection) -> SchemaBuilder<EmptyQuery, M, EmptySubscription>
 where
     M: ObjectType + Default + 'static,
 {
     let sb = Schema::build(EmptyQuery::default(), M::default(), EmptySubscription);
-    finish(sb, db)
+    extension(sb, db)
 }
 
-pub fn schema_qm<Q, M>(db: &DatabaseConnection) -> Schema<Q, M, EmptySubscription>
+pub fn schema_qm<Q, M>(db: &DatabaseConnection) -> SchemaBuilder<Q, M, EmptySubscription>
 where
     Q: ObjectType + Default + 'static,
     M: ObjectType + Default + 'static,
 {
     let sb = Schema::build(Q::default(), M::default(), EmptySubscription);
-    finish(sb, db)
+    extension(sb, db)
 }
 
-fn finish<Q, M, S>(sb: SchemaBuilder<Q, M, S>, db: &DatabaseConnection) -> Schema<Q, M, S>
+fn extension<Q, M, S>(sb: SchemaBuilder<Q, M, S>, db: &DatabaseConnection) -> SchemaBuilder<Q, M, S>
 where
     Q: ObjectType + 'static,
     M: ObjectType + 'static,
     S: SubscriptionType + 'static,
 {
-    sb.extension(GrandLineExtension)
-        .data(Arc::new(db.clone()))
-        .finish()
+    sb.extension(GrandLineExtension).data(Arc::new(db.clone()))
 }
 
 #[derive(Default, SimpleObject)]

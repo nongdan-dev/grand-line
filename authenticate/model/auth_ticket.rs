@@ -1,15 +1,26 @@
 use crate::prelude::*;
 
-pub const AUTH_TICKET_REGISTER: &str = "register";
-pub const AUTH_TICKET_FORGOT: &str = "forgot";
-
 #[model]
 pub struct AuthTicket {
-    pub ty: String,
-    /// register, forgot
+    pub ty: AuthTicketTy,
     pub email: String,
-    /// register
-    pub password_hashed: String,
-    /// register, forgot
+    #[default(random_otp_6digits())]
     pub otp: String,
+    pub data: JsonValue,
+}
+
+#[enunn]
+pub enum AuthTicketTy {
+    Register,
+    Forgot,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AuthTicketDataRegister {
+    pub password_hashed: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AuthTicketDataForgot {
+    pub user_id: String,
 }
