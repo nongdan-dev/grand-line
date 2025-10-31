@@ -13,57 +13,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "_authenticate"
-version = "0.0.0"
-dependencies = [
- "_axum",
- "_core",
- "argon2",
- "base64",
- "rand 0.9.2",
- "rand_core 0.9.3",
- "serde",
- "serde_qs",
- "thiserror 2.0.17",
- "validator",
-]
-
-[[package]]
-name = "_axum"
-version = "0.0.0"
-dependencies = [
- "_core",
- "async-graphql-axum",
- "axum",
- "cookie",
- "thiserror 2.0.17",
- "tower",
- "tower-http",
-]
-
-[[package]]
-name = "_core"
-version = "0.0.0"
-dependencies = [
- "_macro_proc",
- "_macro_utils",
- "_macro_utils_proc",
- "async-graphql",
- "async-trait",
- "chrono",
- "sea-orm",
- "serde",
- "serde_json",
- "serde_with",
- "sqlx",
- "thiserror 2.0.17",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "ulid",
-]
-
-[[package]]
 name = "_macro_proc"
 version = "0.0.0"
 dependencies = [
@@ -1021,13 +970,34 @@ dependencies = [
 name = "grand-line"
 version = "0.0.0"
 dependencies = [
- "_authenticate",
- "_axum",
- "_core",
+ "_macro_proc",
  "_macro_utils",
+ "_macro_utils_proc",
+ "argon2",
+ "async-graphql",
+ "async-graphql-axum",
+ "async-trait",
+ "axum",
+ "base64",
+ "chrono",
+ "cookie",
  "pretty_assertions",
+ "rand 0.9.2",
+ "rand_core 0.9.3",
+ "sea-orm",
  "serde",
+ "serde_json",
+ "serde_qs",
+ "serde_with",
+ "sqlx",
  "thiserror 2.0.17",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "ulid",
+ "validator",
 ]
 
 [[package]]

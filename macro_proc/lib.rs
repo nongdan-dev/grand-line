@@ -1,10 +1,9 @@
-#![allow(unused_imports, ambiguous_glob_reexports)]
-
 mod crud;
 mod model;
 mod resolver_ty;
 mod utils;
 
+#[allow(unused_imports)]
 mod prelude {
     pub use crate::crud::*;
     pub use crate::model::*;

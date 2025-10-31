@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::prelude::*;
 use std::any::type_name;
 use std::str::FromStr;

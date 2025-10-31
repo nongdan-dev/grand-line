@@ -1,7 +1,6 @@
-#![allow(unused_imports, ambiguous_glob_reexports)]
-
 mod macros;
 
+#[allow(unused_imports)]
 mod prelude {
     pub use crate::macros::*;
     pub use _macro_utils::*;

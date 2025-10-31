@@ -1,4 +1,4 @@
-#![allow(unused_imports, ambiguous_glob_reexports)]
+#![allow(unused_imports)]
 
 mod db;
 mod exec_assert;
