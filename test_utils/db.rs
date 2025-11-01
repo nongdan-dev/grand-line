@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-
-use super::*;
+use crate::prelude::*;
 use std::time::Duration;
 
 pub async fn tmp_db() -> Res<TmpDb> {

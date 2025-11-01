@@ -12,43 +12,39 @@ name = "grand_line"
 path = "lib.rs"
 
 [features]
-default = ["postgres", "axum", "authenticate"]
-# do not re-export dependencies or aliases
-no_reexport_dep = []
-no_reexport_alias = []
+default = ["postgres", "default_without_db"]
+default_without_db = ["axum", "authenticate"]
 # db
 sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
 mysql = ["sea-orm/sqlx-mysql", "sqlx/mysql"]
-postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres", "_macro_proc/postgres"]
+postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres", "macro_proc/postgres"]
 # tracing
 tracing = ["dep:tracing", "tracing-subscriber", "async-graphql/tracing"]
 # debug macro flags
-debug_macro_cli = ["_macro_proc/debug_macro_cli"]
-debug_macro_file = ["_macro_proc/debug_macro_file"]
+debug_macro_cli = ["macro_proc/debug_macro_cli"]
+debug_macro_file = ["macro_proc/debug_macro_file"]
 # model flags
-no_created_at = ["_macro_proc/no_created_at"]
-no_updated_at = ["_macro_proc/no_updated_at"]
-no_deleted_at = ["_macro_proc/no_deleted_at"]
-no_by_id = ["_macro_proc/no_by_id"]
+no_created_at = ["macro_proc/no_created_at"]
+no_updated_at = ["macro_proc/no_updated_at"]
+no_deleted_at = ["macro_proc/no_deleted_at"]
+no_by_id = ["macro_proc/no_by_id"]
 # resolver flags
-resolver_inputs = ["_macro_proc/resolver_inputs"]
-resolver_output = ["_macro_proc/resolver_output"]
-no_tx = ["_macro_proc/no_tx"]
-no_ctx = ["_macro_proc/no_ctx"]
-no_include_deleted = ["_macro_proc/no_include_deleted"]
-no_permanent_delete = ["_macro_proc/no_permanent_delete"]
+resolver_inputs = ["macro_proc/resolver_inputs"]
+resolver_output = ["macro_proc/resolver_output"]
+no_tx = ["macro_proc/no_tx"]
+no_ctx = ["macro_proc/no_ctx"]
+no_include_deleted = ["macro_proc/no_include_deleted"]
+no_permanent_delete = ["macro_proc/no_permanent_delete"]
 # limit flags
-limit_x2 = ["_macro_proc/limit_x2"]
-limit_x5 = ["_macro_proc/limit_x5"]
-limit_x10 = ["_macro_proc/limit_x10"]
+limit_x2 = ["macro_proc/limit_x2"]
+limit_x5 = ["macro_proc/limit_x5"]
+limit_x10 = ["macro_proc/limit_x10"]
 # feature
+test_utils = ["pretty_assertions"]
 axum = ["dep:axum", "async-graphql-axum", "cookie", "tower", "tower-http"]
 authenticate = ["axum", "argon2", "base64", "rand", "rand_core", "serde_qs", "validator"]
 
 [dependencies]
-_macro_proc = { path = "./macro_proc", default-features = false, features = [] }
-_macro_utils = { path = "./macro_utils", default-features = false, features = [] }
-_macro_utils_proc = { path = "./macro_utils_proc", default-features = false, features = [] }
 argon2 = { version = "0.5.3", optional = true, default-features = false, features = ["alloc", "password-hash"] }
 async-graphql = { version = "7.0.17", default-features = false, features = ["chrono", "chrono-duration", "chrono-tz", "dataloader", "decimal", "string_number", "boxed-trait"] }
 async-graphql-axum = { version = "7.0.17", optional = true, default-features = false, features = [] }
@@ -57,6 +53,10 @@ axum = { version = "0.8.6", optional = true, default-features = false, features 
 base64 = { version = "0.22.1", optional = true, default-features = false, features = [] }
 chrono = { version = "0.4.42", default-features = false, features = ["now", "serde"] }
 cookie = { version = "0.18.1", optional = true, default-features = false, features = [] }
+macro_proc = { path = "./macro_proc", default-features = false, features = [] }
+macro_utils = { path = "./macro_utils", default-features = false, features = [] }
+macro_utils_proc = { path = "./macro_utils_proc", default-features = false, features = [] }
+pretty_assertions = { version = "1.4.1", optional = true, default-features = false, features = ["std"] }
 rand = { version = "0.9.2", optional = true, default-features = false, features = ["thread_rng"] }
 rand_core = { version = "0.9.3", optional = true, default-features = false, features = [] }
 sea-orm = { version = "1.1.17", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
@@ -73,6 +73,3 @@ tracing = { version = "0.1.41", optional = true, default-features = false, featu
 tracing-subscriber = { version = "0.3.20", optional = true, default-features = false, features = [] }
 ulid = { version = "1.2.1", default-features = false, features = ["std"] }
 validator = { version = "0.20.0", optional = true, default-features = false, features = [] }
-
-[dev-dependencies]
-pretty_assertions = { version = "1.4.1", default-features = false, features = ["std"] }

@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-
-use super::*;
+use crate::prelude::*;
 
 pub async fn exec_assert<Q, M, S>(s: &Schema<Q, M, S>, q: &str, v: Option<&Value>, expected: &Value)
 where

@@ -39,7 +39,7 @@ where
         }
 
         if !no_ctx {
-            inputs = quote!(ctx: &async_graphql::Context<'_>, #inputs);
+            inputs = quote!(ctx: &Context<'_>, #inputs);
         }
 
         body = quote! {

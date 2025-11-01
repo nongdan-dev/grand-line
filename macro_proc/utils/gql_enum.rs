@@ -10,9 +10,9 @@ pub fn gen_gql_enum(_: TokenStream, item: TokenStream) -> TokenStream {
             Eq,
             PartialEq,
             Copy,
-            serde::Deserialize,
-            serde::Serialize,
-            async_graphql::Enum,
+            Deserialize,
+            Serialize,
+            Enum,
         )]
         #item
     }

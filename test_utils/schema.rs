@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-
-use super::*;
+use crate::prelude::*;
 
 pub fn schema_q<Q>(db: &DatabaseConnection) -> SchemaBuilder<Q, EmptyMutation, EmptySubscription>
 where

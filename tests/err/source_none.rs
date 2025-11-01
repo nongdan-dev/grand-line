@@ -1,6 +1,4 @@
-#[path = "../test_utils/mod.rs"]
-mod test_utils;
-use test_utils::*;
+pub use grand_line::prelude::*;
 
 #[derive(Default)]
 struct Query;

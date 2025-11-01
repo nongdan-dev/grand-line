@@ -1,6 +1,4 @@
 use super::prelude::*;
-use async_graphql::{InputValueError, InputValueResult, Scalar, ScalarType, Value};
-use serde::{Deserialize, Serialize};
 use validator::ValidateEmail;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]

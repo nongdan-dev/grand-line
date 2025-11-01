@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 
-#[path = "../test_utils/mod.rs"]
-mod test_utils;
-pub use test_utils::*;
+pub use grand_line::prelude::*;
 
 #[model]
 pub struct User {

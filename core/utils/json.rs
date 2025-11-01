@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use serde::{Serialize, de::DeserializeOwned};
+use serde::de::DeserializeOwned;
 use serde_json::{from_value, to_value};
 
 /// Helper to quickly convert json.

@@ -1,5 +1,5 @@
 use super::prelude::*;
-use async_graphql::dataloader::DataLoader;
+use dataloader::DataLoader;
 
 #[async_trait]
 pub trait DbAsyncContext {

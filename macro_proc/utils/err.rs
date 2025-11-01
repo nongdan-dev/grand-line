@@ -8,7 +8,11 @@ pub fn gen_grand_line_err(_: TokenStream, item: TokenStream) -> TokenStream {
     let item = Into::<Ts2>::into(item);
 
     quote! {
-        #[derive(ThisErr, GrandLineErrDerive, Debug)]
+        #[derive(
+            Debug,
+            ThisErr,
+            GrandLineErrDerive,
+        )]
         #item
     }
     .into()

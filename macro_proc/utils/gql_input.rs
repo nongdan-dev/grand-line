@@ -9,9 +9,9 @@ pub fn gen_gql_input(_: TokenStream, item: TokenStream) -> TokenStream {
             Debug,
             Clone,
             Default,
-            serde::Deserialize,
-            serde::Serialize,
-            async_graphql::InputObject,
+            Deserialize,
+            Serialize,
+            InputObject,
         )]
         #item
     }

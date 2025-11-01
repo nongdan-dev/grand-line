@@ -1,16 +1,16 @@
 [package]
-name = "_macro_utils_proc"
+name = "macro_utils_proc"
 version = "0.0.0"
 edition = "2024"
 
 [lib]
-name = "_macro_utils_proc"
+name = "macro_utils_proc"
 path = "lib.rs"
 proc-macro = true
 
 [dependencies]
-_macro_utils = { path = "../macro_utils", default-features = false, features = [] }
 heck = { version = "0.5.0", default-features = false, features = [] }
+macro_utils = { path = "../macro_utils", default-features = false, features = [] }
 maplit = { version = "1.0.2", default-features = false, features = [] }
 proc-macro2 = { version = "1.0.103", default-features = false, features = [] }
 quote = { version = "1.0.41", default-features = false, features = [] }

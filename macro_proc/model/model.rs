@@ -237,7 +237,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let r = quote! {
         mod #module {
             use super::*;
-            pub use sea_orm::{entity::prelude::*, prelude::*, *};
 
             #[derive(
                 Debug,
@@ -255,7 +254,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             pub struct #gql {
                 #(#gql_struk)*
             }
-            #[async_graphql::Object(name=#gql_alias)]
+            #[Object(name=#gql_alias)]
             impl #gql {
                 #(#gql_resolver)*
             }

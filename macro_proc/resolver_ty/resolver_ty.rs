@@ -18,11 +18,10 @@ impl ResolverTy {
         let r = quote! {
             mod #m {
                 pub use super::*;
-                pub use sea_orm::{entity::prelude::*, prelude::*, *};
 
                 #[derive(Default)]
                 pub struct #ty;
-                #[async_graphql::Object]
+                #[Object]
                 impl #ty {
                     #resolver
                 }

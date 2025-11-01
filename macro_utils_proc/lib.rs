@@ -3,7 +3,7 @@ mod macros;
 #[allow(unused_imports)]
 mod prelude {
     pub use crate::macros::*;
-    pub use _macro_utils::*;
+    pub use macro_utils::*;
     pub use proc_macro::TokenStream;
     use_common_macro_utils!();
     use_common_std!();

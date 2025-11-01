@@ -9,15 +9,15 @@ check:
 
 test:
 	make check -Bs \
-	&& cargo test;
+	&& cargo test --features test_utils;
 
 test_mysql:
 	make check -Bs \
-	&& cargo test --no-default-features --features mysql;
+	&& cargo test --no-default-features --features test_utils,default_without_db,mysql;
 
 test_sqlite:
 	make check -Bs \
-	&& cargo test --no-default-features --features sqlite;
+	&& cargo test --no-default-features --features test_utils,default_without_db,sqlite;
 
 update:
 	cargo update --dry-run \

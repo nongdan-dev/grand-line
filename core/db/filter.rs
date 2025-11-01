@@ -1,5 +1,4 @@
 use super::prelude::*;
-use serde::Serialize;
 
 /// Helper trait to combine filter and filter_extra.
 pub trait Filter<E>

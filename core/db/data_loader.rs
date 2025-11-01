@@ -1,5 +1,5 @@
 use super::prelude::*;
-use async_graphql::dataloader::Loader;
+use dataloader::Loader;
 
 pub struct LoaderX<E>
 where

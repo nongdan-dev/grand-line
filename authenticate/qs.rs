@@ -1,5 +1,4 @@
 use super::prelude::*;
-use serde::{Deserialize, Serialize};
 use serde_qs::{from_str, to_string};
 
 #[derive(Serialize, Deserialize)]
