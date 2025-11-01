@@ -49,6 +49,6 @@ pub mod prelude {
     pub use serde::{Deserialize, Serialize};
     pub use serde_json::Error as JsonErr;
     pub use thiserror::Error as ThisErr;
-    pub use tokio::sync::Mutex;
+    pub use tokio::sync::{Mutex, OnceCell};
     macro_utils::use_common_std!();
 }

@@ -4,12 +4,21 @@ use super::prelude::*;
 /// We will get it in the resolvers to manage per-request db transaction, graphql loaders, cache...
 /// We should only use it in the GrandLineExtension to inject this context automatically on each request
 pub struct GrandLineContext {
-    pub db: Arc<DatabaseConnection>,
-    pub tx: Mutex<Option<Arc<DatabaseTransaction>>>,
-    pub loaders: Mutex<HashMap<String, Arc<dyn Any + Send + Sync>>>,
+    pub(crate) db: Arc<DatabaseConnection>,
+    pub(crate) tx: Mutex<Option<Arc<DatabaseTransaction>>>,
+    pub(crate) loaders: Mutex<HashMap<String, Arc<dyn Any + Send + Sync>>>,
+    pub(crate) cache_others: Mutex<HashMap<TypeId, Arc<dyn Any + Send + Sync>>>,
 }
 impl GrandLineContext {
-    pub async fn tx(&self) -> Res<Arc<DatabaseTransaction>> {
+    pub(crate) fn new(db: Arc<DatabaseConnection>) -> Self {
+        Self {
+            db,
+            tx: Mutex::new(None),
+            loaders: Mutex::new(HashMap::new()),
+            cache_others: Mutex::new(HashMap::new()),
+        }
+    }
+    pub(crate) async fn tx(&self) -> Res<Arc<DatabaseTransaction>> {
         let mut guard = self.tx.lock().await;
         match &*guard {
             Some(a) => Ok(a.clone()),
@@ -21,7 +30,7 @@ impl GrandLineContext {
         }
     }
 
-    pub async fn cleanup(&self, error: bool) -> Res<()> {
+    pub(crate) async fn cleanup(&self, error: bool) -> Res<()> {
         self.loaders.lock().await.clear();
         if error {
             self.rollback().await

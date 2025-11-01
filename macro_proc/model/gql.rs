@@ -95,7 +95,7 @@ pub fn gql_exprs_ts2(model_str: &str, exprs: &Vec<Vec<Attr>>) -> GqlAttrExprs {
             .iter()
             .find(|a| a.attr == VirtualTy::SqlExpr)
             .unwrap_or_else(|| {
-                let err = "failed to find VirtualTy::SqlExpr to build select as";
+                let err = "cannot find VirtualTy::SqlExpr to build select as";
                 bug!(err);
             });
         let name_str = a.field_name();

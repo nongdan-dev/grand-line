@@ -24,11 +24,7 @@ impl Extension for GrandLineExtensionImpl {
         let db = ctx
             .data::<Arc<DatabaseConnection>>()
             .map_err(|e| MyErr::CtxDb404 { inner: e.message })?;
-        let gl = GrandLineContext {
-            db: db.clone(),
-            tx: Mutex::new(None),
-            loaders: Mutex::new(HashMap::new()),
-        };
+        let gl = GrandLineContext::new(db.clone());
         next.run(ctx, request.data(Arc::new(gl))).await
     }
 
@@ -40,7 +36,7 @@ impl Extension for GrandLineExtensionImpl {
         next: NextExecute<'_>,
     ) -> Response {
         let mut r = next.run(ctx, operation_name).await;
-        match ctx.grand_line_context() {
+        match ctx._grand_line_context() {
             Ok(gl) => {
                 if let Err(e) = gl.cleanup(!r.errors.is_empty()).await {
                     r.errors.push(e.into());

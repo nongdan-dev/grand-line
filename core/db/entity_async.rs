@@ -24,7 +24,7 @@ where
         let f = filter.combine(filter_extra);
         let r = Self::find()
             .include_deleted(include_deleted.or_else(|| Some(f.has_deleted_at())))
-            .filter_opt(extra_cond)
+            .filter_optional(extra_cond)
             .chain(f)
             .chain(order_by.combine(order_by_default))
             .chain(page.inner(Self::_limit_config()))

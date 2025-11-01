@@ -6,7 +6,7 @@ where
     E: EntityX,
 {
     /// Helper to filter with option.
-    fn filter_opt(self, c: Option<Condition>) -> Self;
+    fn filter_optional(self, c: Option<Condition>) -> Self;
 
     /// Helper to filter with ChainSelect.
     fn chain<C>(self, c: C) -> Self
@@ -31,7 +31,7 @@ impl<E> SelectX<E> for Select<E>
 where
     E: EntityX,
 {
-    fn filter_opt(self, c: Option<Condition>) -> Self {
+    fn filter_optional(self, c: Option<Condition>) -> Self {
         match c {
             Some(c) => self.filter(c),
             None => self,

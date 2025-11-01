@@ -33,7 +33,7 @@ macro_rules! ts2 {
     ($($s:expr),*) => {
         s!($($s),*).parse::<Ts2>()
             .unwrap_or_else(|e| {
-                let err = f!("failed to parse token stream: {}", e);
+                let err = f!("cannot parse token stream: {}", e);
                 pan!(err);
             })
     };

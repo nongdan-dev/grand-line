@@ -33,7 +33,7 @@ async fn login() -> LoginSessionGql {
         }
     );
 
-    ctx.set_cookie_login_session(&ls)?;
+    ctx._set_cookie_login_session(&ls)?;
 
     // TODO: trigger login success event
 

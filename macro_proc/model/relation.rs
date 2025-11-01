@@ -46,8 +46,7 @@ impl GenRelation {
         let none = if vec { quote!(vec![]) } else { quote!(None) };
         quote! {
             if let Some(id) = self.#sql_dep.clone() {
-                let _tx = ctx.tx().await?;
-                let tx = _tx.as_ref();
+                let tx = &*ctx.tx().await?;
                 #r
             } else {
                 #none

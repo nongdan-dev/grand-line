@@ -29,9 +29,9 @@ pub enum MyErr {
 
     #[error("look ahead selection fields len should be 1")]
     LookAhead,
-    #[error("data loader failed to downcast from arc dyn any")]
+    #[error("data loader cannot downcast from arc dyn any")]
     LoaderDowncast,
-    #[error("data loader failed to get value from column in gql model")]
+    #[error("data loader cannot get value from column in gql model")]
     LoaderColumnValue,
 
     #[error("FRAMEWORK BUG: id column is not present in the model {model}")]

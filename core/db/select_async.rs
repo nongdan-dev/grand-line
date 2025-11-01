@@ -12,7 +12,7 @@ where
         D: ConnectionTrait;
 
     /// Helper to check if exists and return error if not.
-    async fn try_exists<D>(self, db: &D) -> Res<()>
+    async fn exists_or_404<D>(self, db: &D) -> Res<()>
     where
         D: ConnectionTrait;
 }
@@ -34,7 +34,7 @@ where
         }
     }
 
-    async fn try_exists<D>(self, db: &D) -> Res<()>
+    async fn exists_or_404<D>(self, db: &D) -> Res<()>
     where
         D: ConnectionTrait,
     {
@@ -53,7 +53,7 @@ where
     G: FromQueryResult + Send + Sync,
 {
     /// Helper to find one and return error if not.
-    async fn try_one<D>(self, db: &D) -> Res<G>
+    async fn one_or_404<D>(self, db: &D) -> Res<G>
     where
         D: ConnectionTrait;
 }
@@ -64,7 +64,7 @@ impl<E> SelectXAsync2<E::M> for Select<E>
 where
     E: EntityX,
 {
-    async fn try_one<D>(self, db: &D) -> Res<E::M>
+    async fn one_or_404<D>(self, db: &D) -> Res<E::M>
     where
         D: ConnectionTrait,
     {
@@ -81,7 +81,7 @@ impl<G> SelectXAsync2<G> for Selector<SelectModel<G>>
 where
     G: FromQueryResult + Send + Sync,
 {
-    async fn try_one<D>(self, db: &D) -> Res<G>
+    async fn one_or_404<D>(self, db: &D) -> Res<G>
     where
         D: ConnectionTrait,
     {

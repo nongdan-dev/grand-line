@@ -208,7 +208,7 @@ impl Attr {
             Some((v, AttrParseTy::NameValue)) => match v.parse::<V>() {
                 Ok(v) => Some(v),
                 Err(_) => {
-                    let err = f!("failed to parse `{}` as {}", v, type_name::<V>());
+                    let err = f!("cannot parse `{}` as {}", v, type_name::<V>());
                     let err = self.errk(k, err);
                     pan!(err);
                 }

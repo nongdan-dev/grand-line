@@ -1,19 +1,19 @@
 use super::prelude::*;
 
-pub trait GrandLineContextImpl {
-    fn grand_line_context(&self) -> Res<Arc<GrandLineContext>>;
+pub trait GrandLineExtensionContext {
+    fn _grand_line_context(&self) -> Res<Arc<GrandLineContext>>;
 }
 
-impl GrandLineContextImpl for Context<'_> {
+impl GrandLineExtensionContext for Context<'_> {
     #[inline(always)]
-    fn grand_line_context(&self) -> Res<Arc<GrandLineContext>> {
+    fn _grand_line_context(&self) -> Res<Arc<GrandLineContext>> {
         map_err(self.data::<Arc<GrandLineContext>>())
     }
 }
 
-impl GrandLineContextImpl for ExtensionContext<'_> {
+impl GrandLineExtensionContext for ExtensionContext<'_> {
     #[inline(always)]
-    fn grand_line_context(&self) -> Res<Arc<GrandLineContext>> {
+    fn _grand_line_context(&self) -> Res<Arc<GrandLineContext>> {
         map_err(self.data::<Arc<GrandLineContext>>())
     }
 }

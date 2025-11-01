@@ -19,7 +19,7 @@ async fn t() -> Res<()> {
     });
     let _ = exec_assert_ok(&s, q, Some(&v)).await;
 
-    let t = AuthTicket::find().try_one(&d.tmp.db).await?;
+    let t = AuthTicket::find().one_or_404(&d.tmp.db).await?;
     let q = r#"
     mutation test($data: ForgotResolve) {
         forgotResolve(data: $data) {
@@ -47,7 +47,7 @@ async fn t() -> Res<()> {
 
     let u = User::find()
         .filter(UserColumn::Email.eq("olivia@example.com"))
-        .try_one(&d.tmp.db)
+        .one_or_404(&d.tmp.db)
         .await?;
     assert!(
         password_compare("999999", &u.password_hashed),

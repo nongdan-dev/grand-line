@@ -4,6 +4,11 @@ use serde_qs::Error as QsErr;
 
 #[grand_line_err]
 pub enum MyErr {
+    #[error("unauthenticated")]
+    Unauthenticated,
+    #[error("already unauthenticated")]
+    AlreadyAuthenticated,
+
     #[error("hash password error: {inner}")]
     PasswordHash { inner: PasswordHashErr },
     #[error("query string error: {inner}")]

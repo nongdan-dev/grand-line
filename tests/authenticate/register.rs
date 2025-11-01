@@ -20,7 +20,7 @@ async fn t() -> Res<()> {
     });
     let _ = exec_assert_ok(&s, q, Some(&v)).await;
 
-    let t = AuthTicket::find().try_one(&d.tmp.db).await?;
+    let t = AuthTicket::find().one_or_404(&d.tmp.db).await?;
     let q = r#"
     mutation test($data: RegisterResolve) {
         registerResolve(data: $data) {

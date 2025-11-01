@@ -11,7 +11,7 @@ async fn forgot() -> String {
 
     let u = User::find()
         .filter(UserColumn::Email.eq(&data.email.0))
-        .try_one(tx)
+        .one_or_404(tx)
         .await?;
 
     // TODO: check if this user id has been requested forgot password recently
@@ -71,7 +71,7 @@ async fn forgotResolve() -> LoginSessionGql {
             ua: ctx.get_ua()?,
         }
     );
-    ctx.set_cookie_login_session(&ls)?;
+    ctx._set_cookie_login_session(&ls)?;
 
     ls.into_gql(ctx).await?
 }

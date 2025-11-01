@@ -32,8 +32,7 @@ where
                 pan!(err);
             }
             body = quote! {
-                let _tx = ctx.tx().await?;
-                let tx = _tx.as_ref();
+                let tx = &*ctx.tx().await?;
                 #body
             };
         }
