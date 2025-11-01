@@ -9,7 +9,9 @@ async fn t() -> Res<()> {
 
     let q = r#"
     mutation test($data: Forgot) {
-        forgot(data: $data)
+        forgot(data: $data) {
+            id
+        }
     }
     "#;
     let v = value!({
@@ -33,6 +35,7 @@ async fn t() -> Res<()> {
         "data": {
             "id": t.id.clone(),
             "otp": t.otp.clone(),
+            "secret": t.secret.clone(),
             "password": "999999",
         },
     });

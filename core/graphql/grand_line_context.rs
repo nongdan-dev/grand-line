@@ -6,8 +6,8 @@ use super::prelude::*;
 pub struct GrandLineContext {
     pub(crate) db: Arc<DatabaseConnection>,
     pub(crate) tx: Mutex<Option<Arc<DatabaseTransaction>>>,
-    pub(crate) loaders: Mutex<HashMap<String, Arc<dyn Any + Send + Sync>>>,
-    pub(crate) cache_others: Mutex<HashMap<TypeId, Arc<dyn Any + Send + Sync>>>,
+    pub(crate) loaders: Mutex<HashMap<String, ArcAny>>,
+    pub(crate) cache_others: Mutex<HashMap<TypeId, Arc<OnceCell<ArcAny>>>>,
 }
 impl GrandLineContext {
     pub(crate) fn new(db: Arc<DatabaseConnection>) -> Self {

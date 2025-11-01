@@ -9,8 +9,8 @@ mod prelude {
     pub use crate::model::*;
     pub use crate::resolver_ty::*;
     pub use crate::utils::*;
-    pub use macro_utils::*;
-    pub use macro_utils_proc::*;
+    pub use _utils::*;
+    pub use _utils_proc::*;
     pub use proc_macro::TokenStream;
     use_common_macro_utils!();
     use_common_std!();

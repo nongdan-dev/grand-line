@@ -2,7 +2,9 @@ mod attr;
 mod macros;
 pub use attr::*;
 
-#[allow(unused_imports)]
+pub use {heck, maplit, proc_macro2, quote, serde, strum, strum_macros, syn};
+
+#[allow(unused_imports, dead_code)]
 mod prelude {
     pub use crate::*;
     use_common_macro_utils!();

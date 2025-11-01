@@ -50,12 +50,7 @@ impl AuthenticateAsyncContext for Context<'_> {
     }
 
     async fn _authenticate(&self) -> Res<Arc<Option<LoginSessionSql>>> {
-        let arc = self.get_cache::<Option<LoginSessionSql>>().await?;
-        if let Some(arc) = arc {
-            return Ok(arc);
-        }
-        let ls = self._authenticate_without_cache().await?;
-        let arc = self.cache(ls).await?;
+        let arc = self.cache(|| self._authenticate_without_cache()).await?;
         Ok(arc)
     }
 

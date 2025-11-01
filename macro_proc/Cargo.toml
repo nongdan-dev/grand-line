@@ -1,10 +1,10 @@
 [package]
-name = "macro_proc"
+name = "_proc"
 version = "0.0.0"
 edition = "2024"
 
 [lib]
-name = "macro_proc"
+name = "_proc"
 path = "lib.rs"
 proc-macro = true
 
@@ -26,21 +26,12 @@ no_tx = []
 no_ctx = []
 no_include_deleted = []
 no_permanent_delete = []
-# limit flags
-limit_x2 = []
-limit_x5 = []
-limit_x10 = []
+# auth flags
+auth_authenticated = []
+auth_authorized = []
 
 [dependencies]
+_utils = { path = "../macro_utils", default-features = false, features = [] }
+_utils_proc = { path = "../macro_utils_proc", default-features = false, features = [] }
 colored = { version = "3.0.0", optional = true, default-features = false, features = [] }
-heck = { version = "0.5.0", default-features = false, features = [] }
-macro_utils = { path = "../macro_utils", default-features = false, features = [] }
-macro_utils_proc = { path = "../macro_utils_proc", default-features = false, features = [] }
-maplit = { version = "1.0.2", default-features = false, features = [] }
 prettyplease = { version = "0.2.37", optional = true, default-features = false, features = [] }
-proc-macro2 = { version = "1.0.103", default-features = false, features = [] }
-quote = { version = "1.0.41", default-features = false, features = [] }
-serde = { version = "1.0.228", default-features = false, features = ["derive", "std"] }
-strum = { version = "0.27.2", default-features = false, features = [] }
-strum_macros = { version = "0.27.2", default-features = false, features = [] }
-syn = { version = "2.0.108", default-features = false, features = ["derive", "parsing", "printing", "clone-impls", "proc-macro"] }

@@ -9,7 +9,7 @@ Rust macro framework to build graphql resolvers using `sea-orm` and `graphql-asy
 ### Examples
 
 ```rs
-use grand_line::*;
+use grand_line::prelude::*;
 use serde_json::to_string as json;
 
 // create a sea orm model and graphql object

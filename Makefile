@@ -1,11 +1,10 @@
 fmt:
 	cargo fmt \
-	&& dprint fmt \
-	&& cargo clippy;
+	&& dprint fmt;
 
 check:
 	make fmt -Bs \
-	&& cargo check;
+	&& cargo clippy;
 
 test:
 	make check -Bs \

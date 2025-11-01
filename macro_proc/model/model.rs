@@ -68,16 +68,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let sql_alias = snake_str!(model);
 
     // ------------------------------------------------------------------------
-    // entity limit_config
-    let (limit_default, limit_max) = (a.limit_default, a.limit_max);
-    let limit_config = quote! {
-        LimitConfig {
-            default: #limit_default,
-            max: #limit_max,
-        }
-    };
-
-    // ------------------------------------------------------------------------
     // active model default
     let mut am_defaults = vec![];
     let mut self_am_defaults = vec![];
@@ -293,9 +283,6 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 type G = #gql;
                 fn _model_name() -> &'static str {
                     #model_str
-                }
-                fn _limit_config() -> LimitConfig {
-                    #limit_config
                 }
                 fn _gql_cols() -> &'static LazyLock<HashMap<&'static str, Self::C>> {
                     &GQL_COLS

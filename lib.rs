@@ -13,20 +13,22 @@ mod authenticate;
 
 pub mod prelude {
     pub use {
-        macro_proc::*,
-        macro_utils::{am_value, err},
-        macro_utils_proc::{PartialEqString, field_names},
+        _proc::*,
+        _utils::{am_value, err},
     };
 
     pub use {
-        crate::core::*, async_graphql, chrono, sea_orm, serde, serde_json, serde_with, sqlx,
-        thiserror, tokio, ulid,
+        crate::core::*,
+        _utils::{maplit, strum, strum_macros},
+        _utils_proc::{PartialEqString, field_names},
+        async_graphql, chrono, sea_orm, serde, serde_json, serde_with, sqlx, thiserror, tokio,
+        ulid,
     };
     #[cfg(feature = "tracing")]
     pub use {tracing, tracing_subscriber};
 
     #[cfg(feature = "test_utils")]
-    pub use {crate::test_utils::*, macro_utils::*, pretty_assertions::assert_eq as pretty_eq};
+    pub use {crate::test_utils::*, _utils::*, pretty_assertions::assert_eq as pretty_eq};
 
     #[cfg(feature = "axum")]
     pub use {crate::http::*, async_graphql_axum, axum, cookie, tower, tower_http};
@@ -50,5 +52,5 @@ pub mod prelude {
     pub use serde_json::Error as JsonErr;
     pub use thiserror::Error as ThisErr;
     pub use tokio::sync::{Mutex, OnceCell};
-    macro_utils::use_common_std!();
+    _utils::use_common_std!();
 }

@@ -6,8 +6,6 @@ pub struct ModelAttr {
     pub no_updated_at: bool,
     pub no_deleted_at: bool,
     pub no_by_id: bool,
-    pub limit_default: u64,
-    pub limit_max: u64,
     #[allow(dead_code)]
     #[field_names(skip)]
     pub inner: Attr,
@@ -19,8 +17,6 @@ impl From<Attr> for ModelAttr {
             no_updated_at: bool,
             no_deleted_at: bool,
             no_by_id: bool,
-            limit_default: parse,
-            limit_max: parse,
             inner: a,
         })
     }

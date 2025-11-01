@@ -9,7 +9,9 @@ async fn t() -> Res<()> {
 
     let q = r#"
     mutation test($data: Register) {
-        register(data: $data)
+        register(data: $data) {
+            id
+        }
     }
     "#;
     let v = value!({
@@ -34,6 +36,7 @@ async fn t() -> Res<()> {
         "data": {
             "id": t.id.clone(),
             "otp": t.otp.clone(),
+            "secret": t.secret.clone(),
         },
     });
     let expected = value!({

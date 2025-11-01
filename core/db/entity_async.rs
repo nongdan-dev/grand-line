@@ -27,7 +27,7 @@ where
             .filter_optional(extra_cond)
             .chain(f)
             .chain(order_by.combine(order_by_default))
-            .chain(page.inner(Self::_limit_config()))
+            .chain(page.inner(ctx.config()))
             .gql_select(ctx)?
             .all(db)
             .await?;

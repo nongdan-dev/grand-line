@@ -13,10 +13,6 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
     /// To clarify model name in case of error.
     fn _model_name() -> &'static str;
 
-    /// Get default and max limit configuration.
-    /// Should be generated in the model macro.
-    fn _limit_config() -> LimitConfig;
-
     /// Get sql columns map with rust snake field name.
     /// Should be generated in the model macro.
     fn _gql_cols() -> &'static LazyLock<HashMap<&'static str, Self::C>>;

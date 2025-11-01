@@ -6,7 +6,7 @@ pub struct Forgot {
 }
 
 #[create(AuthTicket, resolver_output)]
-async fn forgot() -> String {
+async fn forgot() -> AuthTicketGql {
     // TODO: check anonymous not log in yet
 
     let u = User::find()
@@ -27,13 +27,14 @@ async fn forgot() -> String {
 
     // TODO: trigger event otp
 
-    t.id
+    t.into_gql(ctx).await?
 }
 
 #[gql_input]
 pub struct ForgotResolve {
     pub id: String,
     pub otp: String,
+    pub secret: String,
     pub password: String,
 }
 
@@ -48,8 +49,8 @@ async fn forgotResolve() -> LoginSessionGql {
 
     // TODO: increase otp total attempts, check <= 3
 
-    if t.id != data.id || t.otp != data.otp {
-        Err(MyErr::OtpResolveInvalid)?;
+    if t.id != data.id || t.otp != data.otp || t.secret != data.secret {
+        err!(OtpResolveInvalid)?;
     }
 
     // TODO: check otp expired

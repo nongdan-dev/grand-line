@@ -9,6 +9,7 @@ macro_rules! use_common_std {
         pub use std::future::Future;
         pub use std::hash::{Hash, Hasher};
         pub use std::sync::{Arc, LazyLock};
+        pub type ArcAny = Arc<dyn Any + Send + Sync>;
     };
 }
 

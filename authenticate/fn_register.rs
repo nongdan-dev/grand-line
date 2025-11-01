@@ -7,7 +7,7 @@ pub struct Register {
 }
 
 #[create(AuthTicket, resolver_output)]
-async fn register() -> String {
+async fn register() -> AuthTicketGql {
     // TODO: check anonymous not log in yet
 
     check_email_should_not_exist(tx, &data.email.0).await?;
@@ -28,13 +28,14 @@ async fn register() -> String {
 
     // TODO: trigger event otp
 
-    t.id
+    t.into_gql(ctx).await?
 }
 
 #[gql_input]
 pub struct RegisterResolve {
     pub id: String,
     pub otp: String,
+    pub secret: String,
 }
 
 #[create(LoginSession, resolver_output)]
@@ -48,7 +49,7 @@ async fn registerResolve() -> LoginSessionGql {
 
     // TODO: increase otp total attempts, check <= 3
 
-    if t.id != data.id || t.otp != data.otp {
+    if t.id != data.id || t.otp != data.otp || t.secret != data.secret {
         Err(MyErr::OtpResolveInvalid)?;
     }
 

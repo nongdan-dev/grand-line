@@ -2,50 +2,38 @@ use super::prelude::*;
 
 #[async_trait]
 pub trait GrandLineAsyncContext {
-    async fn get_cache<T>(&self) -> Res<Option<Arc<T>>>
+    async fn cache<T, F, Fu>(&self, init: F) -> Res<Arc<T>>
     where
-        T: 'static + Send + Sync;
-
-    async fn cache<T>(&self, v: T) -> Res<Arc<T>>
-    where
-        T: 'static + Send + Sync;
+        T: Send + Sync + 'static,
+        F: FnOnce() -> Fu + Send,
+        Fu: Future<Output = Res<T>> + Send;
 }
 
 #[async_trait]
 impl GrandLineAsyncContext for Context<'_> {
-    async fn get_cache<T>(&self) -> Res<Option<Arc<T>>>
+    async fn cache<T, F, Fu>(&self, init: F) -> Res<Arc<T>>
     where
-        T: 'static + Send + Sync,
+        T: Send + Sync + 'static,
+        F: FnOnce() -> Fu + Send,
+        Fu: Future<Output = Res<T>> + Send,
     {
-        let any = self
+        let cell = self
             ._grand_line_context()?
             .cache_others
             .lock()
             .await
-            .get(&TypeId::of::<T>())
-            .cloned();
-        let any = if let Some(any) = any {
-            any
-        } else {
-            return Ok(None);
-        };
-        let arc = any
+            .entry(TypeId::of::<T>())
+            .or_insert_with(|| Arc::new(OnceCell::new()))
+            .clone();
+        let arc = cell
+            .get_or_try_init(async move || {
+                let arc = Arc::new(init().await?);
+                Ok::<_, GrandLineErr>(arc as ArcAny)
+            })
+            .await?
             .clone()
             .downcast::<T>()
             .map_err(|_| MyErr::CacheDowncast)?;
-        Ok(Some(arc))
-    }
-
-    async fn cache<T>(&self, v: T) -> Res<Arc<T>>
-    where
-        T: 'static + Send + Sync,
-    {
-        let arc = Arc::new(v);
-        self._grand_line_context()?
-            .cache_others
-            .lock()
-            .await
-            .insert(TypeId::of::<T>(), arc.clone());
         Ok(arc)
     }
 }

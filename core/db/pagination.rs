@@ -13,39 +13,33 @@ pub struct PaginationInner {
     pub limit: u64,
 }
 
-/// Pagination limit config.
-pub struct LimitConfig {
-    pub default: u64,
-    pub max: u64,
-}
-
 /// Helper trait to get offset and limit from pagination, with default and max limit.
 pub trait ToPaginationInner {
     /// Helper to get offset and limit from pagination, with default and max limit.
-    fn inner(self, c: LimitConfig) -> PaginationInner;
+    fn inner(self, c: &GrandLineConfig) -> PaginationInner;
 }
 
 /// Automatically implement ToPaginationInner for Pagination.
 impl ToPaginationInner for Pagination {
-    fn inner(self, c: LimitConfig) -> PaginationInner {
+    fn inner(self, c: &GrandLineConfig) -> PaginationInner {
         PaginationInner {
             offset: self.offset.unwrap_or_default(),
             limit: self
                 .limit
-                .map(|l| if l > c.max { c.max } else { l })
-                .unwrap_or(c.default),
+                .map(|l| if l > c.limit_max { c.limit_max } else { l })
+                .unwrap_or(c.limit_default),
         }
     }
 }
 
 /// Automatically implement ToPaginationInner for Option<Pagination>.
 impl ToPaginationInner for Option<Pagination> {
-    fn inner(self, c: LimitConfig) -> PaginationInner {
+    fn inner(self, c: &GrandLineConfig) -> PaginationInner {
         match self {
             Some(p) => p.inner(c),
             None => PaginationInner {
                 offset: 0,
-                limit: c.default,
+                limit: c.limit_default,
             },
         }
     }
