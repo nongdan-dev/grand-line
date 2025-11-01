@@ -69,7 +69,7 @@ fn attr_validate(attrs: &[Attr]) {
     }
     if matches.len() > 1 {
         let err = f!(
-            "`{}.{}` should have only one between: {}",
+            "{}.{} should have only one between: {}",
             attrs[0].field_model(),
             attrs[0].field_name(),
             matches.iter().map(|v| s!(v)).collect::<Vec<_>>().join(", "),

@@ -6,13 +6,27 @@ where
     E: EntityX,
     Self: ColumnTrait,
 {
-    fn build_loader_key(&self, look_ahead: &[LookaheadX<E>], include_deleted: bool) -> String {
+    fn to_string_with_model_name(&self) -> String {
+        let model = E::model_name();
+        let col = self.as_str();
+
+        let len = model.len() + 1 + col.len();
+        let mut s = String::with_capacity(len);
+
+        s.push_str(model);
+        s.push('.');
+        s.push_str(col);
+
+        s
+    }
+
+    fn to_loader_key(&self, look_ahead: &[LookaheadX<E>], include_deleted: bool) -> String {
         let include_deleted = if include_deleted {
             "include_deleted-"
         } else {
             ""
         };
-        let model = E::_model_name();
+        let model = E::model_name();
         let col = self.as_str();
 
         let len = model.len()

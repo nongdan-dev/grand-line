@@ -74,7 +74,7 @@ async fn registerResolve() -> LoginSessionGql {
             ua: ctx.get_ua()?,
         }
     );
-    ctx._set_cookie_login_session(&ls)?;
+    ctx.set_cookie_login_session(&ls)?;
 
     // TODO: trigger register success event
 
@@ -87,7 +87,7 @@ async fn check_email_should_not_exist(tx: &DatabaseTransaction, email: &String) 
         .exists(tx)
         .await?;
     if email_exists {
-        err!(RegisterEmailExists)?;
+        Err(MyErr::RegisterEmailExists)?;
     }
     Ok(())
 }

@@ -24,7 +24,7 @@ where
         let f = filter.combine(filter_extra);
         let r = Self::find()
             .include_deleted(include_deleted.or_else(|| Some(f.has_deleted_at())))
-            .filter_optional(extra_cond)
+            .filter_opt(extra_cond)
             .chain(f)
             .chain(order_by.combine(order_by_default))
             .chain(page.inner(ctx.config()))
@@ -66,7 +66,7 @@ where
     {
         let r = Self::find()
             .include_deleted(include_deleted)
-            .by_id(id)?
+            .by_id(id)
             .gql_select(ctx)?
             .one(db)
             .await?;
@@ -79,11 +79,11 @@ where
         D: ConnectionTrait,
     {
         if permanent.unwrap_or_default() {
-            Self::delete_many().by_id(id)?.exec(db).await?;
+            Self::delete_many().by_id(id).exec(db).await?;
         } else {
             Self::soft_delete_by_id(id)?.exec(db).await?;
         }
-        let r = Self::G::default()._set_id(id);
+        let r = Self::G::default().set_id(id);
         Ok(r)
     }
 
@@ -94,8 +94,8 @@ where
         include_deleted: Option<bool>,
     ) -> Res<Option<Self::G>> {
         let look_ahead = Self::gql_look_ahead(ctx)?;
-        let include_deleted = Self::_cond_deleted_at(include_deleted);
-        let key = col.build_loader_key(&look_ahead, include_deleted.is_some());
+        let include_deleted = Self::cond_deleted_at(include_deleted);
+        let key = col.to_loader_key(&look_ahead, include_deleted.is_some());
         ctx.data_loader(key, col, look_ahead, include_deleted)
             .await?
             .as_ref()

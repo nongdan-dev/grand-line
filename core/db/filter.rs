@@ -8,36 +8,36 @@ where
 {
     /// Combine filter and filter_extra to use in abstract methods.
     /// Should be generated in the model macro.
-    fn _combine_and(a: Self, b: Self) -> Self;
-    /// Check if there is deleted_at in this filter, without the combination of and/or/not.
+    fn combine_and(a: Self, b: Self) -> Self;
+    /// Check if there is deleted_at in this filter, without the combination of nested and/or/not.
     /// Should be generated in the model macro.
-    fn _has_deleted_at(&self) -> bool;
+    fn has_deleted_at_without_nested(&self) -> bool;
     /// Get and to use in abstract methods.
     /// Should be generated in the model macro.
-    fn _get_and(&self) -> Option<Vec<Self>>;
+    fn get_and(&self) -> Option<Vec<Self>>;
     /// Get or to use in abstract methods.
     /// Should be generated in the model macro.
-    fn _get_or(&self) -> Option<Vec<Self>>;
+    fn get_or(&self) -> Option<Vec<Self>>;
     /// Get not to use in abstract methods.
     /// Should be generated in the model macro.
-    fn _get_not(&self) -> Option<Self>;
+    fn get_not(&self) -> Option<Self>;
 
-    /// Check if there is deleted_at in this filter, with the combination of and/or/not.
+    /// Check if there is deleted_at in this filter, with the combination of nested and/or/not.
     fn has_deleted_at(&self) -> bool {
-        if self._has_deleted_at() {
+        if self.has_deleted_at_without_nested() {
             return true;
         }
-        if let Some(and) = self._get_and()
+        if let Some(and) = self.get_and()
             && and.iter().any(|f| f.has_deleted_at())
         {
             return true;
         }
-        if let Some(or) = self._get_or()
+        if let Some(or) = self.get_or()
             && or.iter().any(|f| f.has_deleted_at())
         {
             return true;
         }
-        if let Some(not) = self._get_not()
+        if let Some(not) = self.get_not()
             && not.has_deleted_at()
         {
             return true;
@@ -65,7 +65,7 @@ where
 {
     fn combine(self, filter_extra: Self) -> Self {
         match (self, filter_extra) {
-            (Some(a), Some(b)) => Some(F::_combine_and(a, b)),
+            (Some(a), Some(b)) => Some(F::combine_and(a, b)),
             (Some(a), None) => Some(a),
             (None, Some(b)) => Some(b),
             (None, None) => None,

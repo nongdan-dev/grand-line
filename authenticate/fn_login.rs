@@ -19,7 +19,7 @@ async fn login() -> LoginSessionGql {
     // TODO: check if too many incorrect attempts
 
     if !password_compare(&data.password, &u.password_hashed) {
-        err!(LoginIncorrect)?;
+        Err(MyErr::LoginIncorrect)?;
     }
 
     // TODO: reset incorrect attempts
@@ -33,7 +33,7 @@ async fn login() -> LoginSessionGql {
         }
     );
 
-    ctx._set_cookie_login_session(&ls)?;
+    ctx.set_cookie_login_session(&ls)?;
 
     // TODO: trigger login success event
 

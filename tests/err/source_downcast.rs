@@ -28,7 +28,7 @@ async fn should_be_my_err() {
     assert!(r.errors.len() == 1, "response should have an error");
 
     let e = &r.errors[0];
-    assert!(e.message == "test", "error message should be `test`");
+    pretty_eq!(e.message, "test", "error message should match");
 
     let code = e
         .source
@@ -40,5 +40,5 @@ async fn should_be_my_err() {
         })
         .0
         .code();
-    assert!(code == "Test", "error code should be `Test`");
+    pretty_eq!(code, "Test", "error code after downcast should match");
 }

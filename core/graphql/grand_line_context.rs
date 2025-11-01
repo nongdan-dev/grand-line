@@ -46,7 +46,7 @@ impl GrandLineContext {
                     tx.commit().await?;
                 }
                 Err(_) => {
-                    err!(TxCommit)?;
+                    Err(MyErr::TxCommit)?;
                 }
             }
         }
@@ -60,7 +60,7 @@ impl GrandLineContext {
                     tx.rollback().await?;
                 }
                 Err(_) => {
-                    err!(TxRollback)?;
+                    Err(MyErr::TxRollback)?;
                 }
             }
         }

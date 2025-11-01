@@ -6,7 +6,7 @@ where
     E: EntityX,
 {
     /// Helper to filter with option.
-    fn filter_optional(self, c: Option<Condition>) -> Self;
+    fn filter_opt(self, c: Option<Condition>) -> Self;
 
     /// Helper to filter with ChainSelect.
     fn chain<C>(self, c: C) -> Self
@@ -14,7 +14,7 @@ where
         C: ChainSelect<E>;
 
     /// Select only columns from requested fields in the graphql context.
-    fn _gql_select(
+    fn gql_select_with_look_ahead(
         self,
         look_ahead: &[LookaheadX<E>],
         col: E::C,
@@ -23,7 +23,7 @@ where
     fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<E::G>>>;
 
     /// Select only id for the graphql delete response.
-    fn gql_select_id(self) -> Res<Selector<SelectModel<E::G>>>;
+    fn gql_select_id(self) -> Selector<SelectModel<E::G>>;
 }
 
 /// Automatically implement for Select<E>.
@@ -31,7 +31,7 @@ impl<E> SelectX<E> for Select<E>
 where
     E: EntityX,
 {
-    fn filter_optional(self, c: Option<Condition>) -> Self {
+    fn filter_opt(self, c: Option<Condition>) -> Self {
         match c {
             Some(c) => self.filter(c),
             None => self,
@@ -45,7 +45,7 @@ where
         c.chain_select(self)
     }
 
-    fn _gql_select(
+    fn gql_select_with_look_ahead(
         self,
         look_ahead: &[LookaheadX<E>],
         col: E::C,
@@ -68,10 +68,10 @@ where
     }
     fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<E::G>>> {
         let look_ahead = E::gql_look_ahead(ctx)?;
-        self._gql_select(&look_ahead, E::_col_id()?)
+        self.gql_select_with_look_ahead(&look_ahead, E::col_id())
     }
 
-    fn gql_select_id(self) -> Res<Selector<SelectModel<E::G>>> {
-        E::_col_id().map(|c| self.select_only().column(c).into_model::<E::G>())
+    fn gql_select_id(self) -> Selector<SelectModel<E::G>> {
+        self.select_only().column(E::col_id()).into_model::<E::G>()
     }
 }

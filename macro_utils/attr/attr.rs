@@ -59,7 +59,7 @@ impl Attr {
     }
     fn from_field_attr(model: &str, f: &Field, a: &Attribute, raw: &dyn Fn(&str) -> bool) -> Self {
         let attr = s!(a.path().to_token_stream());
-        let debug = f!("`{}.{}`", model, f.ident.to_token_stream());
+        let debug = f!("{}.{}", model, f.ident.to_token_stream());
         let field = Some((s!(model), a.clone(), f.clone()));
         if raw(&attr) {
             let panic = || {

@@ -27,21 +27,24 @@ where
     where
         D: ConnectionTrait,
     {
-        let v = self.select().expr(Expr::value(1)).limit(1).one(db).await?;
-        match v {
-            Some(_) => Ok(true),
-            None => Ok(false),
-        }
+        let v = self
+            .select()
+            .expr(Expr::value(1))
+            .limit(1)
+            .one(db)
+            .await?
+            .is_some();
+        Ok(v)
     }
 
     async fn exists_or_404<D>(self, db: &D) -> Res<()>
     where
         D: ConnectionTrait,
     {
-        match self.exists(db).await? {
-            true => Ok(()),
-            false => err!(Db404),
+        if !self.exists(db).await? {
+            Err(MyErr::Db404)?;
         }
+        Ok(())
     }
 }
 
@@ -68,10 +71,8 @@ where
     where
         D: ConnectionTrait,
     {
-        match self.one(db).await? {
-            Some(v) => Ok(v),
-            None => err!(Db404),
-        }
+        let v = self.one(db).await?.ok_or(MyErr::Db404)?;
+        Ok(v)
     }
 }
 
@@ -85,9 +86,7 @@ where
     where
         D: ConnectionTrait,
     {
-        match self.one(db).await? {
-            Some(v) => Ok(v),
-            None => err!(Db404),
-        }
+        let v = self.one(db).await?.ok_or(MyErr::Db404)?;
+        Ok(v)
     }
 }

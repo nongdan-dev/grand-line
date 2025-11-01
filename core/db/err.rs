@@ -11,31 +11,17 @@ pub enum MyErr {
         #[from]
         inner: DbErr,
     },
-    #[error("`{field}` column is not present in the model `{model}`")]
-    DbCfgField404 {
-        model: &'static str,
-        field: &'static str,
-    },
-    #[error("`{field}` have no value in the active model `{model}`")]
-    DbAmField404 {
-        model: &'static str,
-        field: &'static str,
-    },
-    #[error("`{field}` have no value in the gql model `{model}`")]
-    DbGqlField404 {
-        model: &'static str,
-        field: &'static str,
-    },
+    #[error("`{col}` column not found")]
+    DbCol404 { col: String },
+    #[error("resolver try to unwrap with no value")]
+    GqlResolverNone,
 
     #[error("look ahead selection fields len should be 1")]
     LookAhead,
     #[error("data loader cannot downcast from arc dyn any")]
     LoaderDowncast,
-    #[error("data loader cannot get value from column in gql model")]
-    LoaderColumnValue,
-
-    #[error("FRAMEWORK BUG: id column is not present in the model {model}")]
-    BugId404 { model: &'static str },
+    #[error("data loader cannot get string key with column `{col}`")]
+    LoaderKeyNone { col: String },
 }
 
 impl From<DbErr> for GrandLineErr {

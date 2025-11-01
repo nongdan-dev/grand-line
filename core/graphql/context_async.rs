@@ -18,7 +18,7 @@ impl GrandLineAsyncContext for Context<'_> {
         Fu: Future<Output = Res<T>> + Send,
     {
         let cell = self
-            ._grand_line_context()?
+            .grand_line_context()?
             .cache_others
             .lock()
             .await

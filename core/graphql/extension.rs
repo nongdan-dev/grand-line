@@ -36,7 +36,7 @@ impl Extension for GrandLineExtensionImpl {
         next: NextExecute<'_>,
     ) -> Response {
         let mut r = next.run(ctx, operation_name).await;
-        match ctx._grand_line_context() {
+        match ctx.grand_line_context() {
             Ok(gl) => {
                 if let Err(e) = gl.cleanup(!r.errors.is_empty()).await {
                     r.errors.push(e.into());
@@ -59,7 +59,19 @@ impl Extension for GrandLineExtensionImpl {
             {
                 e.extensions = Some(gl.extensions());
             } else {
-                eprintln!("{}", e.message);
+                let mut err_path = e
+                    .path
+                    .iter()
+                    .map(|s| match s {
+                        PathSegment::Field(f) => f.to_string(),
+                        PathSegment::Index(i) => i.to_string(),
+                    })
+                    .collect::<Vec<_>>()
+                    .join(".");
+                if err_path.is_empty() {
+                    err_path = "<unknown>".to_string()
+                }
+                eprintln!("{} {}", err_path, e.message);
                 e.message = MyErr::InternalServer.to_string();
                 e.source = None;
                 e.extensions = Some(MyErr::InternalServer.extensions())

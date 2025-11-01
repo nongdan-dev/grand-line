@@ -38,7 +38,7 @@ impl CrudAttr {
     pub fn validate(&self, r: &ResolverTyItem) {
         if !self.resolver_inputs && !s!(r.inputs).is_empty() {
             let err = f!(
-                "{} inputs must be empty unless resolver_inputs=true, found `{}`",
+                "{} inputs must be empty unless resolver_inputs=true, found {}",
                 r.gql_name,
                 r.inputs,
             );
@@ -47,7 +47,7 @@ impl CrudAttr {
         if !self.resolver_output {
             if s!(r.output) != "()" {
                 let err = f!(
-                    "{} output must be empty unless resolver_output=true, found `{}`",
+                    "{} output must be empty unless resolver_output=true, found {}",
                     r.gql_name,
                     r.output,
                 );

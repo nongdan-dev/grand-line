@@ -50,7 +50,7 @@ async fn forgotResolve() -> LoginSessionGql {
     // TODO: increase otp total attempts, check <= 3
 
     if t.id != data.id || t.otp != data.otp || t.secret != data.secret {
-        err!(OtpResolveInvalid)?;
+        Err(MyErr::OtpResolveInvalid)?;
     }
 
     // TODO: check otp expired
@@ -72,7 +72,7 @@ async fn forgotResolve() -> LoginSessionGql {
             ua: ctx.get_ua()?,
         }
     );
-    ctx._set_cookie_login_session(&ls)?;
+    ctx.set_cookie_login_session(&ls)?;
 
     ls.into_gql(ctx).await?
 }

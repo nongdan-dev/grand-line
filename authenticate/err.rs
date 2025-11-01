@@ -6,7 +6,7 @@ use serde_qs::Error as QsErr;
 pub enum MyErr {
     #[error("unauthenticated")]
     Unauthenticated,
-    #[error("already unauthenticated")]
+    #[error("already authenticated")]
     AlreadyAuthenticated,
 
     #[error("hash password error: {inner}")]

@@ -8,18 +8,18 @@ pub struct GqlAttr {
     pub into: Vec<Ts2>,
     pub cols: Vec<Ts2>,
     pub select: Vec<Ts2>,
-    pub get_col: Vec<Ts2>,
+    pub get_string: Vec<Ts2>,
 }
 
-pub fn gql_attr(model_str: &str, gql_fields: &Vec<(Field, Vec<Attr>)>) -> GqlAttr {
-    let (mut struk, mut defaults, mut resolver, mut into, mut cols, mut select, mut get_col) =
+pub fn gql_attr(gql_fields: &Vec<(Field, Vec<Attr>)>) -> GqlAttr {
+    let (mut struk, mut defaults, mut resolver, mut into, mut cols, mut select, mut get_string) =
         (vec![], vec![], vec![], vec![], vec![], vec![], vec![]);
 
     for (f, _) in gql_fields {
         let name = f.ident.to_token_stream();
         let ty = f.ty.to_token_stream();
         let (opt, uw_str) = unwrap_option_str(&ty);
-        push_struk_resolver(model_str, &name, &ty, &mut struk, &mut resolver);
+        push_struk_resolver(&name, &ty, &mut struk, &mut resolver);
         push_default(&mut defaults, &name);
 
         let name_str = s!(name);
@@ -44,7 +44,7 @@ pub fn gql_attr(model_str: &str, gql_fields: &Vec<(Field, Vec<Attr>)>) -> GqlAtt
         });
 
         if uw_str == "String" {
-            get_col.push(quote! {
+            get_string.push(quote! {
                 Column::#col => self.#name.clone(),
             });
         }
@@ -57,7 +57,7 @@ pub fn gql_attr(model_str: &str, gql_fields: &Vec<(Field, Vec<Attr>)>) -> GqlAtt
         into,
         cols,
         select,
-        get_col,
+        get_string,
     }
 }
 
@@ -86,7 +86,7 @@ pub struct GqlAttrExprs {
     pub exprs: Vec<Ts2>,
 }
 
-pub fn gql_exprs_ts2(model_str: &str, exprs: &Vec<Vec<Attr>>) -> GqlAttrExprs {
+pub fn gql_exprs_ts2(exprs: &Vec<Vec<Attr>>) -> GqlAttrExprs {
     let (mut struk, mut defaults, mut resolver, mut select, mut gql_exprs) =
         (vec![], vec![], vec![], vec![], vec![]);
 
@@ -101,7 +101,7 @@ pub fn gql_exprs_ts2(model_str: &str, exprs: &Vec<Vec<Attr>>) -> GqlAttrExprs {
         let name_str = a.field_name();
         let name = ts2!(name_str);
         let ty = ts2!(a.field_ty());
-        push_struk_resolver(model_str, &name, &ty, &mut struk, &mut resolver);
+        push_struk_resolver(&name, &ty, &mut struk, &mut resolver);
         push_default(&mut defaults, &name);
 
         let gql_name = camel_str!(name);
@@ -123,14 +123,7 @@ pub fn gql_exprs_ts2(model_str: &str, exprs: &Vec<Vec<Attr>>) -> GqlAttrExprs {
     }
 }
 
-fn push_struk_resolver(
-    model_str: &str,
-    name: &Ts2,
-    ty: &Ts2,
-    struk: &mut Vec<Ts2>,
-    resolver: &mut Vec<Ts2>,
-) {
-    let name_str = s!(name);
+fn push_struk_resolver(name: &Ts2, ty: &Ts2, struk: &mut Vec<Ts2>, resolver: &mut Vec<Ts2>) {
     let gql_name = camel_str!(name);
     let (opt, uw) = unwrap_option(ty);
 
@@ -142,10 +135,7 @@ fn push_struk_resolver(
         ts2!()
     } else {
         quote! {
-            .ok_or_else(|| GrandLineInternalDbErr::DbGqlField404 {
-                model: #model_str,
-                field: #name_str,
-            })?
+            .ok_or(GrandLineInternalDbErr::GqlResolverNone)?
         }
     };
 

@@ -2,20 +2,20 @@ use super::prelude::*;
 
 #[async_trait]
 pub trait AuthenticateAsyncContext {
-    async fn _authenticate_without_cache(&self) -> Res<Option<LoginSessionSql>>;
-    async fn _authenticate(&self) -> Res<Arc<Option<LoginSessionSql>>>;
-    async fn authenticate_optional(&self) -> Res<Option<LoginSessionSql>>;
+    async fn authenticate_without_cache(&self) -> Res<Option<LoginSessionSql>>;
+    async fn authenticate_arc(&self) -> Res<Arc<Option<LoginSessionSql>>>;
+    async fn authenticate_opt(&self) -> Res<Option<LoginSessionSql>>;
     async fn authenticate(&self) -> Res<LoginSessionSql>;
-    async fn _ensure_authenticated(&self) -> Res<()>;
-    async fn _ensure_not_authenticated(&self) -> Res<()>;
+    async fn ensure_authenticated(&self) -> Res<()>;
+    async fn ensure_not_authenticated(&self) -> Res<()>;
 }
 
 #[async_trait]
 impl AuthenticateAsyncContext for Context<'_> {
-    async fn _authenticate_without_cache(&self) -> Res<Option<LoginSessionSql>> {
-        let mut token = self._header_authorization()?;
+    async fn authenticate_without_cache(&self) -> Res<Option<LoginSessionSql>> {
+        let mut token = self.header_authorization()?;
         if token.is_empty() {
-            token = self._cookie_login_session()?;
+            token = self.cookie_login_session()?;
         }
 
         let t = qs_token_parse(&token);
@@ -49,19 +49,19 @@ impl AuthenticateAsyncContext for Context<'_> {
         Ok(Some(ls))
     }
 
-    async fn _authenticate(&self) -> Res<Arc<Option<LoginSessionSql>>> {
-        let arc = self.cache(|| self._authenticate_without_cache()).await?;
+    async fn authenticate_arc(&self) -> Res<Arc<Option<LoginSessionSql>>> {
+        let arc = self.cache(|| self.authenticate_without_cache()).await?;
         Ok(arc)
     }
 
-    async fn authenticate_optional(&self) -> Res<Option<LoginSessionSql>> {
-        let ls = self._authenticate().await?.as_ref().as_ref().cloned();
+    async fn authenticate_opt(&self) -> Res<Option<LoginSessionSql>> {
+        let ls = self.authenticate_arc().await?.as_ref().as_ref().cloned();
         Ok(ls)
     }
 
     async fn authenticate(&self) -> Res<LoginSessionSql> {
         let ls = self
-            ._authenticate()
+            .authenticate_arc()
             .await?
             .as_ref()
             .as_ref()
@@ -70,16 +70,16 @@ impl AuthenticateAsyncContext for Context<'_> {
         Ok(ls)
     }
 
-    async fn _ensure_authenticated(&self) -> Res<()> {
-        if self._authenticate().await?.as_ref().is_none() {
-            err!(Unauthenticated)?;
+    async fn ensure_authenticated(&self) -> Res<()> {
+        if self.authenticate_arc().await?.as_ref().is_none() {
+            Err(MyErr::Unauthenticated)?;
         }
         Ok(())
     }
 
-    async fn _ensure_not_authenticated(&self) -> Res<()> {
-        if self._authenticate().await?.as_ref().is_some() {
-            err!(AlreadyAuthenticated)?;
+    async fn ensure_not_authenticated(&self) -> Res<()> {
+        if self.authenticate_arc().await?.as_ref().is_some() {
+            Err(MyErr::AlreadyAuthenticated)?;
         }
         Ok(())
     }

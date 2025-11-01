@@ -42,7 +42,7 @@ impl HttpContext for Context<'_> {
         }
         let ip = v.split(',').next().unwrap_or_default().trim().to_string();
         if IpAddr::from_str(&ip).is_err() {
-            err!(CtxReqIp404)?;
+            Err(MyErr::CtxReqIp404)?;
         }
         Ok(ip)
     }
@@ -50,7 +50,7 @@ impl HttpContext for Context<'_> {
     fn get_ua(&self) -> Res<String> {
         let ua = self.get_header(USER_AGENT)?.trim().to_string();
         if ua.is_empty() {
-            err!(CtxReqUa404)?;
+            Err(MyErr::CtxReqUa404)?;
         }
         Ok(ua)
     }

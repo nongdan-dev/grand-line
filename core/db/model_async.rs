@@ -11,15 +11,15 @@ where
     async fn into_gql(self, ctx: &Context<'_>) -> Res<E::G> {
         let r = if E::gql_look_ahead(ctx)?.iter().any(|l| l.expr.is_some()) {
             let tx = &*ctx.tx().await?;
-            let id = self._get_id();
+            let id = self.get_id();
             E::find()
-                .by_id(&id)?
+                .by_id(&id)
                 .gql_select(ctx)?
                 .one(tx)
                 .await?
                 .ok_or(MyErr::Db404)?
         } else {
-            self._into_gql()
+            self.into_gql_without_look_ahead()
         };
         Ok(r)
     }

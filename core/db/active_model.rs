@@ -6,43 +6,39 @@ where
     E: EntityX<A = Self>,
     Self: ActiveModelTrait<Entity = E> + ActiveModelBehavior + Default + Send + Sync + Sized,
 {
-    /// To clarify model name in case of error in the macro am_value.
-    fn _model_name(&self) -> &'static str {
-        E::_model_name()
-    }
-
     /// Set default values from macro default.
-    fn _set_default_values(self) -> Self;
+    /// Should be generated in the model macro.
+    fn set_defaults(self) -> Self;
 
-    fn _get_id(&self) -> ActiveValue<String>;
-    fn _set_id(self, v: &str) -> Self;
-    fn _get_created_at(&self) -> ActiveValue<DateTimeUtc>;
-    fn _set_created_at(self, v: DateTimeUtc) -> Self;
-    fn _get_updated_at(&self) -> ActiveValue<Option<DateTimeUtc>>;
-    fn _set_updated_at(self, v: DateTimeUtc) -> Self;
-    fn _get_deleted_at(&self) -> ActiveValue<Option<DateTimeUtc>>;
-    fn _set_deleted_at(self, v: DateTimeUtc) -> Self;
+    fn get_id(&self) -> ActiveValue<String>;
+    fn set_id(self, v: &str) -> Self;
+    fn get_created_at(&self) -> ActiveValue<DateTimeUtc>;
+    fn set_created_at(self, v: DateTimeUtc) -> Self;
+    fn get_updated_at(&self) -> ActiveValue<Option<DateTimeUtc>>;
+    fn set_updated_at(self, v: DateTimeUtc) -> Self;
+    fn get_deleted_at(&self) -> ActiveValue<Option<DateTimeUtc>>;
+    fn set_deleted_at(self, v: DateTimeUtc) -> Self;
 
     /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
     /// We need to have this method instead to get default values on create.
     /// This will be used together with the macro grand_line::am_create.
-    fn _create(mut self) -> Self {
-        if !self._get_id().is_set() {
-            self = self._set_id(&ulid());
+    fn set_defaults_on_create(mut self) -> Self {
+        if !self.get_id().is_set() {
+            self = self.set_id(&ulid());
         }
-        if !self._get_created_at().is_set() && E::_col_created_at().is_some() {
-            self = self._set_created_at(now());
+        if !self.get_created_at().is_set() && E::col_created_at().is_some() {
+            self = self.set_created_at(now());
         }
-        self = self._set_default_values();
+        self = self.set_defaults();
         self
     }
 
     /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
     /// We need to have this method instead to get default values on update.
     /// This will be used together with the macro grand_line::am_update.
-    fn _update(mut self) -> Self {
-        if !self._get_updated_at().is_set() && E::_col_updated_at().is_some() {
-            self = self._set_updated_at(now());
+    fn set_defaults_on_update(mut self) -> Self {
+        if !self.get_updated_at().is_set() && E::col_updated_at().is_some() {
+            self = self.set_updated_at(now());
         }
         self
     }
@@ -50,13 +46,13 @@ where
     /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
     /// We need to have this method instead to get default values on delete.
     /// This will be used together with the macro grand_line::am_soft_delete.
-    fn _delete(mut self) -> Self {
-        self = self._update();
-        if let Set(Some(v)) = self._get_updated_at() {
-            self = self._set_deleted_at(v);
-        } else if E::_col_updated_at().is_some() || E::_col_deleted_at().is_some() {
+    fn set_defaults_on_delete(mut self) -> Self {
+        self = self.set_defaults_on_update();
+        if let Set(Some(v)) = self.get_updated_at() {
+            self = self.set_deleted_at(v);
+        } else if E::col_updated_at().is_some() || E::col_deleted_at().is_some() {
             let now = now();
-            self = self._set_updated_at(now)._set_deleted_at(now);
+            self = self.set_updated_at(now).set_deleted_at(now);
         }
         self
     }

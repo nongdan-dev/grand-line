@@ -13,8 +13,8 @@ where
     where
         D: ConnectionTrait,
     {
-        E::_check_col_deleted_at()?;
-        let r = self._delete().update(db).await?;
+        E::check_col_deleted_at()?;
+        let r = self.set_defaults_on_delete().update(db).await?;
         Ok(r)
     }
 }

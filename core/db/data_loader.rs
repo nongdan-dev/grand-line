@@ -27,12 +27,15 @@ where
         }
         let r = r
             .filter(self.col.is_in(keys))
-            ._gql_select(&self.look_ahead, self.col)?
+            .gql_select_with_look_ahead(&self.look_ahead, self.col)?
             .all(tx)
             .await?;
         let mut map = HashMap::<String, E::G>::new();
         for g in r {
-            map.insert(g._get_col(self.col).ok_or(MyErr::LoaderColumnValue)?, g);
+            let c = g.get_string(self.col).ok_or(MyErr::LoaderKeyNone {
+                col: self.col.to_string_with_model_name(),
+            })?;
+            map.insert(c, g);
         }
         Ok(map)
     }

@@ -68,6 +68,25 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let sql_alias = snake_str!(model);
 
     // ------------------------------------------------------------------------
+    // model built in cols
+    let col_id = quote!(Column::Id);
+    let col_created_at = if a.no_created_at {
+        quote!(None)
+    } else {
+        quote!(Some(Column::CreatedAt))
+    };
+    let col_updated_at = if a.no_updated_at {
+        quote!(None)
+    } else {
+        quote!(Some(Column::UpdatedAt))
+    };
+    let col_deleted_at = if a.no_deleted_at {
+        quote!(None)
+    } else {
+        quote!(Some(Column::DeletedAt))
+    };
+
+    // ------------------------------------------------------------------------
     // active model default
     let mut am_defaults = vec![];
     let mut self_am_defaults = vec![];
@@ -198,8 +217,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         into: gql_into,
         cols: gql_cols,
         select: mut gql_select,
-        get_col: gql_get_col,
-    } = gql_attr(&model_str, &gql_fields);
+        get_string: gql_get_string,
+    } = gql_attr(&gql_fields);
     let GqlAttrVirtuals {
         select: gql_select2,
     } = gql_attr_virtuals(&virtual_resolvers);
@@ -210,7 +229,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         resolver: gql_resolver2,
         select: gql_select2,
         exprs: gql_exprs,
-    } = gql_exprs_ts2(&model_str, &exprs);
+    } = gql_exprs_ts2(&exprs);
     gql_struk.extend(gql_struk2);
     gql_defaults.extend(gql_defaults2);
     gql_resolver.extend(gql_resolver2);
@@ -281,25 +300,37 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 type F = #filter;
                 type O = #order_by;
                 type G = #gql;
-                fn _model_name() -> &'static str {
+                fn model_name() -> &'static str {
                     #model_str
                 }
-                fn _gql_cols() -> &'static LazyLock<HashMap<&'static str, Self::C>> {
+                fn col_id() -> Self::C {
+                    #col_id
+                }
+                fn col_created_at() -> Option<Self::C> {
+                    #col_created_at
+                }
+                fn col_updated_at() -> Option<Self::C> {
+                    #col_updated_at
+                }
+                fn col_deleted_at() -> Option<Self::C> {
+                    #col_deleted_at
+                }
+                fn gql_cols() -> &'static LazyLock<HashMap<&'static str, Self::C>> {
                     &GQL_COLS
                 }
-                fn _gql_exprs() -> &'static LazyLock<HashMap<&'static str, SimpleExpr>> {
+                fn gql_exprs() -> &'static LazyLock<HashMap<&'static str, SimpleExpr>> {
                     &GQL_EXPRS
                 }
-                fn _gql_select() -> &'static LazyLock<HashMap<&'static str, HashSet<&'static str>>> {
+                fn gql_select() -> &'static LazyLock<HashMap<&'static str, HashSet<&'static str>>> {
                     &GQL_SELECT
                 }
             }
 
             impl ModelX<Entity> for Model {
-                fn _get_id(&self) -> String {
+                fn get_id(&self) -> String {
                     self.id.clone()
                 }
-                fn _into_gql(self) -> #gql {
+                fn into_gql_without_look_ahead(self) -> #gql {
                     #gql {
                         #(#gql_into)*
                         #gql_into_default
@@ -308,33 +339,33 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             impl ActiveModelX<Entity> for ActiveModel {
-                fn _set_default_values(mut self) -> Self {
+                fn set_defaults(mut self) -> Self {
                     #(#self_am_defaults)*
                     self
                 }
-                fn _get_id(&self) -> ActiveValue<String> {
+                fn get_id(&self) -> ActiveValue<String> {
                     self.id.clone()
                 }
-                fn _set_id(mut self, v: &str) -> Self {
+                fn set_id(mut self, v: &str) -> Self {
                     self.id = Set(v.to_string());
                     self
                 }
-                fn _get_created_at(&self) -> ActiveValue<DateTimeUtc> {
+                fn get_created_at(&self) -> ActiveValue<DateTimeUtc> {
                     #am_get_created_at
                 }
-                fn _set_created_at(mut self, v: DateTimeUtc) -> Self {
+                fn set_created_at(mut self, v: DateTimeUtc) -> Self {
                     #am_set_created_at
                 }
-                fn _get_updated_at(&self) -> ActiveValue<Option<DateTimeUtc>> {
+                fn get_updated_at(&self) -> ActiveValue<Option<DateTimeUtc>> {
                     #am_get_updated_at
                 }
-                fn _set_updated_at(mut self, v: DateTimeUtc) -> Self {
+                fn set_updated_at(mut self, v: DateTimeUtc) -> Self {
                     #am_set_updated_at
                 }
-                fn _get_deleted_at(&self) -> ActiveValue<Option<DateTimeUtc>> {
+                fn get_deleted_at(&self) -> ActiveValue<Option<DateTimeUtc>> {
                     #am_get_deleted_at
                 }
-                fn _set_deleted_at(mut self, v: DateTimeUtc) -> Self {
+                fn set_deleted_at(mut self, v: DateTimeUtc) -> Self {
                     #am_set_deleted_at
                 }
             }
@@ -342,13 +373,13 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             impl ColumnX<Entity> for Column {}
 
             impl GqlModel<Entity> for #gql {
-                fn _set_id(mut self, v: &str) -> Self {
+                fn set_id(mut self, v: &str) -> Self {
                     self.id = Some(v.to_string());
                     self
                 }
-                fn _get_col(&self, col: Column) -> Option<String> {
+                fn get_string(&self, col: Column) -> Option<String> {
                     match col {
-                        #(#gql_get_col)*
+                        #(#gql_get_string)*
                         _ => None
                     }
                 }
@@ -366,22 +397,22 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #(#filter_struk)*
             }
             impl Filter<Entity> for #filter {
-                fn _combine_and(a: Self, b: Self) -> Self {
+                fn combine_and(a: Self, b: Self) -> Self {
                     Self {
                         and: Some(vec![a, b]),
                         ..Default::default()
                     }
                 }
-                fn _has_deleted_at(&self) -> bool {
+                fn has_deleted_at_without_nested(&self) -> bool {
                     #has_deleted_at
                 }
-                fn _get_and(&self) -> Option<Vec<Self>> {
+                fn get_and(&self) -> Option<Vec<Self>> {
                     self.and.clone()
                 }
-                fn _get_or(&self) -> Option<Vec<Self>> {
+                fn get_or(&self) -> Option<Vec<Self>> {
                     self.or.clone()
                 }
-                fn _get_not(&self) -> Option<Self> {
+                fn get_not(&self) -> Option<Self> {
                     self.not.clone().map(|b| *b)
                 }
             }

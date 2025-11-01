@@ -8,7 +8,7 @@ where
 {
     /// Filter with condition deleted_at is not null, if there is deleted_at.
     fn include_deleted(self, include_deleted: Option<bool>) -> Self {
-        match E::_cond_deleted_at(include_deleted) {
+        match E::cond_deleted_at(include_deleted) {
             Some(c) => self.filter(c),
             None => self,
         }
@@ -29,8 +29,8 @@ where
     Self: QueryFilter,
 {
     /// Filter with condition id eq.
-    fn by_id(self, id: &str) -> Res<Self> {
-        E::_cond_id(id).map(|c| self.filter(c))
+    fn by_id(self, id: &str) -> Self {
+        self.filter(E::cond_id(id))
     }
 }
 
