@@ -2,9 +2,7 @@ use super::prelude::*;
 use dataloader::DataLoader;
 
 #[async_trait]
-pub trait DbAsyncContext {
-    async fn tx(&self) -> Res<Arc<DatabaseTransaction>>;
-
+pub trait GrandLineDataLoaderContextAsync {
     async fn data_loader<E>(
         &self,
         key: String,
@@ -17,11 +15,7 @@ pub trait DbAsyncContext {
 }
 
 #[async_trait]
-impl DbAsyncContext for Context<'_> {
-    #[inline(always)]
-    async fn tx(&self) -> Res<Arc<DatabaseTransaction>> {
-        self.grand_line_context()?.tx().await
-    }
+impl GrandLineDataLoaderContextAsync for Context<'_> {
     async fn data_loader<E>(
         &self,
         key: String,

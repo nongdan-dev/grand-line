@@ -9,6 +9,6 @@ pub enum MyErr {
     #[client]
     CtxReqUa404,
 
-    #[error("context has no request headers: {inner}")]
-    CtxReqHeaders404 { inner: String },
+    #[error("context missing request headers")]
+    CtxReqHeaders404,
 }

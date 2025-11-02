@@ -1,5 +1,3 @@
-#![allow(unused_imports, ambiguous_glob_reexports)]
-
 mod core;
 
 #[cfg(feature = "test_utils")]
@@ -11,6 +9,7 @@ mod http;
 #[cfg(feature = "authenticate")]
 mod authenticate;
 
+#[allow(unused_imports, ambiguous_glob_reexports)]
 pub mod prelude {
     pub use _proc::*;
 

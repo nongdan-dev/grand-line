@@ -42,7 +42,7 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
     fn gql_look_ahead(ctx: &Context<'_>) -> Res<Vec<LookaheadX<Self>>> {
         let f = ctx.look_ahead().selection_fields();
         if f.len() != 1 {
-            Err(MyErr::LookAhead)?;
+            Err(MyErr::GqlLookAhead)?;
         }
 
         let gql_cols = Self::gql_cols();
@@ -76,8 +76,8 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
         Condition::all().add(Self::col_id().eq(id))
     }
 
-    /// Get deleted_at column.
-    fn check_col_deleted_at() -> Res<Self::C> {
+    /// ensure deleted_at column is present.
+    fn ensure_col_deleted_at() -> Res<Self::C> {
         let col = Self::col_deleted_at().ok_or_else(|| MyErr::DbCol404 {
             col: Self::model_name().to_string() + ".deleted_at",
         })?;
@@ -101,7 +101,7 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
     /// Set deleted_at without any filter.
     /// It also checks if the model has configured with deleted_at column or not.
     fn soft_delete_many() -> Res<UpdateMany<Self>> {
-        Self::check_col_deleted_at()?;
+        Self::ensure_col_deleted_at()?;
         let am = <Self::A as Default>::default().set_defaults_on_delete();
         let r = Self::update_many().set(am);
         Ok(r)

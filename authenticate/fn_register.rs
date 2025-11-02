@@ -10,7 +10,7 @@ pub struct Register {
 async fn register() -> AuthTicketGql {
     // TODO: check anonymous not log in yet
 
-    check_email_should_not_exist(tx, &data.email.0).await?;
+    ensure_email_not_registered(tx, &data.email.0).await?;
 
     // TODO: check if this email has been requested register recently
 
@@ -57,7 +57,7 @@ async fn registerResolve() -> LoginSessionGql {
 
     let tdata = AuthTicketDataRegister::from_json(t.data)?;
 
-    check_email_should_not_exist(tx, &t.email).await?;
+    ensure_email_not_registered(tx, &t.email).await?;
 
     let u = db_create!(
         tx,
@@ -81,12 +81,12 @@ async fn registerResolve() -> LoginSessionGql {
     ls.into_gql(ctx).await?
 }
 
-async fn check_email_should_not_exist(tx: &DatabaseTransaction, email: &String) -> Res<()> {
-    let email_exists = User::find()
+async fn ensure_email_not_registered(tx: &DatabaseTransaction, email: &String) -> Res<()> {
+    let exists = User::find()
         .filter(UserColumn::Email.eq(email))
         .exists(tx)
         .await?;
-    if email_exists {
+    if exists {
         Err(MyErr::RegisterEmailExists)?;
     }
     Ok(())

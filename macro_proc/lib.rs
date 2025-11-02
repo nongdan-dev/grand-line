@@ -3,7 +3,7 @@ mod model;
 mod resolver_ty;
 mod utils;
 
-#[allow(unused_imports)]
+#[allow(unused_imports, dead_code)]
 mod prelude {
     pub use crate::crud::*;
     pub use crate::model::*;

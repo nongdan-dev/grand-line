@@ -1,24 +1,23 @@
 use super::prelude::*;
 
-pub trait GrandLineExtensionContext {
-    fn grand_line_context(&self) -> Res<Arc<GrandLineContext>>;
+pub trait GrandLineExtensionContext<'a> {
+    fn grand_line_context(&self) -> Res<&'a GrandLineState>;
 }
 
-impl GrandLineExtensionContext for Context<'_> {
-    #[inline(always)]
-    fn grand_line_context(&self) -> Res<Arc<GrandLineContext>> {
-        map_err(self.data::<Arc<GrandLineContext>>())
+impl<'a> GrandLineExtensionContext<'a> for Context<'a> {
+    fn grand_line_context(&self) -> Res<&'a GrandLineState> {
+        let gl = self
+            .data_opt::<Arc<GrandLineState>>()
+            .ok_or(MyErr::Ctx404)?;
+        Ok(gl)
     }
 }
 
-impl GrandLineExtensionContext for ExtensionContext<'_> {
-    #[inline(always)]
-    fn grand_line_context(&self) -> Res<Arc<GrandLineContext>> {
-        map_err(self.data::<Arc<GrandLineContext>>())
+impl<'a> GrandLineExtensionContext<'a> for ExtensionContext<'a> {
+    fn grand_line_context(&self) -> Res<&'a GrandLineState> {
+        let gl = self
+            .data_opt::<Arc<GrandLineState>>()
+            .ok_or(MyErr::Ctx404)?;
+        Ok(gl)
     }
-}
-
-fn map_err(r: Result<&Arc<GrandLineContext>, GraphQLErr>) -> Res<Arc<GrandLineContext>> {
-    let a = r.cloned().map_err(|e| MyErr::Ctx404 { inner: e.message })?;
-    Ok(a)
 }

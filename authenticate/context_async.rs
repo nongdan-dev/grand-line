@@ -1,7 +1,7 @@
 use super::prelude::*;
 
 #[async_trait]
-pub trait AuthenticateAsyncContext {
+pub trait AuthenticateContextAsync {
     async fn authenticate_without_cache(&self) -> Res<Option<LoginSessionSql>>;
     async fn authenticate_arc(&self) -> Res<Arc<Option<LoginSessionSql>>>;
     async fn authenticate_opt(&self) -> Res<Option<LoginSessionSql>>;
@@ -11,7 +11,7 @@ pub trait AuthenticateAsyncContext {
 }
 
 #[async_trait]
-impl AuthenticateAsyncContext for Context<'_> {
+impl AuthenticateContextAsync for Context<'_> {
     async fn authenticate_without_cache(&self) -> Res<Option<LoginSessionSql>> {
         let mut token = self.header_authorization()?;
         if token.is_empty() {

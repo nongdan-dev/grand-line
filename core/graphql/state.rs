@@ -1,15 +1,16 @@
 use super::prelude::*;
 
-/// GrandLineContext should be constructed on each request.
+/// GrandLineState should be constructed on each request.
 /// We will get it in the resolvers to manage per-request db transaction, graphql loaders, cache...
 /// We should only use it in the GrandLineExtension to inject this context automatically on each request
-pub struct GrandLineContext {
+pub struct GrandLineState {
     pub(crate) db: Arc<DatabaseConnection>,
     pub(crate) tx: Mutex<Option<Arc<DatabaseTransaction>>>,
     pub(crate) loaders: Mutex<HashMap<String, ArcAny>>,
     pub(crate) cache_others: Mutex<HashMap<TypeId, Arc<OnceCell<ArcAny>>>>,
 }
-impl GrandLineContext {
+
+impl GrandLineState {
     pub(crate) fn new(db: Arc<DatabaseConnection>) -> Self {
         Self {
             db,
@@ -18,6 +19,7 @@ impl GrandLineContext {
             cache_others: Mutex::new(HashMap::new()),
         }
     }
+
     pub(crate) async fn tx(&self) -> Res<Arc<DatabaseTransaction>> {
         let mut guard = self.tx.lock().await;
         match &*guard {

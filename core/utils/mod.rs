@@ -5,7 +5,7 @@ mod err_impl;
 mod json;
 mod ulid;
 pub use chrono::*;
-pub use err::MyErr as GrandLineInternalCoreErr;
+pub use err::MyErr as GrandLineCoreErr;
 pub use err_graphql_output::*;
 pub use err_impl::*;
 pub use json::*;

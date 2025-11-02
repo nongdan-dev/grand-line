@@ -11,7 +11,7 @@ const SOCKET_ADDR: &str = "X-Socket-Addr";
 const USER_AGENT: &str = "User-Agent";
 const COOKIE: &str = "Set-Cookie";
 
-pub trait HttpContext {
+pub trait GrandLineHttpContext {
     fn get_header(&self, k: &str) -> Res<String>;
 
     fn get_ip(&self) -> Res<String>;
@@ -22,11 +22,11 @@ pub trait HttpContext {
     fn set_cookie(&self, k: &str, v: &str, expires: i64);
 }
 
-impl HttpContext for Context<'_> {
+impl GrandLineHttpContext for Context<'_> {
     fn get_header(&self, k: &str) -> Res<String> {
         let req_headers = self
-            .data::<HeaderMap>()
-            .map_err(|e| MyErr::CtxReqHeaders404 { inner: e.message })?;
+            .data_opt::<HeaderMap>()
+            .ok_or(MyErr::CtxReqHeaders404)?;
         let v = req_headers
             .get(k)
             .map(|v| v.to_str().ok().map(|v| v.to_string()))

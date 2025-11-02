@@ -13,7 +13,7 @@ where
     where
         D: ConnectionTrait,
     {
-        E::check_col_deleted_at()?;
+        E::ensure_col_deleted_at()?;
         let r = self.set_defaults_on_delete().update(db).await?;
         Ok(r)
     }

@@ -16,7 +16,7 @@ mod schema;
 pub use context::*;
 pub use context_async::*;
 pub use email::*;
-pub use err::MyErr as GrandLineInternalAuthenticateErr;
+pub use err::MyErr as GrandLineAuthenticateErr;
 pub use fn_forgot::*;
 pub use fn_login::*;
 pub use fn_login_session_current::*;

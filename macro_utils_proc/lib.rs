@@ -1,6 +1,6 @@
 mod macros;
 
-#[allow(unused_imports)]
+#[allow(unused_imports, dead_code)]
 mod prelude {
     pub use crate::macros::*;
     pub use _utils::*;

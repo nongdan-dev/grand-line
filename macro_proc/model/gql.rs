@@ -135,7 +135,7 @@ fn push_struk_resolver(name: &Ts2, ty: &Ts2, struk: &mut Vec<Ts2>, resolver: &mu
         ts2!()
     } else {
         quote! {
-            .ok_or(GrandLineInternalDbErr::GqlResolverNone)?
+            .ok_or(GrandLineDbErr::GqlResolverNone)?
         }
     };
 

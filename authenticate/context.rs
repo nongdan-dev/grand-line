@@ -5,13 +5,13 @@ const BEARER: &str = "Bearer ";
 const LOGIN_SESSION: &str = "login_session";
 const LOGIN_SESSION_EXPIRES: i64 = 30 * 24 * 60 * 60 * 1000;
 
-pub trait AuthenticateContext {
+pub trait GrandLineAuthenticateContext {
     fn header_authorization(&self) -> Res<String>;
     fn cookie_login_session(&self) -> Res<String>;
     fn set_cookie_login_session(&self, ls: &LoginSessionSql) -> Res<()>;
 }
 
-impl AuthenticateContext for Context<'_> {
+impl GrandLineAuthenticateContext for Context<'_> {
     fn header_authorization(&self) -> Res<String> {
         let v = self.get_header(AUTHORIZATION)?.replace(BEARER, "");
         Ok(v)
