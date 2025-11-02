@@ -13,9 +13,9 @@ pub trait AuthenticateContextAsync {
 #[async_trait]
 impl AuthenticateContextAsync for Context<'_> {
     async fn authenticate_without_cache(&self) -> Res<Option<LoginSessionSql>> {
-        let mut token = self.header_authorization()?;
+        let mut token = self.get_authorization_token()?;
         if token.is_empty() {
-            token = self.cookie_login_session()?;
+            token = self.get_cookie_login_session()?;
         }
 
         let t = qs_token_parse(&token);

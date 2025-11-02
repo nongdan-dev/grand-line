@@ -1,3 +1,4 @@
+mod config;
 mod context;
 mod context_async;
 mod email;
@@ -13,6 +14,7 @@ mod password;
 mod qs;
 mod rand;
 mod schema;
+pub use config::*;
 pub use context::*;
 pub use context_async::*;
 pub use email::*;
