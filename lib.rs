@@ -9,6 +9,8 @@ mod http;
 #[cfg(feature = "authenticate")]
 mod authenticate;
 
+mod authorize;
+
 #[allow(unused_imports, ambiguous_glob_reexports)]
 pub mod prelude {
     pub use _proc::*;

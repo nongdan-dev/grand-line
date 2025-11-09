@@ -6,8 +6,8 @@ pub struct Register {
     pub password: String,
 }
 
-#[create(AuthTicket, resolver_output)]
-async fn register() -> AuthTicketGql {
+#[create(AuthOtp, resolver_output)]
+async fn register() -> AuthOtpGql {
     // TODO: check anonymous not log in yet
 
     ensure_email_not_registered(tx, &data.email.0).await?;
@@ -16,10 +16,10 @@ async fn register() -> AuthTicketGql {
 
     let t = db_create!(
         tx,
-        AuthTicket {
-            ty: AuthTicketTy::Register,
+        AuthOtp {
+            ty: AuthOtpTy::Register,
             email: data.email.0,
-            data: AuthTicketDataRegister {
+            data: AuthOtpDataRegister {
                 password_hashed: password_hash(&data.password)?,
             }
             .to_json()?,
@@ -31,58 +31,12 @@ async fn register() -> AuthTicketGql {
     t.into_gql(ctx).await?
 }
 
-#[gql_input]
-pub struct RegisterResolve {
-    pub id: String,
-    pub otp: String,
-    pub secret: String,
-}
-
-#[create(LoginSession, resolver_output)]
-async fn registerResolve() -> LoginSessionGql {
-    // TODO: check anonymous not log in yet
-
-    let t = AuthTicket::find_by_id(&data.id)
-        .one(tx)
-        .await?
-        .ok_or(MyErr::OtpResolveInvalid)?;
-
-    // TODO: increase otp total attempts, check <= 3
-
-    if t.id != data.id || t.otp != data.otp || t.secret != data.secret {
-        Err(MyErr::OtpResolveInvalid)?;
-    }
-
-    // TODO: check otp expired
-
-    let tdata = AuthTicketDataRegister::from_json(t.data)?;
-
-    ensure_email_not_registered(tx, &t.email).await?;
-
-    let u = db_create!(
-        tx,
-        User {
-            email: t.email,
-            password_hashed: tdata.password_hashed,
-        }
-    );
-    let ls = db_create!(
-        tx,
-        LoginSession {
-            user_id: u.id,
-            ip: ctx.get_ip()?,
-            ua: ctx.get_ua()?,
-        }
-    );
-    ctx.set_cookie_login_session(&ls)?;
-
-    // TODO: trigger register success event
-
-    ls.into_gql(ctx).await?
-}
-
-async fn ensure_email_not_registered(tx: &DatabaseTransaction, email: &String) -> Res<()> {
+pub(crate) async fn ensure_email_not_registered(
+    tx: &DatabaseTransaction,
+    email: &String,
+) -> Res<()> {
     let exists = User::find()
+        .include_deleted(None)
         .filter(UserColumn::Email.eq(email))
         .exists(tx)
         .await?;

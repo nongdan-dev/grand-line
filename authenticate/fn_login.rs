@@ -11,6 +11,7 @@ async fn login() -> LoginSessionGql {
     // TODO: check anonymous not log in yet
 
     let u = User::find()
+        .include_deleted(None)
         .filter(UserColumn::Email.eq(&data.email))
         .one(tx)
         .await?

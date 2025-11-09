@@ -11,7 +11,7 @@ pub struct Prepare {
 }
 
 pub async fn prepare() -> Res<Prepare> {
-    let tmp = tmp_db!(User, AuthTicket, LoginSession);
+    let tmp = tmp_db!(User, AuthOtp, LoginSession);
     let s = schema_qm::<AuthenticateMergedQuery, AuthenticateMergedMutation>(&tmp.db);
 
     let mut h = HeaderMap::default();
