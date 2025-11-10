@@ -1,11 +1,10 @@
 use crate::prelude::*;
 
-#[derive(Debug, Clone)]
 pub struct GrandLineConfig {
     pub limit_default: u64,
     pub limit_max: u64,
     #[cfg(feature = "authenticate")]
-    pub auth: GrandLineConfigAuth,
+    pub auth: GrandLineAuthConfig,
 }
 
 impl Default for GrandLineConfig {

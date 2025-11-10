@@ -4,7 +4,7 @@ use super::prelude::*;
 pub trait OrderBy<E>
 where
     E: EntityX,
-    Self: ChainSelect<E> + Serialize + Send + Sync + Sized,
+    Self: ChainSelect<E> + Serialize + Send + Sync,
 {
     /// Get order_by_default to use in abstract methods.
     /// Should be generated in the model macro.

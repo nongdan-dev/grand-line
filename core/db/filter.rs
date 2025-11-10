@@ -4,7 +4,7 @@ use super::prelude::*;
 pub trait Filter<E>
 where
     E: EntityX,
-    Self: IntoCondition + ChainSelect<E> + Default + Serialize + Send + Sync + Sized,
+    Self: IntoCondition + ChainSelect<E> + Default + Serialize + Send + Sync,
 {
     /// Combine filter and filter_extra to use in abstract methods.
     /// Should be generated in the model macro.

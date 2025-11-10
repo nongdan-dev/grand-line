@@ -1,49 +1,27 @@
 use super::prelude::*;
 
-#[gql_input]
-pub struct ForgotResolve {
-    pub id: String,
-    pub otp: String,
-    pub secret: String,
-    pub password: String,
-}
+#[mutation]
+async fn forgotResolve(data: AuthOtpResolve, password: String) -> LoginSessionWithSecret {
+    ctx.ensure_not_authenticated().await?;
 
-#[create(AuthOtp, resolver_output)]
-async fn forgotResolve() -> LoginSessionGql {
-    // TODO: check anonymous not log in yet
+    let h = &ctx.config().auth.handlers;
+    h.validate_password(ctx, &password).await?;
+    let lsd = ensure_login_session_data(ctx)?;
 
-    let t = AuthOtp::find_by_id(&data.id)
-        .include_deleted(None)
-        .one(tx)
-        .await?
-        .ok_or(MyErr::OtpResolveInvalid)?;
-
-    // TODO: increase otp total attempts, check <= 3
-
-    if t.id != data.id || t.otp != data.otp || t.secret != data.secret {
-        Err(MyErr::OtpResolveInvalid)?;
-    }
-
-    // TODO: check otp expired
-
-    let tdata = AuthOtpDataForgot::from_json(t.data)?;
+    let t = auth_otp_resolve(ctx, tx, data).await?;
+    let d = AuthOtpDataForgot::from_json(t.data)?;
 
     let u = db_update!(
         tx,
         User {
-            id: tdata.user_id,
-            password_hashed: password_hash(&data.password)?,
+            id: d.user_id,
+            password_hashed: password_hash(&password)?,
         }
     );
-    let ls = db_create!(
-        tx,
-        LoginSession {
-            user_id: u.id,
-            ip: ctx.get_ip()?,
-            ua: ctx.get_ua()?,
-        }
-    );
-    ctx.set_cookie_login_session(&ls)?;
 
-    ls.into_gql(ctx).await?
+    let ls = create_login_session(ctx, tx, &u.id, &lsd).await?;
+
+    h.on_forgot_resolve(ctx, &u).await?;
+
+    LoginSessionWithSecret { inner: ls }
 }

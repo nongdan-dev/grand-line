@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-#[model]
+#[model(no_by_id)]
 pub struct User {
     pub email: String,
     #[graphql(skip)]

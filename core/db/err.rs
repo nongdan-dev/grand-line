@@ -2,10 +2,16 @@ use super::prelude::*;
 
 #[grand_line_err]
 pub enum MyErr {
+    // ========================================================================
+    // client errors
+    //
     #[error("data not found")]
     #[client]
     Db404,
 
+    // ========================================================================
+    // server errors
+    //
     #[error("database error: {inner}")]
     Db {
         #[from]

@@ -10,7 +10,7 @@ async fn t() -> Res<()> {
     let q = r#"
     mutation test($data: Forgot) {
         forgot(data: $data) {
-            id
+            secret
         }
     }
     "#;
@@ -23,10 +23,12 @@ async fn t() -> Res<()> {
 
     let t = AuthOtp::find().one_or_404(&d.tmp.db).await?;
     let q = r#"
-    mutation test($data: ForgotResolve) {
-        forgotResolve(data: $data) {
-            user {
-                email
+    mutation test($data: AuthOtpResolve!, $password: String!) {
+        forgotResolve(data: $data, password: $password) {
+            inner {
+                user {
+                    email
+                }
             }
         }
     }
@@ -36,13 +38,15 @@ async fn t() -> Res<()> {
             "id": t.id.clone(),
             "otp": t.otp.clone(),
             "secret": t.secret.clone(),
-            "password": "999999",
         },
+        "password": "Str0ngP@ssw0rd?",
     });
     let expected = value!({
         "forgotResolve": {
-            "user": {
-                "email": "olivia@example.com",
+            "inner": {
+                "user": {
+                    "email": "olivia@example.com",
+                },
             },
         },
     });
@@ -53,7 +57,7 @@ async fn t() -> Res<()> {
         .one_or_404(&d.tmp.db)
         .await?;
     assert!(
-        password_compare("999999", &u.password_hashed),
+        password_compare("Str0ngP@ssw0rd?", &u.password_hashed),
         "password should be updated"
     );
 

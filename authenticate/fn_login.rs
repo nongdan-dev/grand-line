@@ -7,8 +7,11 @@ pub struct Login {
 }
 
 #[create(LoginSession, resolver_output)]
-async fn login() -> LoginSessionGql {
-    // TODO: check anonymous not log in yet
+async fn login() -> LoginSessionWithSecret {
+    ctx.ensure_not_authenticated().await?;
+
+    let h = &ctx.config().auth.handlers;
+    let lsd = ensure_login_session_data(ctx)?;
 
     let u = User::find()
         .include_deleted(None)
@@ -25,18 +28,39 @@ async fn login() -> LoginSessionGql {
 
     // TODO: reset incorrect attempts
 
+    let ls = create_login_session(ctx, tx, &u.id, &lsd).await?;
+
+    h.on_login_resolve(ctx, &u).await?;
+
+    LoginSessionWithSecret { inner: ls }
+}
+
+pub(crate) struct EnsureLoginSessionData {
+    pub ip: String,
+    pub ua: String,
+}
+/// Prepare first to ensure the request context headers are valid before calling other logic.
+pub(crate) fn ensure_login_session_data(ctx: &Context<'_>) -> Res<EnsureLoginSessionData> {
+    Ok(EnsureLoginSessionData {
+        ip: ctx.get_ip()?,
+        ua: ctx.get_ua()?,
+    })
+}
+
+pub(crate) async fn create_login_session(
+    ctx: &Context<'_>,
+    tx: &DatabaseTransaction,
+    user_id: &str,
+    data: &EnsureLoginSessionData,
+) -> Res<LoginSessionSql> {
     let ls = db_create!(
         tx,
         LoginSession {
-            user_id: u.id,
-            ip: ctx.get_ip()?,
-            ua: ctx.get_ua()?,
+            user_id: user_id.to_string(),
+            ip: data.ip.to_string(),
+            ua: data.ua.to_string(),
         }
     );
-
     ctx.set_cookie_login_session(&ls)?;
-
-    // TODO: trigger login success event
-
-    ls.into_gql(ctx).await?
+    Ok(ls)
 }

@@ -6,7 +6,7 @@ static ALLOW_BUILT_IN: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     m
 });
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Clone, Serialize, Deserialize, Default)]
 pub struct PermNode {
     #[serde(default)]
     pub allow: bool,
@@ -25,7 +25,7 @@ impl PermNode {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct OpAccess {
     pub op: String,
     #[serde(default)]

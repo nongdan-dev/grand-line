@@ -4,7 +4,7 @@ use super::prelude::*;
 pub trait ModelX<E>
 where
     E: EntityX<M = Self>,
-    Self: FromQueryResult + IntoActiveModel<E::A> + Send + Sync + Sized,
+    Self: FromQueryResult + IntoActiveModel<E::A> + Send + Sync,
 {
     /// Should be generated in the model macro.
     fn get_id(&self) -> String;

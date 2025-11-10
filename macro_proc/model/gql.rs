@@ -15,11 +15,11 @@ pub fn gql_attr(gql_fields: &Vec<(Field, Vec<Attr>)>) -> GqlAttr {
     let (mut struk, mut defaults, mut resolver, mut into, mut cols, mut select, mut get_string) =
         (vec![], vec![], vec![], vec![], vec![], vec![], vec![]);
 
-    for (f, _) in gql_fields {
+    for (f, a) in gql_fields {
         let name = f.ident.to_token_stream();
         let ty = f.ty.to_token_stream();
         let (opt, uw_str) = unwrap_option_str(&ty);
-        push_struk_resolver(&name, &ty, &mut struk, &mut resolver);
+        push_struk_resolver(&name, &ty, &mut struk, &mut resolver, attr_is_gql_skip(a));
         push_default(&mut defaults, &name);
 
         let name_str = s!(name);
@@ -101,7 +101,7 @@ pub fn gql_exprs_ts2(exprs: &Vec<Vec<Attr>>) -> GqlAttrExprs {
         let name_str = a.field_name();
         let name = ts2!(name_str);
         let ty = ts2!(a.field_ty());
-        push_struk_resolver(&name, &ty, &mut struk, &mut resolver);
+        push_struk_resolver(&name, &ty, &mut struk, &mut resolver, false);
         push_default(&mut defaults, &name);
 
         let gql_name = camel_str!(name);
@@ -123,14 +123,24 @@ pub fn gql_exprs_ts2(exprs: &Vec<Vec<Attr>>) -> GqlAttrExprs {
     }
 }
 
-fn push_struk_resolver(name: &Ts2, ty: &Ts2, struk: &mut Vec<Ts2>, resolver: &mut Vec<Ts2>) {
-    let gql_name = camel_str!(name);
+fn push_struk_resolver(
+    name: &Ts2,
+    ty: &Ts2,
+    struk: &mut Vec<Ts2>,
+    resolver: &mut Vec<Ts2>,
+    skip_resolver: bool,
+) {
     let (opt, uw) = unwrap_option(ty);
 
     struk.push(quote! {
         pub #name: Option<#uw>,
     });
 
+    if skip_resolver {
+        return;
+    }
+
+    let gql_name = camel_str!(name);
     let unwrap = if opt {
         ts2!()
     } else {

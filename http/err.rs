@@ -2,6 +2,9 @@ use super::prelude::*;
 
 #[grand_line_err]
 pub enum MyErr {
+    // ========================================================================
+    // client errors
+    //
     #[error("ip address is missing from the request")]
     #[client]
     CtxReqIp404,
@@ -9,6 +12,9 @@ pub enum MyErr {
     #[client]
     CtxReqUa404,
 
+    // ========================================================================
+    // server errors
+    //
     #[error("context missing request headers")]
     CtxReqHeaders404,
 }

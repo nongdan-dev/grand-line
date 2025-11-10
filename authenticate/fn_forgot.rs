@@ -6,8 +6,10 @@ pub struct Forgot {
 }
 
 #[create(AuthOtp, resolver_output)]
-async fn forgot() -> AuthOtpGql {
-    // TODO: check anonymous not log in yet
+async fn forgot() -> AuthOtpWithSecret {
+    ctx.ensure_not_authenticated().await?;
+
+    let h = &ctx.config().auth.handlers;
 
     let u = User::find()
         .include_deleted(None)
@@ -26,7 +28,7 @@ async fn forgot() -> AuthOtpGql {
         }
     );
 
-    // TODO: trigger event otp
+    h.on_otp_create(ctx, &t).await?;
 
-    t.into_gql(ctx).await?
+    AuthOtpWithSecret { inner: t }
 }

@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use std::fmt::{Debug, Formatter, Result as FmtResult};
+use std::fmt::{Formatter, Result as FmtResult};
 
 #[derive(Clone)]
 pub struct GrandLineErr(pub Arc<dyn GrandLineErrImpl>);

@@ -1,31 +1,14 @@
 use super::prelude::*;
 
-#[gql_input]
-pub struct RegisterResolve {
-    pub id: String,
-    pub otp: String,
-    pub secret: String,
-}
+#[mutation]
+async fn registerResolve(data: AuthOtpResolve) -> LoginSessionWithSecret {
+    ctx.ensure_not_authenticated().await?;
 
-#[create(LoginSession, resolver_output)]
-async fn registerResolve() -> LoginSessionGql {
-    // TODO: check anonymous not log in yet
+    let h = &ctx.config().auth.handlers;
+    let lsd = ensure_login_session_data(ctx)?;
 
-    let t = AuthOtp::find_by_id(&data.id)
-        .include_deleted(None)
-        .one(tx)
-        .await?
-        .ok_or(MyErr::OtpResolveInvalid)?;
-
-    // TODO: increase otp total attempts, check <= 3
-
-    if t.id != data.id || t.otp != data.otp || t.secret != data.secret {
-        Err(MyErr::OtpResolveInvalid)?;
-    }
-
-    // TODO: check otp expired
-
-    let tdata = AuthOtpDataRegister::from_json(t.data)?;
+    let t = auth_otp_resolve(ctx, tx, data).await?;
+    let d = AuthOtpDataRegister::from_json(t.data)?;
 
     ensure_email_not_registered(tx, &t.email).await?;
 
@@ -33,20 +16,12 @@ async fn registerResolve() -> LoginSessionGql {
         tx,
         User {
             email: t.email,
-            password_hashed: tdata.password_hashed,
+            password_hashed: d.password_hashed,
         }
     );
-    let ls = db_create!(
-        tx,
-        LoginSession {
-            user_id: u.id,
-            ip: ctx.get_ip()?,
-            ua: ctx.get_ua()?,
-        }
-    );
-    ctx.set_cookie_login_session(&ls)?;
+    let ls = create_login_session(ctx, tx, &u.id, &lsd).await?;
 
-    // TODO: trigger register success event
+    h.on_register_resolve(ctx, &u).await?;
 
-    ls.into_gql(ctx).await?
+    LoginSessionWithSecret { inner: ls }
 }

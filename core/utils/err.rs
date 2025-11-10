@@ -2,6 +2,9 @@ use crate::prelude::*;
 
 #[grand_line_err]
 pub enum MyErr {
+    // ========================================================================
+    // server errors
+    //
     #[error("json error: {inner}")]
     Json {
         #[from]

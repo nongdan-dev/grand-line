@@ -2,10 +2,16 @@ use super::prelude::*;
 
 #[grand_line_err]
 pub enum MyErr {
+    // ========================================================================
+    // client errors
+    //
     #[error("internal server error")]
     #[client]
     InternalServer,
 
+    // ========================================================================
+    // server errors
+    //
     #[error("context missing grand line context")]
     Ctx404,
     #[error("context missing sea orm database")]

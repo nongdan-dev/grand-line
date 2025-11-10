@@ -155,7 +155,10 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // filter / order_by
     let (mut filter_struk, mut filter_query) = (vec![], vec![]);
     let (mut order_by_struk, mut order_by_query) = (vec![], vec![]);
-    for (f, _) in &gql_fields {
+    for (f, a) in &gql_fields {
+        if attr_is_gql_skip(a) {
+            continue;
+        }
         filter(f, &mut filter_struk, &mut filter_query);
         order_by(f, &mut order_by_struk, &mut order_by_query);
     }

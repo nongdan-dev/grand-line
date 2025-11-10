@@ -102,7 +102,7 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
     /// It also checks if the model has configured with deleted_at column or not.
     fn soft_delete_many() -> Res<UpdateMany<Self>> {
         Self::ensure_col_deleted_at()?;
-        let am = <Self::A as Default>::default().set_defaults_on_delete();
+        let am = Self::A::defaults_on_delete();
         let r = Self::update_many().set(am);
         Ok(r)
     }

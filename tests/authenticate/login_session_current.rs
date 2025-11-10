@@ -13,16 +13,20 @@ async fn t() -> Res<()> {
     let q = r#"
     query test {
         loginSessionCurrent {
-            user {
-                email
+            inner {
+                user {
+                    email
+                }
             }
         }
     }
     "#;
     let expected = value!({
         "loginSessionCurrent": {
-            "user": {
-                "email": "olivia@example.com",
+            "inner": {
+                "user": {
+                    "email": "olivia@example.com",
+                },
             },
         },
     });

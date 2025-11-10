@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use strum_macros::{AsRefStr, Display};
 
-#[derive(Debug, Clone, Eq, PartialEq, AsRefStr, Display, PartialEqString)]
+#[derive(Clone, Eq, PartialEq, AsRefStr, Display, PartialEqString)]
 #[strum(serialize_all = "snake_case")]
 pub enum MacroTy {
     Model,
@@ -20,7 +20,7 @@ pub static ATTR_RAW: LazyLock<HashSet<String>> = LazyLock::new(|| {
     set
 });
 
-#[derive(Debug, Clone, Eq, PartialEq, AsRefStr, Display, PartialEqString)]
+#[derive(Clone, Eq, PartialEq, AsRefStr, Display, PartialEqString)]
 #[strum(serialize_all = "snake_case")]
 pub enum AttrTy {
     Graphql,
@@ -39,7 +39,7 @@ impl AttrTy {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, AsRefStr, Display, PartialEqString)]
+#[derive(Clone, Eq, PartialEq, AsRefStr, Display, PartialEqString)]
 #[strum(serialize_all = "snake_case")]
 pub enum VirtualTy {
     #[strum(serialize = "{0}")]
@@ -59,7 +59,7 @@ impl VirtualTy {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, AsRefStr, Display, PartialEqString)]
+#[derive(Clone, Eq, PartialEq, AsRefStr, Display, PartialEqString)]
 #[strum(serialize_all = "snake_case")]
 pub enum RelationTy {
     BelongsTo,

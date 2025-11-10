@@ -4,23 +4,39 @@ use serde_qs::Error as QsErr;
 
 #[grand_line_err]
 pub enum MyErr {
+    // ========================================================================
+    // client errors
+    //
     #[error("unauthenticated")]
+    #[client]
     Unauthenticated,
     #[error("already authenticated")]
+    #[client]
     AlreadyAuthenticated,
 
+    #[error("this email address is already in use")]
+    #[client]
+    RegisterEmailExists,
+
+    #[error("password is too weak or invalid")]
+    #[client]
+    PasswordInvalid,
+
+    #[error("otp is expired or invalid")]
+    #[client]
+    OtpResolveInvalid,
+
+    #[error("email or password is incorrect")]
+    #[client]
+    LoginIncorrect,
+
+    // ========================================================================
+    // server errors
+    //
     #[error("hash password error: {inner}")]
     PasswordHash { inner: PasswordHashErr },
     #[error("query string error: {inner}")]
     QsErr { inner: QsErr },
-
-    #[error("this email address is already in use")]
-    RegisterEmailExists,
-    #[error("invalid or expired otp")]
-    OtpResolveInvalid,
-
-    #[error("email or password is incorrect")]
-    LoginIncorrect,
 }
 
 impl From<PasswordHashErr> for MyErr {

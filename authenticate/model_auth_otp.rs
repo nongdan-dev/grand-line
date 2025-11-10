@@ -1,39 +1,30 @@
 use super::prelude::*;
+use chrono::Duration;
 
-#[model]
+#[model(no_updated_at, no_deleted_at, no_by_id)]
 pub struct AuthOtp {
     pub ty: AuthOtpTy,
-
-    #[graphql(skip)]
     pub email: String,
-
-    #[default(random_otp_6digits())]
-    #[graphql(skip)]
-    pub otp: String,
 
     #[default(random_secret_256bit())]
     #[graphql(skip)]
     pub secret: String,
 
+    #[default(random_otp_6digits())]
+    #[graphql(skip)]
+    pub otp: String,
+
     #[graphql(skip)]
     pub data: JsonValue,
 
     #[default(0)]
+    #[graphql(skip)]
     pub total_attempt: i64,
-}
 
-pub struct AuthOtpGqlSecret {
-    inner: AuthOtpSql,
-}
-#[Object]
-impl AuthOtpGqlSecret {
-    pub async fn secret(&self) -> String {
-        self.inner.secret.clone()
-    }
-    pub async fn data(&self, ctx: &Context<'_>) -> Res<AuthOtpGql> {
-        let r = self.inner.clone().into_gql(ctx).await?;
-        Ok(r)
-    }
+    #[resolver(sql_dep=total_attempt)]
+    pub remaining_attempt: i64,
+    #[resolver(sql_dep=created_at)]
+    pub will_expire_at: DateTimeUtc,
 }
 
 #[enunn]
@@ -50,4 +41,30 @@ pub struct AuthOtpDataRegister {
 #[derive(Serialize, Deserialize)]
 pub struct AuthOtpDataForgot {
     pub user_id: String,
+}
+
+async fn resolve_remaining_attempt(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<i64> {
+    let t = o.total_attempt.ok_or(GrandLineDbErr::GqlResolverNone)?;
+    let m = ctx.config().auth.otp_max_attempt;
+    Ok(m - t)
+}
+async fn resolve_will_expire_at(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<DateTimeUtc> {
+    let c = o.created_at.ok_or(GrandLineDbErr::GqlResolverNone)?;
+    let d = Duration::milliseconds(ctx.config().auth.otp_expire_ms);
+    Ok(c + d)
+}
+
+/// To only expose secret in some operations, not the others.
+pub struct AuthOtpWithSecret {
+    pub inner: AuthOtpSql,
+}
+#[Object]
+impl AuthOtpWithSecret {
+    pub async fn secret(&self) -> String {
+        self.inner.secret.clone()
+    }
+    pub async fn inner(&self, ctx: &Context<'_>) -> Res<AuthOtpGql> {
+        let r = self.inner.clone().into_gql(ctx).await?;
+        Ok(r)
+    }
 }

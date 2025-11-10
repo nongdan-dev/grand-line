@@ -4,7 +4,7 @@ use super::prelude::*;
 pub trait ActiveModelX<E>
 where
     E: EntityX<A = Self>,
-    Self: ActiveModelTrait<Entity = E> + ActiveModelBehavior + Default + Send + Sync + Sized,
+    Self: ActiveModelTrait<Entity = E> + ActiveModelBehavior + Default + Send + Sync,
 {
     /// Set default values from macro default.
     /// Should be generated in the model macro.
@@ -32,6 +32,10 @@ where
         self = self.set_defaults();
         self
     }
+    /// Shortcut for Self::default().set_defaults_on_create()
+    fn defaults_on_create() -> Self {
+        <Self as Default>::default().set_defaults_on_create()
+    }
 
     /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
     /// We need to have this method instead to get default values on update.
@@ -41,6 +45,10 @@ where
             self = self.set_updated_at(now());
         }
         self
+    }
+    /// Shortcut for Self::default().set_defaults_on_update()
+    fn defaults_on_update() -> Self {
+        <Self as Default>::default().set_defaults_on_update()
     }
 
     /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
@@ -55,5 +63,9 @@ where
             self = self.set_updated_at(now).set_deleted_at(now);
         }
         self
+    }
+    /// Shortcut for Self::default().set_defaults_on_delete()
+    fn defaults_on_delete() -> Self {
+        <Self as Default>::default().set_defaults_on_delete()
     }
 }

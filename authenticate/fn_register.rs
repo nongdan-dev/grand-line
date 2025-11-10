@@ -7,8 +7,11 @@ pub struct Register {
 }
 
 #[create(AuthOtp, resolver_output)]
-async fn register() -> AuthOtpGql {
-    // TODO: check anonymous not log in yet
+async fn register() -> AuthOtpWithSecret {
+    ctx.ensure_not_authenticated().await?;
+
+    let h = &ctx.config().auth.handlers;
+    h.validate_password(ctx, &data.password).await?;
 
     ensure_email_not_registered(tx, &data.email.0).await?;
 
@@ -26,15 +29,12 @@ async fn register() -> AuthOtpGql {
         }
     );
 
-    // TODO: trigger event otp
+    h.on_otp_create(ctx, &t).await?;
 
-    t.into_gql(ctx).await?
+    AuthOtpWithSecret { inner: t }
 }
 
-pub(crate) async fn ensure_email_not_registered(
-    tx: &DatabaseTransaction,
-    email: &String,
-) -> Res<()> {
+pub(crate) async fn ensure_email_not_registered(tx: &DatabaseTransaction, email: &str) -> Res<()> {
     let exists = User::find()
         .include_deleted(None)
         .filter(UserColumn::Email.eq(email))

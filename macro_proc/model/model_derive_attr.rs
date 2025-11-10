@@ -35,11 +35,9 @@ pub fn model_derive_attr(model: &str, fields: &Punctuated<Field, Comma>) -> Mode
         extracted.attrs = attr_sql(&attrs);
         sql.push(extracted);
         // gql
-        if !attr_is_gql_skip(&attrs) {
-            let mut extracted = f.clone();
-            extracted.attrs = attr_gql(&attrs);
-            gql.push((extracted, attrs));
-        }
+        let mut extracted = f.clone();
+        extracted.attrs = attr_gql(&attrs);
+        gql.push((extracted, attrs));
     }
 
     ModelDeriveAttr {
@@ -104,15 +102,10 @@ fn attr_sql(attrs: &[Attr]) -> Vec<Attribute> {
         .collect()
 }
 
-/// Check if we should not include this field in the gql model.
-fn attr_is_gql_skip(attrs: &[Attr]) -> bool {
-    attrs.iter().any(|a| a.is("graphql") && a.has("skip"))
-}
-
 /// Filter to only keep related attrs for the gql model.
 fn attr_gql(attrs: &[Attr]) -> Vec<Attribute> {
     let ne = [
-        // TODO: currently remove all attrs for the gql model
+        // TODO: copy #[graphql...] and comments from the original field
         "",
     ]
     .into_iter()
@@ -123,4 +116,10 @@ fn attr_gql(attrs: &[Attr]) -> Vec<Attribute> {
         .filter(|a| !ne.contains(&a.attr))
         .map(|a| a.field_attr())
         .collect()
+}
+
+/// Check if we should not include this field in the gql resolver, filter, order by..
+/// This field can be in the gql model to support sql dep.
+pub fn attr_is_gql_skip(attrs: &[Attr]) -> bool {
+    attrs.iter().any(|a| a.is("graphql") && a.has("skip"))
 }

@@ -10,8 +10,10 @@ async fn t() -> Res<()> {
     let q = r#"
     mutation test($data: Login) {
         login(data: $data) {
-            user {
-                email
+            inner {
+                user {
+                    email
+                }
             }
         }
     }
@@ -24,8 +26,10 @@ async fn t() -> Res<()> {
     });
     let expected = value!({
         "login": {
-            "user": {
-                "email": "olivia@example.com",
+            "inner": {
+                "user": {
+                    "email": "olivia@example.com",
+                },
             },
         },
     });

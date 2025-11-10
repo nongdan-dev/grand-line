@@ -10,24 +10,26 @@ async fn t() -> Res<()> {
     let q = r#"
     mutation test($data: Register) {
         register(data: $data) {
-            id
+            secret
         }
     }
     "#;
     let v = value!({
         "data": {
             "email": "peter@example.com",
-            "password": "123123",
+            "password": "Str0ngP@ssw0rd?",
         },
     });
     let _ = exec_assert_ok(&s, q, Some(&v)).await;
 
     let t = AuthOtp::find().one_or_404(&d.tmp.db).await?;
     let q = r#"
-    mutation test($data: RegisterResolve) {
+    mutation test($data: AuthOtpResolve!) {
         registerResolve(data: $data) {
-            user {
-                email
+            inner {
+                user {
+                    email
+                }
             }
         }
     }
@@ -41,8 +43,10 @@ async fn t() -> Res<()> {
     });
     let expected = value!({
         "registerResolve": {
-            "user": {
-                "email": "peter@example.com",
+            "inner": {
+                "user": {
+                    "email": "peter@example.com",
+                },
             },
         },
     });

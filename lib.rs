@@ -9,7 +9,8 @@ mod http;
 #[cfg(feature = "authenticate")]
 mod authenticate;
 
-mod authorize;
+// #[cfg(feature = "authorize")]
+// mod authorize;
 
 #[allow(unused_imports, ambiguous_glob_reexports)]
 pub mod prelude {
@@ -32,7 +33,9 @@ pub mod prelude {
     pub use {crate::http::*, async_graphql_axum, axum, cookie, tower, tower_http};
 
     #[cfg(feature = "authenticate")]
-    pub use {crate::authenticate::*, argon2, base64, rand, rand_core, serde_qs, validator};
+    pub use {
+        crate::authenticate::*, argon2, base64, rand, rand_core, serde_qs, validator, zxcvbn,
+    };
 
     pub use {
         async_graphql::{extensions::*, *},
