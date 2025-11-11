@@ -1,7 +1,11 @@
 use super::prelude::*;
 
 #[derive(Default, MergedObject)]
-pub struct AuthenticateMergedQuery(LoginSessionCurrentQuery, LoginSessionSearchQuery);
+pub struct AuthenticateMergedQuery(
+    LoginSessionCurrentQuery,
+    LoginSessionSearchQuery,
+    LoginSessionCountQuery,
+);
 
 #[derive(Default, MergedObject)]
 pub struct AuthenticateMergedMutation(
@@ -11,4 +15,5 @@ pub struct AuthenticateMergedMutation(
     ForgotMutation,
     ForgotResolveMutation,
     AuthOtpResolveMutation,
+    LogoutMutation,
 );

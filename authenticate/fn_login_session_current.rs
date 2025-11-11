@@ -1,8 +1,10 @@
 use super::prelude::*;
 
 #[query]
-async fn loginSessionCurrent() -> Option<LoginSessionWithSecret> {
-    ctx.authenticate_opt()
-        .await?
-        .map(|ls| LoginSessionWithSecret { inner: ls })
+async fn loginSessionCurrent() -> Option<LoginSessionGql> {
+    if let Some(ls) = ctx.authenticate_opt().await? {
+        Some(ls.into_gql(ctx).await?)
+    } else {
+        None
+    }
 }
