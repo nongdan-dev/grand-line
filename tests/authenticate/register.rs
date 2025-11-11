@@ -27,9 +27,7 @@ async fn t() -> Res<()> {
     mutation test($data: AuthOtpResolve!) {
         registerResolve(data: $data) {
             inner {
-                user {
-                    email
-                }
+                userId
             }
         }
     }
@@ -41,16 +39,16 @@ async fn t() -> Res<()> {
             "secret": t.secret.clone(),
         },
     });
-    let expected = value!({
-        "registerResolve": {
-            "inner": {
-                "user": {
-                    "email": "peter@example.com",
-                },
-            },
-        },
-    });
-    exec_assert(&s, q, Some(&v), &expected).await;
+    let _ = exec_assert_ok(&s, q, Some(&v)).await;
+
+    let u = User::find()
+        .filter(UserColumn::Email.eq("peter@example.com"))
+        .one_or_404(&d.tmp.db)
+        .await?;
+    assert!(
+        password_compare("Str0ngP@ssw0rd?", &u.password_hashed),
+        "password should be matched"
+    );
 
     d.tmp.drop().await
 }

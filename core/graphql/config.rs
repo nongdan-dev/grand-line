@@ -1,10 +1,8 @@
-use crate::prelude::*;
-
 pub struct GrandLineConfig {
     pub limit_default: u64,
     pub limit_max: u64,
     #[cfg(feature = "authenticate")]
-    pub auth: GrandLineAuthConfig,
+    pub auth: crate::prelude::GrandLineAuthConfig,
 }
 
 impl Default for GrandLineConfig {

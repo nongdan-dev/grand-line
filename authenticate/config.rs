@@ -2,7 +2,7 @@ use super::prelude::*;
 use zxcvbn::{Score::Three as ValidPasswordScore, zxcvbn};
 
 pub struct GrandLineAuthConfig {
-    pub default_ensure: GrandLineConfigAuthEnsure,
+    pub default_ensure: GrandLineAuthConfigEnsure,
     pub cookie_login_session_key: &'static str,
     pub cookie_login_session_expires: i64,
     pub otp_max_attempt: i64,
@@ -13,7 +13,7 @@ pub struct GrandLineAuthConfig {
 impl Default for GrandLineAuthConfig {
     fn default() -> Self {
         Self {
-            default_ensure: GrandLineConfigAuthEnsure::Authenticate,
+            default_ensure: GrandLineAuthConfigEnsure::Authenticate,
             cookie_login_session_key: "login_session",
             cookie_login_session_expires: 7 * 24 * 60 * 60 * 1000,
             otp_max_attempt: 5,
@@ -23,7 +23,7 @@ impl Default for GrandLineAuthConfig {
     }
 }
 
-pub enum GrandLineConfigAuthEnsure {
+pub enum GrandLineAuthConfigEnsure {
     None,
     Authenticate,
     Unauthenticated,

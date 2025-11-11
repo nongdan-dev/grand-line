@@ -8,13 +8,11 @@ pub struct AuthOtpResolve {
     pub otp: String,
 }
 
-#[update(AuthOtp, resolver_output)]
-fn authOtpResolve() -> AuthOtpWithSecret {
+#[mutation]
+fn authOtpResolve(data: AuthOtpResolve) -> AuthOtpGql {
     ctx.ensure_not_authenticated().await?;
 
-    AuthOtpWithSecret {
-        inner: auth_otp_resolve(ctx, tx, data).await?,
-    }
+    auth_otp_resolve(ctx, tx, data).await?.into_gql(ctx).await?
 }
 
 pub(crate) async fn auth_otp_resolve(

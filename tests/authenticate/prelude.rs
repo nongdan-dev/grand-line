@@ -7,6 +7,7 @@ pub struct Prepare {
     pub tmp: TmpDb,
     pub s: SchemaBuilder<AuthenticateMergedQuery, AuthenticateMergedMutation, EmptySubscription>,
     pub h: HeaderMap,
+    pub user_id: String,
     pub token: String,
 }
 
@@ -28,14 +29,20 @@ pub async fn prepare() -> Res<Prepare> {
     let ls = db_create!(
         &tmp.db,
         LoginSession {
-            user_id: u.id,
+            user_id: u.id.clone(),
             ip: "127.0.0.1",
             ua: "test user agent",
         }
     );
     let token = qs_token(&ls.id, &ls.secret)?;
 
-    Ok(Prepare { tmp, s, h, token })
+    Ok(Prepare {
+        tmp,
+        s,
+        h,
+        user_id: u.id,
+        token,
+    })
 }
 
 pub fn h_static(v: &'static str) -> HeaderValue {

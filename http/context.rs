@@ -17,6 +17,26 @@ const BEARER: &str = "Bearer ";
 
 pub trait GrandLineHttpContext {
     fn get_header(&self, k: &str) -> Res<String>;
+    fn get_ip(&self) -> Res<String>;
+    fn get_ua(&self) -> Res<String>;
+    fn get_authorization_token(&self) -> Res<String>;
+    fn get_cookies(&self) -> Res<HashMap<String, String>>;
+    fn get_cookie(&self, k: &str) -> Res<Option<String>>;
+    fn set_cookie(&self, k: &str, v: &str, expires: i64);
+}
+
+impl GrandLineHttpContext for Context<'_> {
+    fn get_header(&self, k: &str) -> Res<String> {
+        let req_headers = self
+            .data_opt::<HeaderMap>()
+            .ok_or(MyErr::CtxReqHeaders404)?;
+        let v = req_headers
+            .get(k)
+            .map(|v| v.to_str().ok().map(|v| v.to_string()))
+            .unwrap_or_default()
+            .unwrap_or_default();
+        Ok(v)
+    }
 
     fn get_ip(&self) -> Res<String> {
         let mut v = self.get_header(FORWARDED_FOR)?;
@@ -56,22 +76,6 @@ pub trait GrandLineHttpContext {
 
     fn get_cookie(&self, k: &str) -> Res<Option<String>> {
         let v = self.get_cookies()?.get(k).cloned();
-        Ok(v)
-    }
-
-    fn set_cookie(&self, k: &str, v: &str, expires: i64);
-}
-
-impl GrandLineHttpContext for Context<'_> {
-    fn get_header(&self, k: &str) -> Res<String> {
-        let req_headers = self
-            .data_opt::<HeaderMap>()
-            .ok_or(MyErr::CtxReqHeaders404)?;
-        let v = req_headers
-            .get(k)
-            .map(|v| v.to_str().ok().map(|v| v.to_string()))
-            .unwrap_or_default()
-            .unwrap_or_default();
         Ok(v)
     }
 

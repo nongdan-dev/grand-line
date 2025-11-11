@@ -14,9 +14,7 @@ async fn t() -> Res<()> {
     query test {
         loginSessionCurrent {
             inner {
-                user {
-                    email
-                }
+                userId
             }
         }
     }
@@ -24,9 +22,7 @@ async fn t() -> Res<()> {
     let expected = value!({
         "loginSessionCurrent": {
             "inner": {
-                "user": {
-                    "email": "olivia@example.com",
-                },
+                "userId": d.user_id.clone(),
             },
         },
     });

@@ -18,8 +18,8 @@ pub fn model_derive_attr(model: &str, fields: &Punctuated<Field, Comma>) -> Mode
         let attrs = Attr::from_field(model, f, &|a| ATTR_RAW.contains(a));
         attr_validate(&attrs);
         // default
-        if let Some(def) = attrs.iter().find(|a| a.attr == AttrTy::Default).cloned() {
-            defaults.push(def);
+        if let Some(def) = attrs.iter().find(|a| a.attr == AttrTy::Default) {
+            defaults.push(def.clone());
         }
         // virtuals
         if let Some(v) = attr_is_virtual(&attrs) {

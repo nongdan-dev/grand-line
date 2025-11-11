@@ -26,9 +26,7 @@ async fn t() -> Res<()> {
     mutation test($data: AuthOtpResolve!, $password: String!) {
         forgotResolve(data: $data, password: $password) {
             inner {
-                user {
-                    email
-                }
+                userId
             }
         }
     }
@@ -44,9 +42,7 @@ async fn t() -> Res<()> {
     let expected = value!({
         "forgotResolve": {
             "inner": {
-                "user": {
-                    "email": "olivia@example.com",
-                },
+                "userId": d.user_id,
             },
         },
     });

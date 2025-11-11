@@ -29,14 +29,12 @@ pub async fn tmp_db() -> Res<TmpDb> {
 // ============================================================================
 // create temporary db and automatically clean up on drop
 
-#[derive(Clone)]
 pub struct TmpDb {
     ty: TmpDbType,
     name: String,
     pub db: DatabaseConnection,
 }
 
-#[derive(Clone)]
 enum TmpDbType {
     Postgres,
     MySql { admin: DatabaseConnection },

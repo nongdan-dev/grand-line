@@ -1,6 +1,5 @@
 use super::prelude::*;
 
-#[derive(Clone)]
 pub struct LookaheadX<E>
 where
     E: EntityX,

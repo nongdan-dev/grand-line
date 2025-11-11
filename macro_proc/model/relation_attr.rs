@@ -1,7 +1,6 @@
 use crate::prelude::*;
 
 #[field_names]
-#[derive(Clone)]
 pub struct RelationAttr {
     pub no_include_deleted: bool,
     #[field_names(skip)]

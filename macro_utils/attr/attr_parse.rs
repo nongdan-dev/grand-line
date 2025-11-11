@@ -15,7 +15,6 @@ pub enum AttrParseTy {
 
 /// Only in proc macro. For example with proc_macro(k, k1=v1, k2=v2)
 /// it will only pass the nested part k, k1=v1, k2=v2 to this impl.
-#[derive(Clone)]
 pub struct AttrParse {
     pub args: Vec<(String, (String, AttrParseTy))>,
     /// Only in proc macro #crud[Model, ...].

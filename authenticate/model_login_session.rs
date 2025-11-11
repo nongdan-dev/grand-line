@@ -7,9 +7,6 @@ pub struct LoginSession {
     pub secret: String,
 
     pub user_id: String,
-    #[belongs_to]
-    pub user: User,
-
     pub ip: String,
     pub ua: String,
 }

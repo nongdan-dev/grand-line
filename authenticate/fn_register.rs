@@ -26,6 +26,7 @@ async fn register() -> AuthOtpWithSecret {
                 password_hashed: password_hash(&data.password)?,
             }
             .to_json()?,
+            otp: "999999", // TODO: test
         }
     );
 

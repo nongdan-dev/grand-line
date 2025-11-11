@@ -25,6 +25,7 @@ async fn forgot() -> AuthOtpWithSecret {
             ty: AuthOtpTy::Register,
             email: data.email.0,
             data: AuthOtpDataForgot { user_id: u.id }.to_json()?,
+            otp: "999999", // TODO: test
         }
     );
 

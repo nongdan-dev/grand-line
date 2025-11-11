@@ -11,9 +11,7 @@ async fn t() -> Res<()> {
     mutation test($data: Login) {
         login(data: $data) {
             inner {
-                user {
-                    email
-                }
+                userId
             }
         }
     }
@@ -27,9 +25,7 @@ async fn t() -> Res<()> {
     let expected = value!({
         "login": {
             "inner": {
-                "user": {
-                    "email": "olivia@example.com",
-                },
+                "userId": d.user_id.clone(),
             },
         },
     });

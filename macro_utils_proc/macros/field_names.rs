@@ -17,7 +17,7 @@ pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
         }
     } {
         let attrs = Attr::from_field(&s!(name), &f, &|_| false);
-        if let Some(a) = attrs.iter().find(|a| a.is("field_names")).cloned() {
+        if let Some(a) = attrs.iter().find(|a| a.is("field_names")) {
             f.attrs = attrs
                 .iter()
                 .filter(|b| b.attr != a.attr)
