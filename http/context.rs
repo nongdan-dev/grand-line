@@ -7,6 +7,7 @@ use cookie::{
 };
 use std::{net::IpAddr, str::FromStr};
 
+const REAL_IP: &str = "X-Real-IP";
 const FORWARDED_FOR: &str = "X-Forwarded-For";
 const SOCKET_ADDR: &str = "X-Socket-Addr";
 const USER_AGENT: &str = "User-Agent";
@@ -39,7 +40,10 @@ impl GrandLineHttpContext for Context<'_> {
     }
 
     fn get_ip(&self) -> Res<String> {
-        let mut v = self.get_header(FORWARDED_FOR)?;
+        let mut v = self.get_header(REAL_IP)?;
+        if v.is_empty() {
+            v = self.get_header(FORWARDED_FOR)?;
+        }
         if v.is_empty() {
             v = self.get_header(SOCKET_ADDR)?;
         }

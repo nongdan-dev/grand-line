@@ -16,7 +16,7 @@ pub async fn prepare() -> Res<Prepare> {
     let s = schema_qm::<AuthenticateMergedQuery, AuthenticateMergedMutation>(&tmp.db);
 
     let mut h = HeaderMap::default();
-    h.insert("X-Socket-Addr", h_static("127.0.0.1"));
+    h.insert("X-Real-IP", h_static("127.0.0.1"));
     h.insert("User-Agent", h_static("test user agent"));
 
     let u = db_create!(
