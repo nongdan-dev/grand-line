@@ -2,7 +2,7 @@ use super::prelude::*;
 use axum::http::HeaderMap;
 use cookie::{
     Cookie,
-    SameSite::Strict,
+    // SameSite::Strict,
     time::{Duration, OffsetDateTime},
 };
 use std::{net::IpAddr, str::FromStr};
@@ -86,8 +86,8 @@ impl GrandLineHttpContext for Context<'_> {
     fn set_cookie(&self, k: &str, v: &str, expires: i64) {
         let v = Cookie::build(Cookie::new(k, v))
             .http_only(true)
-            .secure(true)
-            .same_site(Strict)
+            // .secure(true)
+            // .same_site(Strict)
             .max_age(Duration::seconds(expires / 1000))
             .expires(OffsetDateTime::now_utc() + Duration::milliseconds(expires))
             .build()
