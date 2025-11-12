@@ -33,7 +33,7 @@ async fn login() -> LoginSessionWithSecret {
 
 pub(crate) struct EnsureLoginSessionData {
     pub ip: String,
-    pub ua: String,
+    pub ua: HashMap<String, String>,
 }
 /// Prepare first to ensure the request context headers are valid before calling other logic.
 pub(crate) fn ensure_login_session_data(ctx: &Context<'_>) -> Res<EnsureLoginSessionData> {
@@ -52,9 +52,9 @@ pub(crate) async fn create_login_session(
     let ls = db_create!(
         tx,
         LoginSession {
-            user_id: user_id.to_string(),
-            ip: data.ip.to_string(),
-            ua: data.ua.to_string(),
+            user_id: user_id.to_owned(),
+            ip: data.ip.clone(),
+            ua: data.ua.clone().to_json()?,
         }
     );
     ctx.set_cookie_login_session(&ls)?;

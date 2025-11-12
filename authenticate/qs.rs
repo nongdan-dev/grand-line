@@ -9,8 +9,8 @@ pub struct QsToken {
 
 pub fn qs_token(id: &str, secret: &str) -> Res<String> {
     let t = to_string(&QsToken {
-        id: id.to_string(),
-        secret: secret.to_string(),
+        id: id.to_owned(),
+        secret: secret.to_owned(),
     })
     .map_err(MyErr::from)?;
     Ok(t)

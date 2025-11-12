@@ -7,19 +7,20 @@ use cookie::{
 };
 use std::{net::IpAddr, str::FromStr};
 
-const REAL_IP: &str = "X-Real-IP";
-const FORWARDED_FOR: &str = "X-Forwarded-For";
-const SOCKET_ADDR: &str = "X-Socket-Addr";
-const USER_AGENT: &str = "User-Agent";
-const COOKIE: &str = "Cookie";
-const SET_COOKIE: &str = "Set-Cookie";
-const AUTHORIZATION: &str = "Authorization";
+const REAL_IP: &str = "x-real-ip";
+const FORWARDED_FOR: &str = "x-forwarded-for";
+const SOCKET_ADDR: &str = "x-socket-addr";
+const USER_AGENT: &str = "user-agent";
+const SEC_CH_UA: &str = "sec-ch-ua";
+const COOKIE: &str = "cookie";
+const SET_COOKIE: &str = "set-cookie";
+const AUTHORIZATION: &str = "authorization";
 const BEARER: &str = "Bearer ";
 
 pub trait GrandLineHttpContext {
     fn get_header(&self, k: &str) -> Res<String>;
     fn get_ip(&self) -> Res<String>;
-    fn get_ua(&self) -> Res<String>;
+    fn get_ua(&self) -> Res<HashMap<String, String>>;
     fn get_authorization_token(&self) -> Res<String>;
     fn get_cookies(&self) -> Res<HashMap<String, String>>;
     fn get_cookie(&self, k: &str) -> Res<Option<String>>;
@@ -33,7 +34,7 @@ impl GrandLineHttpContext for Context<'_> {
             .ok_or(MyErr::CtxReqHeaders404)?;
         let v = req_headers
             .get(k)
-            .map(|v| v.to_str().ok().map(|v| v.to_string()))
+            .map(|v| v.to_str().ok().map(|v| v.to_owned()))
             .unwrap_or_default()
             .unwrap_or_default();
         Ok(v)
@@ -47,19 +48,21 @@ impl GrandLineHttpContext for Context<'_> {
         if v.is_empty() {
             v = self.get_header(SOCKET_ADDR)?;
         }
-        let ip = v.split(',').next().unwrap_or_default().trim().to_string();
+        let ip = v.split(',').next().unwrap_or_default().trim().to_owned();
         if IpAddr::from_str(&ip).is_err() {
             Err(MyErr::CtxReqIp404)?;
         }
         Ok(ip)
     }
 
-    fn get_ua(&self) -> Res<String> {
-        let ua = self.get_header(USER_AGENT)?.trim().to_string();
-        if ua.is_empty() {
+    fn get_ua(&self) -> Res<HashMap<String, String>> {
+        if self.get_header(USER_AGENT)?.is_empty() {
             Err(MyErr::CtxReqUa404)?;
         }
-        Ok(ua)
+        let h = self
+            .data_opt::<HeaderMap>()
+            .ok_or(MyErr::CtxReqHeaders404)?;
+        Ok(get_ua(h))
     }
 
     fn get_authorization_token(&self) -> Res<String> {
@@ -72,7 +75,7 @@ impl GrandLineHttpContext for Context<'_> {
         let mut m = HashMap::new();
         for c in h.split(';') {
             if let Ok(kv) = Cookie::parse(c) {
-                m.insert(kv.name().to_string(), kv.value().to_string());
+                m.insert(kv.name().to_owned(), kv.value().to_owned());
             }
         }
         Ok(m)
@@ -94,4 +97,17 @@ impl GrandLineHttpContext for Context<'_> {
             .to_string();
         self.append_http_header(SET_COOKIE, &v);
     }
+}
+
+pub fn get_ua(h: &HeaderMap) -> HashMap<String, String> {
+    h.iter()
+        .filter_map(|(k, v)| {
+            let k = k.as_str();
+            if k.starts_with(SEC_CH_UA) || k == USER_AGENT {
+                Some((k.to_owned(), v.to_str().unwrap_or_default().to_owned()))
+            } else {
+                None
+            }
+        })
+        .collect()
 }

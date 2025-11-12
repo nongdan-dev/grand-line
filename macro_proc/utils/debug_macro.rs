@@ -9,7 +9,6 @@ pub fn debug_macro(name: &str, ts: Ts2) {
     #[cfg(feature = "debug_macro_cli")]
     {
         use colored::{Colorize, control::SHOULD_COLORIZE};
-        use syn::{File, parse2};
 
         SHOULD_COLORIZE.set_override(true);
         println!("==============================================================================");

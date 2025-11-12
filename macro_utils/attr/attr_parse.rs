@@ -1,10 +1,4 @@
 use crate::prelude::*;
-use syn::{
-    Meta, Result,
-    parse::{Parse, ParseStream},
-    punctuated::Punctuated,
-    token::Comma,
-};
 
 #[derive(Clone, Eq, PartialEq)]
 pub enum AttrParseTy {

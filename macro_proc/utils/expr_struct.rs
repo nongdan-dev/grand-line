@@ -1,9 +1,8 @@
 use crate::prelude::*;
-use syn::{Expr, ExprStruct, Lit, parse_macro_input};
 
 pub fn expr_struct(item: TokenStream, suf: &str, wrap: &str, method: &str) -> TokenStream {
     let item2 = Into::<Ts2>::into(item.clone());
-    let item = if !item2.to_string().trim().to_owned().ends_with("}") {
+    let item = if !item2.to_string().trim().ends_with("}") {
         Into::<TokenStream>::into(quote!(#item2{}))
     } else {
         item
@@ -25,7 +24,7 @@ pub fn expr_struct(item: TokenStream, suf: &str, wrap: &str, method: &str) -> To
         let v = if let Expr::Lit(l) = f.expr {
             if let Lit::Str(s) = l.lit {
                 let v = s.value();
-                quote!(#v.to_string())
+                quote!(#v.to_owned())
             } else {
                 l.to_token_stream()
             }

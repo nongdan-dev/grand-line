@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use syn::{ExprStruct, parse_macro_input};
 
 pub fn gen_attr_unwrap(item: TokenStream, default: bool) -> TokenStream {
     let item = parse_macro_input!(item as ExprStruct);

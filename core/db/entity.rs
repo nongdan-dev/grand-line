@@ -79,7 +79,7 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
     /// ensure deleted_at column is present.
     fn ensure_col_deleted_at() -> Res<Self::C> {
         let col = Self::col_deleted_at().ok_or_else(|| MyErr::DbCol404 {
-            col: Self::model_name().to_string() + ".deleted_at",
+            col: Self::model_name().to_owned() + ".deleted_at",
         })?;
         Ok(col)
     }

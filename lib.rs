@@ -47,7 +47,7 @@ pub mod prelude {
     pub use async_graphql::{Error as GraphQLErr, MaybeUndefined as Undefined, Schema, Value};
     pub use async_trait::async_trait;
     pub use sea_orm::{
-        Schema as DbSchema,
+        Schema as DbSchema, Value as DbValue,
         sea_query::{IntoCondition, SimpleExpr},
     };
     pub use serde::{Deserialize, Serialize};

@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use syn::{Attribute, Field, FieldsNamed, punctuated::Punctuated, token::Comma};
 
 pub struct ModelDeriveAttr {
     pub defaults: Vec<Attr>,

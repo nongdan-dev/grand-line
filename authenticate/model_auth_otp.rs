@@ -4,22 +4,28 @@ use chrono::Duration;
 #[model(no_updated_at, no_deleted_at, no_by_id)]
 pub struct AuthOtp {
     pub email: String,
+
     #[graphql(skip)]
     pub ty: AuthOtpTy,
+
     #[default(random_secret_256bit())]
     #[graphql(skip)]
     pub secret: String,
+
     #[graphql(skip)]
     pub otp_salt: String,
     #[graphql(skip)]
     pub otp_hashed: String,
+
     #[graphql(skip)]
     pub data: JsonValue,
+
     #[default(0)]
     #[graphql(skip)]
     pub total_attempt: i64,
     #[resolver(sql_dep=total_attempt)]
     pub remaining_attempt: i64,
+
     #[resolver(sql_dep=created_at)]
     pub will_expire_at: DateTimeUtc,
     #[resolver(sql_dep=created_at)]

@@ -24,17 +24,9 @@ pub async fn prepare() -> Res<Prepare> {
     );
 
     let mut h = HeaderMap::default();
-    h.insert("X-Real-IP", h_static("127.0.0.1"));
-    h.insert(
-        "User-Agent",
-        h_static("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"),
-    );
-    h.insert(
-        "Sec-CH-UA",
-        h_static(r#""Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99""#),
-    );
-    h.insert("Sec-CH-UA-Platform", h_static(r#""macOS""#));
-    h.insert("Sec-CH-UA-Mobile", h_static(r#"?0"#));
+    h.insert("x-real-ip", h_static("127.0.0.1"));
+    h.insert("user-agent", h_static(UA));
+    h.insert("sec-ch-ua", h_static(UA2));
 
     let u = db_create!(
         &tmp.db,
@@ -48,7 +40,7 @@ pub async fn prepare() -> Res<Prepare> {
         LoginSession {
             user_id: u.id.clone(),
             ip: "127.0.0.1",
-            ua: "test user agent",
+            ua: get_ua(&h).to_json()?,
         }
     );
     let token = qs_token(&ls.id, &ls.secret)?;
@@ -73,6 +65,9 @@ pub struct FakeAuthHandlers;
 #[async_trait]
 impl GrandLineAuthHandlers for FakeAuthHandlers {
     async fn otp(&self, _ctx: &Context<'_>) -> Res<String> {
-        Ok("999999".to_string())
+        Ok("999999".to_owned())
     }
 }
+
+const UA: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36";
+const UA2: &str = r#""Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99""#;

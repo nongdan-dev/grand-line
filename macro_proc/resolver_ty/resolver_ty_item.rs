@@ -1,8 +1,4 @@
 use crate::prelude::*;
-use syn::{
-    ItemFn, Result, ReturnType,
-    parse::{Parse, ParseStream},
-};
 
 #[derive(Default)]
 pub struct ResolverTyItem {

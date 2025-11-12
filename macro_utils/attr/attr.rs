@@ -1,10 +1,6 @@
 use crate::prelude::*;
 use std::any::type_name;
 use std::str::FromStr;
-use syn::{
-    Attribute, Field, parenthesized,
-    token::{Eq, Paren},
-};
 
 #[derive(Clone)]
 pub struct Attr {
@@ -79,7 +75,7 @@ impl Attr {
                 .strip_suffix(")")
                 .unwrap_or_else(panic)
                 .trim()
-                .to_string();
+                .to_owned();
             return Self {
                 debug,
                 attr,
@@ -234,7 +230,7 @@ impl Attr {
     }
 
     fn field(&self) -> (String, Attribute, Field) {
-        match self.field.to_owned() {
+        match self.field.clone() {
             Some(v) => v,
             None => {
                 let err = self.err("field: None");
@@ -256,7 +252,7 @@ impl Attr {
     }
 
     pub fn raw(&self) -> String {
-        match self.raw.to_owned() {
+        match self.raw.clone() {
             Some(v) => v,
             None => {
                 let err = self.err("raw: None");

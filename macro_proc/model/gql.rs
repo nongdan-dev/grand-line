@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use syn::Field;
 
 pub struct GqlAttr {
     pub struk: Vec<Ts2>,

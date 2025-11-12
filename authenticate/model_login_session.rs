@@ -2,12 +2,14 @@ use super::prelude::*;
 
 #[model(no_deleted_at, no_by_id)]
 pub struct LoginSession {
+    pub user_id: String,
+
     #[default(random_secret_256bit())]
     #[graphql(skip)]
     pub secret: String,
-    pub user_id: String,
+
     pub ip: String,
-    pub ua: String,
+    pub ua: JsonValue,
 }
 
 /// To only expose secret in some operations, not the others.

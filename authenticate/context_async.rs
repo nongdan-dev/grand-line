@@ -42,7 +42,7 @@ impl GrandLineAuthenticateContextAsync for Context<'_> {
             tx,
             LoginSession {
                 ip: self.get_ip()?,
-                ua: self.get_ua()?,
+                ua: self.get_ua()?.to_json()?,
                 ..ls.into_active_model()
             }
         );

@@ -1,10 +1,4 @@
 use crate::prelude::*;
-use syn::{
-    Ident, Result as SynRes, Token, bracketed,
-    parse::{Parse, ParseStream},
-    parse_macro_input,
-    punctuated::Punctuated,
-};
 
 struct Item {
     model: Ident,

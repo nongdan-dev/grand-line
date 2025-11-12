@@ -19,7 +19,7 @@ impl From<Attr> for ResolverAttr {
                 .str("sql_dep")
                 .unwrap_or_default()
                 .split('+')
-                .map(|s| s.trim().to_string())
+                .map(|s| s.trim().to_owned())
                 .collect(),
             ra: a.clone().into(),
             inner: a,

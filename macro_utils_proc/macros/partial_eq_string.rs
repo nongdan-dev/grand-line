@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use syn::{DeriveInput, parse_macro_input};
 
 pub fn gen_partial_eq_string(input: TokenStream) -> TokenStream {
     let ty = parse_macro_input!(input as DeriveInput).ident;

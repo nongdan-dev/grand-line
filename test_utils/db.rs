@@ -82,7 +82,7 @@ impl TmpDb {
     }
 
     async fn new_sqlite(_: &str) -> Res<Self> {
-        let name = "memory".to_string();
+        let name = "memory".to_owned();
         let db = conn("sqlite::memory:").await?;
 
         Ok(Self {
@@ -121,7 +121,7 @@ fn new_db_name() -> String {
 }
 
 fn get_uri_scheme(uri: &str) -> String {
-    uri.split(':').next().unwrap_or_default().to_string()
+    uri.split(':').next().unwrap_or_default().to_owned()
 }
 
 fn replace_db_name(uri: &str, name: &str) -> String {

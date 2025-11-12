@@ -63,13 +63,13 @@ impl Extension for GrandLineExtensionImpl {
                     .path
                     .iter()
                     .map(|s| match s {
-                        PathSegment::Field(f) => f.to_string(),
+                        PathSegment::Field(f) => f.to_owned(),
                         PathSegment::Index(i) => i.to_string(),
                     })
                     .collect::<Vec<_>>()
                     .join(".");
                 if err_path.is_empty() {
-                    err_path = "<unknown>".to_string()
+                    err_path = "<unknown>".to_owned()
                 }
                 eprintln!("{} {}", err_path, e.message);
                 e.message = MyErr::InternalServer.to_string();

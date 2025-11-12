@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use syn::Field;
 
 pub fn order_by(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
     push(f, struk, query, "asc");

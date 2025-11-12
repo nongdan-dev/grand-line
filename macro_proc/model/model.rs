@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use syn::{Fields, ItemStruct, parse_macro_input};
 
 pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as AttrParse);
@@ -93,7 +92,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     for a in defaults {
         let mut raw_str = a.raw();
         if raw_str.starts_with("\"") || raw_str.starts_with("r#") {
-            raw_str += ".to_string()"
+            raw_str += ".to_owned()"
         }
         let raw = ts2!(raw_str);
         let name = ts2!(a.field_name());
@@ -350,7 +349,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                     self.id.clone()
                 }
                 fn set_id(mut self, v: &str) -> Self {
-                    self.id = Set(v.to_string());
+                    self.id = Set(v.to_owned());
                     self
                 }
                 fn get_created_at(&self) -> ActiveValue<DateTimeUtc> {
@@ -377,7 +376,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
             impl GqlModel<Entity> for #gql {
                 fn set_id(mut self, v: &str) -> Self {
-                    self.id = Some(v.to_string());
+                    self.id = Some(v.to_owned());
                     self
                 }
                 fn get_string(&self, col: Column) -> Option<String> {

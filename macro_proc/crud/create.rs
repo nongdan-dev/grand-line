@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use syn::parse_macro_input;
 
 pub fn gen_create(attr: TokenStream, item: TokenStream) -> TokenStream {
     let a = parse_macro_input!(attr as AttrParse);

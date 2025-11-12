@@ -20,5 +20,12 @@ macro_rules! use_common_macro_utils {
         pub use maplit::*;
         pub use proc_macro2::TokenStream as Ts2;
         pub use quote::*;
+        pub use syn::{
+            Error as SynErr, Result as SynRes,
+            parse::*,
+            punctuated::*,
+            token::{Comma, Eq, Paren},
+            *,
+        };
     };
 }

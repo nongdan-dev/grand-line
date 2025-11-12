@@ -1,9 +1,4 @@
 use crate::prelude::*;
-use syn::{
-    Expr, Path, Result, Token,
-    parse::{Parse, ParseStream},
-    parse_macro_input,
-};
 
 struct Args {
     db: Expr,
@@ -15,7 +10,7 @@ struct Args {
 }
 
 impl Parse for Args {
-    fn parse(s: ParseStream) -> Result<Self> {
+    fn parse(s: ParseStream) -> SynRes<Self> {
         Ok(Self {
             db: s.parse()?,
             _comma1: s.parse()?,
