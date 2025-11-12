@@ -8,6 +8,7 @@ pub struct Forgot {
 #[create(AuthOtp, resolver_output)]
 async fn forgot() -> AuthOtpWithSecret {
     ctx.ensure_not_authenticated().await?;
+    ensure_otp_resend(ctx, tx, AuthOtpTy::Forgot, &data.email.0).await?;
 
     let h = &ctx.config().auth.handlers;
 
@@ -17,15 +18,12 @@ async fn forgot() -> AuthOtpWithSecret {
         .one_or_404(tx)
         .await?;
 
-    // TODO: check if this user id has been requested forgot password recently
-
     let t = db_create!(
         tx,
         AuthOtp {
-            ty: AuthOtpTy::Register,
+            ty: AuthOtpTy::Forgot,
             email: data.email.0,
             data: AuthOtpDataForgot { user_id: u.id }.to_json()?,
-            otp: "999999", // TODO: test
         }
     );
 

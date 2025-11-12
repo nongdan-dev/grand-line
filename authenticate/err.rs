@@ -25,6 +25,9 @@ pub enum MyErr {
     #[error("otp is expired or invalid")]
     #[client]
     OtpResolveInvalid,
+    #[error("otp is not yet to re-request")]
+    #[client]
+    OtpResendTooSoon,
 
     #[error("email or password is incorrect")]
     #[client]

@@ -10,12 +10,11 @@ pub struct Register {
 async fn register() -> AuthOtpWithSecret {
     ctx.ensure_not_authenticated().await?;
 
+    ensure_email_not_registered(tx, &data.email.0).await?;
+    ensure_otp_resend(ctx, tx, AuthOtpTy::Register, &data.email.0).await?;
+
     let h = &ctx.config().auth.handlers;
     h.validate_password(ctx, &data.password).await?;
-
-    ensure_email_not_registered(tx, &data.email.0).await?;
-
-    // TODO: check if this email has been requested register recently
 
     let t = db_create!(
         tx,
@@ -26,7 +25,6 @@ async fn register() -> AuthOtpWithSecret {
                 password_hashed: password_hash(&data.password)?,
             }
             .to_json()?,
-            otp: "999999", // TODO: test
         }
     );
 

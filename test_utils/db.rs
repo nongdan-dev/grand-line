@@ -2,28 +2,18 @@ use crate::prelude::*;
 use std::time::Duration;
 
 pub async fn tmp_db() -> Res<TmpDb> {
+    let tmp = TmpDb::new(db_uri()).await?;
+    Ok(tmp)
+}
+fn db_uri() -> &'static str {
     #[cfg(feature = "postgres")]
-    {
-        let uri = "postgres://postgres:test_pwd@localhost:5432/test_db";
-        let tmp = TmpDb::new(uri).await?;
-        Ok(tmp)
-    }
+    return "postgres://postgres:test_pwd@localhost:5432/test_db";
     #[cfg(feature = "mysql")]
-    {
-        let uri = "mysql://root:test_pwd@localhost:3306/test_db";
-        let tmp = TmpDb::new(uri).await?;
-        Ok(tmp)
-    }
+    return "mysql://root:test_pwd@localhost:3306/test_db";
     #[cfg(feature = "sqlite")]
-    {
-        let uri = "sqlite::memory:";
-        let tmp = TmpDb::new(uri).await?;
-        Ok(tmp)
-    }
+    return "sqlite::memory:";
     #[cfg(not(any(feature = "postgres", feature = "mysql", feature = "sqlite")))]
-    {
-        misuse!("must enable one of: postgres, mysql, sqlite")
-    }
+    pan!("must enable one of: postgres, mysql, sqlite");
 }
 
 // ============================================================================

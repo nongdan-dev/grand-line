@@ -3,28 +3,26 @@ use chrono::Duration;
 
 #[model(no_updated_at, no_deleted_at, no_by_id)]
 pub struct AuthOtp {
-    pub ty: AuthOtpTy,
     pub email: String,
-
+    #[graphql(skip)]
+    pub ty: AuthOtpTy,
     #[default(random_secret_256bit())]
     #[graphql(skip)]
     pub secret: String,
-
     #[default(random_otp_6digits())]
     #[graphql(skip)]
     pub otp: String,
-
     #[graphql(skip)]
     pub data: JsonValue,
-
     #[default(0)]
     #[graphql(skip)]
     pub total_attempt: i64,
-
     #[resolver(sql_dep=total_attempt)]
     pub remaining_attempt: i64,
     #[resolver(sql_dep=created_at)]
     pub will_expire_at: DateTimeUtc,
+    #[resolver(sql_dep=created_at)]
+    pub can_retry_at: DateTimeUtc,
 }
 
 #[enunn]
@@ -51,6 +49,11 @@ async fn resolve_remaining_attempt(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<i64
 async fn resolve_will_expire_at(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<DateTimeUtc> {
     let c = o.created_at.ok_or(GrandLineDbErr::GqlResolverNone)?;
     let d = Duration::milliseconds(ctx.config().auth.otp_expire_ms);
+    Ok(c + d)
+}
+async fn resolve_can_retry_at(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<DateTimeUtc> {
+    let c = o.created_at.ok_or(GrandLineDbErr::GqlResolverNone)?;
+    let d = Duration::milliseconds(ctx.config().auth.otp_resend_ms);
     Ok(c + d)
 }
 

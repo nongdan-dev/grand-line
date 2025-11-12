@@ -9,21 +9,26 @@ pub struct AuthOtpResolve {
 }
 
 #[mutation]
-fn authOtpResolve(data: AuthOtpResolve) -> AuthOtpGql {
+fn authOtpResolve(ty: AuthOtpTy, data: AuthOtpResolve) -> AuthOtpGql {
     ctx.ensure_not_authenticated().await?;
 
-    auth_otp_resolve(ctx, tx, data).await?.into_gql(ctx).await?
+    ensure_auth_otp_resolve(ctx, tx, ty, data)
+        .await?
+        .into_gql(ctx)
+        .await?
 }
 
-pub(crate) async fn auth_otp_resolve(
+pub(crate) async fn ensure_auth_otp_resolve(
     ctx: &Context<'_>,
     tx: &DatabaseTransaction,
+    ty: AuthOtpTy,
     data: AuthOtpResolve,
 ) -> Res<AuthOtpSql> {
     let u = AuthOtp::update_many()
         .include_deleted(None)
         .by_id(&data.id)
-        .filter(AuthOtpColumn::Secret.eq(&data.secret))
+        .filter(AuthOtpColumn::Ty.eq(ty))
+        .filter(AuthOtpColumn::Secret.eq(data.secret))
         .set(AuthOtpActiveModel::defaults_on_update())
         .col_expr(
             AuthOtpColumn::TotalAttempt,
@@ -53,7 +58,7 @@ pub(crate) async fn auth_otp_resolve(
     let c = &ctx.config().auth;
     if t.otp != data.otp
         || t.total_attempt > c.otp_max_attempt
-        || t.created_at + Duration::microseconds(c.otp_expire_ms) < now()
+        || t.created_at + Duration::milliseconds(c.otp_expire_ms) < now()
     {
         Err(MyErr::OtpResolveInvalid)?;
     }
@@ -67,4 +72,30 @@ pub(crate) async fn auth_otp_resolve(
     );
 
     Ok(t)
+}
+
+pub(crate) async fn ensure_otp_resend(
+    ctx: &Context<'_>,
+    tx: &DatabaseTransaction,
+    ty: AuthOtpTy,
+    email: &str,
+) -> Res<()> {
+    let t = AuthOtp::find()
+        .include_deleted(None)
+        .filter(AuthOtpColumn::Ty.eq(ty))
+        .filter(AuthOtpColumn::Email.eq(email))
+        .one(tx)
+        .await?;
+    let t = if let Some(t) = t {
+        t
+    } else {
+        return Ok(());
+    };
+
+    let c = &ctx.config().auth;
+    if t.created_at + Duration::milliseconds(c.otp_resend_ms) > now() {
+        Err(MyErr::OtpResendTooSoon)?;
+    }
+
+    Ok(())
 }

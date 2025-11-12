@@ -5,7 +5,6 @@ pub struct LoginSession {
     #[default(random_secret_256bit())]
     #[graphql(skip)]
     pub secret: String,
-
     pub user_id: String,
     pub ip: String,
     pub ua: String,

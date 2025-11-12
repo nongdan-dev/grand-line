@@ -3,12 +3,12 @@ use super::prelude::*;
 #[mutation]
 async fn forgotResolve(data: AuthOtpResolve, password: String) -> LoginSessionWithSecret {
     ctx.ensure_not_authenticated().await?;
+    let lsd = ensure_login_session_data(ctx)?;
+    let t = ensure_auth_otp_resolve(ctx, tx, AuthOtpTy::Forgot, data).await?;
 
     let h = &ctx.config().auth.handlers;
     h.validate_password(ctx, &password).await?;
-    let lsd = ensure_login_session_data(ctx)?;
 
-    let t = auth_otp_resolve(ctx, tx, data).await?;
     let d = AuthOtpDataForgot::from_json(t.data)?;
 
     let u = db_update!(
