@@ -22,7 +22,7 @@ pub struct AuthOtp {
     #[resolver(sql_dep=created_at)]
     pub will_expire_at: DateTimeUtc,
     #[resolver(sql_dep=created_at)]
-    pub can_retry_at: DateTimeUtc,
+    pub can_re_request_at: DateTimeUtc,
 }
 
 #[enunn]
@@ -51,7 +51,7 @@ async fn resolve_will_expire_at(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<DateTi
     let d = Duration::milliseconds(ctx.config().auth.otp_expire_ms);
     Ok(c + d)
 }
-async fn resolve_can_retry_at(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<DateTimeUtc> {
+async fn resolve_can_re_request_at(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<DateTimeUtc> {
     let c = o.created_at.ok_or(GrandLineDbErr::GqlResolverNone)?;
     let d = Duration::milliseconds(ctx.config().auth.otp_re_request_ms);
     Ok(c + d)
