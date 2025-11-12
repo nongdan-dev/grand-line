@@ -53,7 +53,7 @@ async fn resolve_will_expire_at(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<DateTi
 }
 async fn resolve_can_retry_at(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<DateTimeUtc> {
     let c = o.created_at.ok_or(GrandLineDbErr::GqlResolverNone)?;
-    let d = Duration::milliseconds(ctx.config().auth.otp_resend_ms);
+    let d = Duration::milliseconds(ctx.config().auth.otp_re_request_ms);
     Ok(c + d)
 }
 

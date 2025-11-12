@@ -27,10 +27,7 @@ impl GrandLineAuthenticateContextAsync for Context<'_> {
 
         let tx = &*self.tx().await?;
 
-        let ls = LoginSession::find_by_id(&t.id)
-            .include_deleted(None)
-            .one(tx)
-            .await?;
+        let ls = LoginSession::find_by_id(&t.id).one(tx).await?;
         let ls = if let Some(ls) = ls {
             ls
         } else {

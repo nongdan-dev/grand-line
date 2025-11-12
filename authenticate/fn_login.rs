@@ -20,13 +20,9 @@ async fn login() -> LoginSessionWithSecret {
         .await?
         .ok_or(MyErr::LoginIncorrect)?;
 
-    // TODO: check if too many incorrect attempts
-
     if !password_compare(&data.password, &u.password_hashed) {
         Err(MyErr::LoginIncorrect)?;
     }
-
-    // TODO: reset incorrect attempts
 
     let ls = create_login_session(ctx, tx, &u.id, &lsd).await?;
 

@@ -8,9 +8,9 @@ pub struct Forgot {
 #[create(AuthOtp, resolver_output)]
 async fn forgot() -> AuthOtpWithSecret {
     ctx.ensure_not_authenticated().await?;
-    ensure_otp_resend(ctx, tx, AuthOtpTy::Forgot, &data.email.0).await?;
 
     let h = &ctx.config().auth.handlers;
+    ensure_otp_re_request(ctx, tx, AuthOtpTy::Forgot, &data.email.0).await?;
 
     let u = User::find()
         .include_deleted(None)

@@ -27,7 +27,7 @@ pub enum MyErr {
     OtpResolveInvalid,
     #[error("otp is not yet to re-request")]
     #[client]
-    OtpResendTooSoon,
+    OtpReRequestTooSoon,
 
     #[error("email or password is incorrect")]
     #[client]

@@ -12,20 +12,19 @@ pub struct AuthOtpResolve {
 fn authOtpResolve(ty: AuthOtpTy, data: AuthOtpResolve) -> AuthOtpGql {
     ctx.ensure_not_authenticated().await?;
 
-    ensure_auth_otp_resolve(ctx, tx, ty, data)
+    ensure_otp_resolve(ctx, tx, ty, data)
         .await?
         .into_gql(ctx)
         .await?
 }
 
-pub(crate) async fn ensure_auth_otp_resolve(
+pub(crate) async fn ensure_otp_resolve(
     ctx: &Context<'_>,
     tx: &DatabaseTransaction,
     ty: AuthOtpTy,
     data: AuthOtpResolve,
 ) -> Res<AuthOtpSql> {
     let u = AuthOtp::update_many()
-        .include_deleted(None)
         .by_id(&data.id)
         .filter(AuthOtpColumn::Ty.eq(ty))
         .filter(AuthOtpColumn::Secret.eq(data.secret))
@@ -49,7 +48,6 @@ pub(crate) async fn ensure_auth_otp_resolve(
             Err(MyErr::OtpResolveInvalid)?;
         }
         AuthOtp::find_by_id(&data.id)
-            .include_deleted(None)
             .one(tx)
             .await?
             .ok_or(MyErr::OtpResolveInvalid)?
@@ -74,14 +72,13 @@ pub(crate) async fn ensure_auth_otp_resolve(
     Ok(t)
 }
 
-pub(crate) async fn ensure_otp_resend(
+pub(crate) async fn ensure_otp_re_request(
     ctx: &Context<'_>,
     tx: &DatabaseTransaction,
     ty: AuthOtpTy,
     email: &str,
 ) -> Res<()> {
     let t = AuthOtp::find()
-        .include_deleted(None)
         .filter(AuthOtpColumn::Ty.eq(ty))
         .filter(AuthOtpColumn::Email.eq(email))
         .one(tx)
@@ -93,9 +90,15 @@ pub(crate) async fn ensure_otp_resend(
     };
 
     let c = &ctx.config().auth;
-    if t.created_at + Duration::milliseconds(c.otp_resend_ms) > now() {
-        Err(MyErr::OtpResendTooSoon)?;
+    if t.created_at + Duration::milliseconds(c.otp_re_request_ms) > now() {
+        Err(MyErr::OtpReRequestTooSoon)?;
     }
+
+    AuthOtp::delete_many()
+        .filter(AuthOtpColumn::Ty.eq(ty))
+        .filter(AuthOtpColumn::Email.eq(email))
+        .exec(tx)
+        .await?;
 
     Ok(())
 }

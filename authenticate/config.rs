@@ -1,5 +1,5 @@
 use super::prelude::*;
-use zxcvbn::{Score::Three as ValidPasswordScore, zxcvbn};
+use zxcvbn::{Score, zxcvbn};
 
 pub struct GrandLineAuthConfig {
     pub default_ensure: GrandLineAuthConfigEnsure,
@@ -7,7 +7,7 @@ pub struct GrandLineAuthConfig {
     pub cookie_login_session_expires: i64,
     pub otp_max_attempt: i64,
     pub otp_expire_ms: i64,
-    pub otp_resend_ms: i64,
+    pub otp_re_request_ms: i64,
     pub handlers: Arc<dyn GrandLineAuthHandlers>,
 }
 
@@ -19,7 +19,7 @@ impl Default for GrandLineAuthConfig {
             cookie_login_session_expires: 7 * 24 * 60 * 60 * 1000,
             otp_max_attempt: 5,
             otp_expire_ms: 10 * 60 * 1000,
-            otp_resend_ms: 60 * 1000,
+            otp_re_request_ms: 60 * 1000,
             handlers: Arc::new(DefaultAuthHandlers),
         }
     }
@@ -38,7 +38,7 @@ where
     Self: Send + Sync,
 {
     async fn validate_password(&self, _: &Context<'_>, password: &str) -> Res<()> {
-        if zxcvbn(password, &[]).score() < ValidPasswordScore {
+        if zxcvbn(password, &[]).score() < Score::Three {
             Err(MyErr::PasswordInvalid)?;
         }
         Ok(())
