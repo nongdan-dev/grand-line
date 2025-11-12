@@ -8,7 +8,7 @@ async fn t() -> Res<()> {
     let s = d.s.data(d.h).finish();
 
     let q = r#"
-    mutation test($data: Forgot) {
+    mutation test($data: Forgot!) {
         forgot(data: $data) {
             secret
         }

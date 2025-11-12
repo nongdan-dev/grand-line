@@ -27,7 +27,7 @@ pub(crate) async fn ensure_otp_resolve(
     let u = AuthOtp::update_many()
         .by_id(&data.id)
         .filter(AuthOtpColumn::Ty.eq(ty))
-        .filter(AuthOtpColumn::Secret.eq(data.secret))
+        .filter(AuthOtpColumn::Secret.eq(&data.secret))
         .set(AuthOtpActiveModel::defaults_on_update())
         .col_expr(
             AuthOtpColumn::TotalAttempt,

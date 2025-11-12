@@ -8,7 +8,7 @@ async fn t() -> Res<()> {
     let s = d.s.data(d.h).finish();
 
     let q = r#"
-    mutation test($data: Login) {
+    mutation test($data: Login!) {
         login(data: $data) {
             inner {
                 userId

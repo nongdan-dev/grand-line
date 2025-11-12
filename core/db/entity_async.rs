@@ -83,7 +83,7 @@ where
         } else {
             Self::soft_delete_by_id(id)?.exec(db).await?;
         }
-        let r = Self::G::default().set_id(id);
+        let r = Self::G::from_id(id);
         Ok(r)
     }
 

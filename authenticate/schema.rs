@@ -16,4 +16,6 @@ pub struct AuthenticateMergedMutation(
     ForgotResolveMutation,
     AuthOtpResolveMutation,
     LogoutMutation,
+    LoginSessionDeleteMutation,
+    LoginSessionDeleteAllMutation,
 );

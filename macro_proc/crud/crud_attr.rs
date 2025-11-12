@@ -26,7 +26,13 @@ impl AttrValidate for CrudAttr {
         let mut f = Self::F
             .iter()
             .map(|f| s!(f))
-            .filter(|f| !(a.attr != MacroTy::Delete && f == Self::F_NO_PERMANENT_DELETE))
+            .filter(|f| {
+                if a.attr == MacroTy::Delete {
+                    true
+                } else {
+                    f != Self::F_NO_PERMANENT_DELETE
+                }
+            })
             .collect::<Vec<_>>();
         f.extend(ResolverTyAttr::attr_fields(a));
         f.push(a.model_from_first_path());

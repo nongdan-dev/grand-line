@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-#[search(LoginSession)]
+#[search(LoginSession, no_include_deleted)]
 fn resolver() {
     ctx.ensure_authenticated().await?;
 
@@ -9,7 +9,7 @@ fn resolver() {
     (f, o)
 }
 
-#[count(LoginSession)]
+#[count(LoginSession, no_include_deleted)]
 fn resolver() {
     ctx.ensure_authenticated().await?;
 
