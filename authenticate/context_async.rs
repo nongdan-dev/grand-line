@@ -34,7 +34,7 @@ impl GrandLineAuthenticateContextAsync for Context<'_> {
             return Ok(None);
         };
 
-        if ls.secret != t.secret {
+        if !constant_time_eq(&ls.secret, &t.secret) {
             return Ok(None);
         }
 

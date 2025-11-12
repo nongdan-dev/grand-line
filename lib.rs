@@ -34,7 +34,8 @@ pub mod prelude {
 
     #[cfg(feature = "authenticate")]
     pub use {
-        crate::authenticate::*, argon2, base64, rand, rand_core, serde_qs, validator, zxcvbn,
+        crate::authenticate::*, argon2, base64, hmac, rand, rand_core, serde_qs, sha2, subtle,
+        validator, zxcvbn,
     };
 
     pub use {

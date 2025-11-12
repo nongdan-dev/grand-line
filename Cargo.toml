@@ -38,7 +38,19 @@ no_permanent_delete = ["_proc/no_permanent_delete"]
 # other features
 test_utils = ["pretty_assertions"]
 axum = ["dep:axum", "async-graphql-axum", "cookie", "tower", "tower-http"]
-authenticate = ["axum", "argon2", "base64", "rand", "rand_core", "serde_qs", "validator", "zxcvbn"]
+authenticate = [
+  "axum",
+  "argon2",
+  "base64",
+  "rand",
+  "rand_core",
+  "serde_qs",
+  "validator",
+  "zxcvbn",
+  "subtle",
+  "hmac",
+  "sha2",
+]
 authorize = []
 
 [dependencies]
@@ -53,6 +65,7 @@ axum = { version = "0.8.6", optional = true, default-features = false, features 
 base64 = { version = "0.22.1", optional = true, default-features = false, features = [] }
 chrono = { version = "0.4.42", default-features = false, features = ["now", "serde"] }
 cookie = { version = "0.18.1", optional = true, default-features = false, features = [] }
+hmac = { version = "0.12.1", optional = true, default-features = false, features = [] }
 pretty_assertions = { version = "1.4.1", optional = true, default-features = false, features = ["std"] }
 rand = { version = "0.9.1", optional = true, default-features = false, features = ["thread_rng"] }
 rand_core = { version = "0.9.3", optional = true, default-features = false, features = [] }
@@ -61,7 +74,9 @@ serde = { version = "1.0.228", default-features = false, features = ["derive", "
 serde_json = { version = "1.0.145", default-features = false, features = [] }
 serde_qs = { version = "0.15.0", optional = true, default-features = false, features = [] }
 serde_with = { version = "3.15.1", default-features = false, features = ["macros"] }
+sha2 = { version = "0.10.9", optional = true, default-features = false, features = [] }
 sqlx = { version = "0.8.6", default-features = false, features = ["chrono", "json", "macros", "migrate", "runtime-tokio-rustls", "rust_decimal"] }
+subtle = { version = "2.6.1", optional = true, default-features = false, features = [] }
 thiserror = { version = "2.0.17", default-features = false, features = [] }
 tokio = { version = "1.48.0", default-features = false, features = ["full"] }
 tower = { version = "0.5.2", optional = true, default-features = false, features = [] }

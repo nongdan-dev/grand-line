@@ -20,7 +20,7 @@ async fn login() -> LoginSessionWithSecret {
         .await?
         .ok_or(MyErr::LoginIncorrect)?;
 
-    if !password_compare(&data.password, &u.password_hashed) {
+    if !password_compare(&u.password_hashed, &data.password) {
         Err(MyErr::LoginIncorrect)?;
     }
 

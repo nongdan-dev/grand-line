@@ -35,8 +35,8 @@ async fn t() -> Res<()> {
     let v = value!({
         "data": {
             "id": t.id.clone(),
-            "otp": t.otp.clone(),
             "secret": t.secret.clone(),
+            "otp": "999999",
         },
     });
     let _ = exec_assert_ok(&s, q, Some(&v)).await;
@@ -46,7 +46,7 @@ async fn t() -> Res<()> {
         .one_or_404(&d.tmp.db)
         .await?;
     assert!(
-        password_compare("Str0ngP@ssw0rd?", &u.password_hashed),
+        password_compare(&u.password_hashed, "Str0ngP@ssw0rd?"),
         "password should be matched"
     );
 

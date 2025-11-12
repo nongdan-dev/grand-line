@@ -1,13 +1,45 @@
-use base64::{Engine, engine::general_purpose};
+use super::prelude::*;
+use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD as B64};
+use hmac::{Hmac, Mac};
 use rand::{Rng, RngCore, rng};
+use sha2::Sha256;
+use subtle::ConstantTimeEq;
 
-pub fn random_secret_256bit() -> String {
-    let mut secret = [0u8; 32];
-    rng().fill_bytes(&mut secret);
-    general_purpose::URL_SAFE_NO_PAD.encode(secret)
+pub fn random_secret(bytes: usize) -> String {
+    let mut b = vec![0u8; bytes];
+    rng().fill_bytes(&mut b);
+    B64.encode(b)
 }
 
-pub fn random_otp_6digits() -> String {
-    let n: u32 = rng().random_range(0..=999_999);
-    format!("{:06}", n)
+pub fn random_secret_256bit() -> String {
+    random_secret(32)
+}
+
+pub fn otp_new() -> String {
+    let otp = rng().random_range(0..=999_999);
+    format!("{:06}", otp)
+}
+pub fn otp_hash(otp: &str) -> Res<(String, String)> {
+    let salt = random_secret(8);
+    let otp_hashed = _otp_hash(&salt, otp)?;
+    Ok((salt, otp_hashed))
+}
+pub fn otp_compare(salt: &str, otp_hashed: &str, otp: &str) -> Res<bool> {
+    let otp_hashed2 = _otp_hash(salt, otp)?;
+    let r = constant_time_eq(otp_hashed, &otp_hashed2);
+    Ok(r)
+}
+
+fn _otp_hash(salt: &str, otp: &str) -> Res<String> {
+    let mut mac = Hmac::<Sha256>::new_from_slice(salt.as_bytes()).map_err(|e| MyErr::HmacErr {
+        inner: e.to_string(),
+    })?;
+    mac.update(otp.as_bytes());
+    let b = mac.finalize().into_bytes();
+    let secret = B64.encode(b);
+    Ok(secret)
+}
+
+pub fn constant_time_eq(a: &str, b: &str) -> bool {
+    a.as_bytes().ct_eq(b.as_bytes()).unwrap_u8() == 1
 }

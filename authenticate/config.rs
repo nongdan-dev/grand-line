@@ -37,22 +37,30 @@ pub trait GrandLineAuthHandlers
 where
     Self: Send + Sync,
 {
-    async fn validate_password(&self, _: &Context<'_>, password: &str) -> Res<()> {
+    async fn validate_password(&self, _ctx: &Context<'_>, password: &str) -> Res<()> {
         if zxcvbn(password, &[]).score() < Score::Three {
             Err(MyErr::PasswordInvalid)?;
         }
         Ok(())
     }
-    async fn on_otp_create(&self, _: &Context<'_>, _: &AuthOtpSql) -> Res<()> {
+    async fn otp(&self, _ctx: &Context<'_>) -> Res<String> {
+        Ok(otp_new())
+    }
+    async fn on_otp_create(
+        &self,
+        _ctx: &Context<'_>,
+        _otp: &AuthOtpSql,
+        _otp_raw: &str,
+    ) -> Res<()> {
         Ok(())
     }
-    async fn on_register_resolve(&self, _: &Context<'_>, _: &UserSql) -> Res<()> {
+    async fn on_register_resolve(&self, _ctx: &Context<'_>, _user: &UserSql) -> Res<()> {
         Ok(())
     }
-    async fn on_login_resolve(&self, _: &Context<'_>, _: &UserSql) -> Res<()> {
+    async fn on_login_resolve(&self, _ctx: &Context<'_>, _user: &UserSql) -> Res<()> {
         Ok(())
     }
-    async fn on_forgot_resolve(&self, _: &Context<'_>, _: &UserSql) -> Res<()> {
+    async fn on_forgot_resolve(&self, _ctx: &Context<'_>, _user: &UserSql) -> Res<()> {
         Ok(())
     }
 }

@@ -13,17 +13,13 @@ async fn t() -> Res<()> {
     let q = r#"
     query test {
         loginSessionCurrent {
-            inner {
-                userId
-            }
+            userId
         }
     }
     "#;
     let expected = value!({
         "loginSessionCurrent": {
-            "inner": {
-                "userId": d.user_id.clone(),
-            },
+            "userId": d.user_id.clone(),
         },
     });
     exec_assert(&s, q, None, &expected).await;

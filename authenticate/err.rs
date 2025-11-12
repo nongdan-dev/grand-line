@@ -40,6 +40,8 @@ pub enum MyErr {
     PasswordHash { inner: PasswordHashErr },
     #[error("query string error: {inner}")]
     QsErr { inner: QsErr },
+    #[error("hmac error: {inner}")]
+    HmacErr { inner: String },
 }
 
 impl From<PasswordHashErr> for MyErr {

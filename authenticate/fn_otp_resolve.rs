@@ -27,7 +27,6 @@ pub(crate) async fn ensure_otp_resolve(
     let u = AuthOtp::update_many()
         .by_id(&data.id)
         .filter(AuthOtpColumn::Ty.eq(ty))
-        .filter(AuthOtpColumn::Secret.eq(&data.secret))
         .set(AuthOtpActiveModel::defaults_on_update())
         .col_expr(
             AuthOtpColumn::TotalAttempt,
@@ -54,7 +53,8 @@ pub(crate) async fn ensure_otp_resolve(
     };
 
     let c = &ctx.config().auth;
-    if t.otp != data.otp
+    if !otp_compare(&t.otp_salt, &t.otp_hashed, &data.otp)?
+        || !constant_time_eq(&t.secret, &data.secret)
         || t.total_attempt > c.otp_max_attempt
         || t.created_at + Duration::milliseconds(c.otp_expire_ms) < now()
     {

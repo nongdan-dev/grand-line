@@ -17,17 +17,20 @@ async fn forgot() -> AuthOtpWithSecret {
         .filter(UserColumn::Email.eq(&data.email.0))
         .one_or_404(tx)
         .await?;
-
+    let otp = h.otp(ctx).await?;
+    let (otp_salt, otp_hashed) = otp_hash(&otp)?;
     let t = db_create!(
         tx,
         AuthOtp {
             ty: AuthOtpTy::Forgot,
             email: data.email.0,
             data: AuthOtpDataForgot { user_id: u.id }.to_json()?,
+            otp_salt,
+            otp_hashed,
         }
     );
 
-    h.on_otp_create(ctx, &t).await?;
+    h.on_otp_create(ctx, &t, &otp).await?;
 
     AuthOtpWithSecret { inner: t }
 }

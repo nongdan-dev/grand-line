@@ -16,6 +16,8 @@ async fn register() -> AuthOtpWithSecret {
     let h = &ctx.config().auth.handlers;
     h.validate_password(ctx, &data.password).await?;
 
+    let otp = h.otp(ctx).await?;
+    let (otp_salt, otp_hashed) = otp_hash(&otp)?;
     let t = db_create!(
         tx,
         AuthOtp {
@@ -25,10 +27,12 @@ async fn register() -> AuthOtpWithSecret {
                 password_hashed: password_hash(&data.password)?,
             }
             .to_json()?,
+            otp_salt,
+            otp_hashed,
         }
     );
 
-    h.on_otp_create(ctx, &t).await?;
+    h.on_otp_create(ctx, &t, &otp).await?;
 
     AuthOtpWithSecret { inner: t }
 }

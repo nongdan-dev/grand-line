@@ -16,7 +16,7 @@ pub fn password_hash(password: &str) -> Res<String> {
     Ok(password_hashed)
 }
 
-pub fn password_compare(password: &str, password_hashed: &str) -> bool {
+pub fn password_compare(password_hashed: &str, password: &str) -> bool {
     match PasswordHash::new(password_hashed) {
         Ok(v) => Argon2::default()
             .verify_password(password.as_bytes(), &v)

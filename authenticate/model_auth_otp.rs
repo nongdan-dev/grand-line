@@ -9,9 +9,10 @@ pub struct AuthOtp {
     #[default(random_secret_256bit())]
     #[graphql(skip)]
     pub secret: String,
-    #[default(random_otp_6digits())]
     #[graphql(skip)]
-    pub otp: String,
+    pub otp_salt: String,
+    #[graphql(skip)]
+    pub otp_hashed: String,
     #[graphql(skip)]
     pub data: JsonValue,
     #[default(0)]
