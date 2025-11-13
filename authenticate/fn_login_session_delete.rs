@@ -1,9 +1,7 @@
 use super::prelude::*;
 
-#[mutation]
+#[mutation(auth=authenticate)]
 fn loginSessionDelete(id: String) -> LoginSessionGql {
-    ctx.ensure_authenticated().await?;
-
     let ls = ctx.authenticate().await?;
 
     LoginSession::delete_by_id(&id)
@@ -14,10 +12,8 @@ fn loginSessionDelete(id: String) -> LoginSessionGql {
     LoginSessionGql::from_id(&ls.id)
 }
 
-#[mutation]
+#[mutation(auth=authenticate)]
 fn loginSessionDeleteAll() -> Vec<LoginSessionGql> {
-    ctx.ensure_authenticated().await?;
-
     let ls = ctx.authenticate().await?;
 
     let r = LoginSession::find()

@@ -158,7 +158,7 @@ impl Attr {
             None => None,
         }
     }
-    pub fn bool_must(&self, k: &str) -> bool {
+    pub fn bool_or_panic(&self, k: &str) -> bool {
         match self.bool(k) {
             Some(v) => v,
             None => {
@@ -186,7 +186,7 @@ impl Attr {
             None => None,
         }
     }
-    pub fn str_must(&self, k: &str) -> String {
+    pub fn str_or_panic(&self, k: &str) -> String {
         match self.str(k) {
             Some(v) => v,
             None => {
@@ -216,7 +216,7 @@ impl Attr {
             None => None,
         }
     }
-    pub fn parse_must<V>(&self, k: &str) -> V
+    pub fn parse_or_panic<V>(&self, k: &str) -> V
     where
         V: FromStr,
     {
@@ -284,11 +284,11 @@ impl Attr {
         self.errk(k, err)
     }
     pub fn err_bool(&self, k: &str) -> String {
-        let err = f!("use `{}` for true, or `{} = 0` for false", k, k);
+        let err = f!("use `{}` for true, or `{}=0` for false", k, k);
         self.errk(k, err)
     }
     pub fn err_str(&self, k: &str) -> String {
-        let err = f!("use `{} = some_value` without quotes", k);
+        let err = f!("use `{}=value` without quotes for string", k);
         self.errk(k, err)
     }
     pub fn errk(&self, k: &str, err: impl Display) -> String {

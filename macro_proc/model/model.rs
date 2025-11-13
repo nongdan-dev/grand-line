@@ -426,7 +426,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                     c
                 }
             }
-            /// This must be here since it is conflicted with foreign trait IntoCondition.
+            /// This should be here since it is conflicted with foreign trait IntoCondition.
             impl ChainSelect<Entity> for #filter {
                 fn chain_select(self, q: Select<Entity>) -> Select<Entity> {
                     q.filter(self.into_condition())

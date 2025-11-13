@@ -64,4 +64,8 @@ impl ResolverFn for ResolverTy {
     fn no_ctx(&self) -> bool {
         self.ra.no_ctx
     }
+    #[cfg(feature = "auth")]
+    fn auth(&self) -> String {
+        self.ra.auth.clone()
+    }
 }

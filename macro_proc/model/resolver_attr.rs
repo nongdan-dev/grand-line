@@ -28,8 +28,10 @@ impl From<Attr> for ResolverAttr {
 }
 impl AttrValidate for ResolverAttr {
     fn attr_fields(a: &Attr) -> Vec<String> {
-        let mut f = Self::F.iter().map(|f| s!(f)).collect::<Vec<_>>();
-        f.extend(ResolverTyAttr::attr_fields(a));
-        f
+        Self::F
+            .iter()
+            .map(|f| s!(f))
+            .chain(ResolverTyAttr::attr_fields(a))
+            .collect()
     }
 }

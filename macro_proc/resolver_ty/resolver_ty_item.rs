@@ -12,7 +12,7 @@ impl ResolverTyItem {
     pub fn init(mut self, operation: &str, crud: &str, crud_model: &str) -> (Self, Ts2, Ts2) {
         if self.gql_name == "resolver" {
             if crud.is_empty() {
-                let err = "resolver name must be different than the reserved keyword `resolver`";
+                let err = "resolver name should be different than the reserved keyword `resolver`";
                 pan!(err);
             }
             if crud_model.is_empty() {

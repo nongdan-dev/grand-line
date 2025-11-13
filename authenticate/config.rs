@@ -1,6 +1,7 @@
 use super::prelude::*;
 use zxcvbn::{Score, zxcvbn};
 
+#[derive(Clone)]
 pub struct GrandLineAuthConfig {
     pub default_ensure: GrandLineAuthConfigEnsure,
     pub cookie_login_session_key: &'static str,
@@ -14,7 +15,7 @@ pub struct GrandLineAuthConfig {
 impl Default for GrandLineAuthConfig {
     fn default() -> Self {
         Self {
-            default_ensure: GrandLineAuthConfigEnsure::Authenticate,
+            default_ensure: GrandLineAuthConfigEnsure::None,
             cookie_login_session_key: "login_session",
             cookie_login_session_expires: 7 * 24 * 60 * 60 * 1000,
             otp_max_attempt: 5,
@@ -25,11 +26,11 @@ impl Default for GrandLineAuthConfig {
     }
 }
 
+#[derive(Clone)]
 pub enum GrandLineAuthConfigEnsure {
     None,
     Authenticate,
     Unauthenticated,
-    Authorize,
 }
 
 #[async_trait]

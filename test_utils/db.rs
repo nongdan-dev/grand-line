@@ -13,7 +13,7 @@ fn db_uri() -> &'static str {
     #[cfg(feature = "sqlite")]
     return "sqlite::memory:";
     #[cfg(not(any(feature = "postgres", feature = "mysql", feature = "sqlite")))]
-    pan!("must enable one of: postgres, mysql, sqlite");
+    pan!("should enable one of: postgres, mysql, sqlite");
 }
 
 // ============================================================================
@@ -103,7 +103,7 @@ impl TmpDb {
             }
             TmpDbType::MySql { admin } => {
                 self.db.clone().close().await?;
-                let stmt = format!("DROP DATABASE IF EXISTS {};", self.name);
+                let stmt = f!("DROP DATABASE IF EXISTS {};", self.name);
                 exec(admin, DbBackend::MySql, &stmt).await?;
             }
             TmpDbType::Sqlite => {

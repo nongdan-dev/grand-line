@@ -27,8 +27,7 @@ no_ctx = []
 no_include_deleted = []
 no_permanent_delete = []
 # auth flags
-auth_authenticated = []
-auth_authorized = []
+auth = []
 
 [dependencies]
 _utils = { path = "../macro_utils", default-features = false, features = [] }

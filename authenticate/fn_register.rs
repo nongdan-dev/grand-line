@@ -6,10 +6,8 @@ pub struct Register {
     pub password: String,
 }
 
-#[create(AuthOtp, resolver_output)]
+#[create(AuthOtp, resolver_output, auth=unauthenticated)]
 async fn register() -> AuthOtpWithSecret {
-    ctx.ensure_not_authenticated().await?;
-
     ensure_email_not_registered(tx, &data.email.0).await?;
     ensure_otp_re_request(ctx, tx, AuthOtpTy::Register, &data.email.0).await?;
 

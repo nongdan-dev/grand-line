@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use std::iter::once;
 
 #[field_names]
 pub struct CrudAttr {
@@ -23,7 +24,7 @@ impl From<Attr> for CrudAttr {
 }
 impl AttrValidate for CrudAttr {
     fn attr_fields(a: &Attr) -> Vec<String> {
-        let mut f = Self::F
+        Self::F
             .iter()
             .map(|f| s!(f))
             .filter(|f| {
@@ -33,10 +34,9 @@ impl AttrValidate for CrudAttr {
                     f != Self::F_NO_PERMANENT_DELETE
                 }
             })
-            .collect::<Vec<_>>();
-        f.extend(ResolverTyAttr::attr_fields(a));
-        f.push(a.model_from_first_path());
-        f
+            .chain(ResolverTyAttr::attr_fields(a))
+            .chain(once(a.model_from_first_path()))
+            .collect()
     }
 }
 
@@ -44,7 +44,7 @@ impl CrudAttr {
     pub fn validate(&self, r: &ResolverTyItem) {
         if !self.resolver_inputs && !s!(r.inputs).is_empty() {
             let err = f!(
-                "{} inputs must be empty unless resolver_inputs=true, found {}",
+                "{} inputs should be empty unless resolver_inputs=true, found {}",
                 r.gql_name,
                 r.inputs,
             );
@@ -53,7 +53,7 @@ impl CrudAttr {
         if !self.resolver_output {
             if s!(r.output) != "()" {
                 let err = f!(
-                    "{} output must be empty unless resolver_output=true, found {}",
+                    "{} output should be empty unless resolver_output=true, found {}",
                     r.gql_name,
                     r.output,
                 );

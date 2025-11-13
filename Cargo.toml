@@ -39,17 +39,18 @@ no_permanent_delete = ["_proc/no_permanent_delete"]
 test_utils = ["pretty_assertions"]
 axum = ["dep:axum", "async-graphql-axum", "cookie", "tower", "tower-http"]
 authenticate = [
-  "axum",
+  "_proc/auth",
   "argon2",
+  "axum",
   "base64",
-  "rand",
+  "hmac",
   "rand_core",
+  "rand",
   "serde_qs",
+  "sha2",
+  "subtle",
   "validator",
   "zxcvbn",
-  "subtle",
-  "hmac",
-  "sha2",
 ]
 authorize = []
 

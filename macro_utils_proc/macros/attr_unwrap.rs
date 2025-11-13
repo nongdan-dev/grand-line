@@ -22,7 +22,11 @@ pub fn gen_attr_unwrap(item: TokenStream, default: bool) -> TokenStream {
             } else {
                 f.expr.to_token_stream()
             };
-            quote!(#k: #v)
+            let attrs = &f.attrs;
+            quote! {
+                #(#attrs)*
+                #k: #v
+            }
         })
         .collect::<Vec<_>>();
 

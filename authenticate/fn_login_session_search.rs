@@ -1,18 +1,14 @@
 use super::prelude::*;
 
-#[search(LoginSession, no_include_deleted)]
+#[search(LoginSession, no_include_deleted, auth=authenticate)]
 fn resolver() {
-    ctx.ensure_authenticated().await?;
-
     let f = get_filter(ctx).await?;
     let o = order_by_some!(LoginSession[UpdatedAtDesc]);
     (f, o)
 }
 
-#[count(LoginSession, no_include_deleted)]
+#[count(LoginSession, no_include_deleted, auth=authenticate)]
 fn resolver() {
-    ctx.ensure_authenticated().await?;
-
     get_filter(ctx).await?
 }
 

@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-#[query]
+#[query(auth=none)]
 async fn loginSessionCurrent() -> Option<LoginSessionGql> {
     if let Some(ls) = ctx.authenticate_opt().await? {
         Some(ls.into_gql(ctx).await?)

@@ -8,6 +8,7 @@ pub trait GrandLineAuthenticateContextAsync {
     async fn authenticate(&self) -> Res<LoginSessionSql>;
     async fn ensure_authenticated(&self) -> Res<()>;
     async fn ensure_not_authenticated(&self) -> Res<()>;
+    async fn ensure_auth_in_macro(&self, v: Option<GrandLineAuthConfigEnsure>) -> Res<()>;
 }
 
 #[async_trait]
@@ -80,6 +81,16 @@ impl GrandLineAuthenticateContextAsync for Context<'_> {
     async fn ensure_not_authenticated(&self) -> Res<()> {
         if self.authenticate_arc().await?.as_ref().is_some() {
             Err(MyErr::AlreadyAuthenticated)?;
+        }
+        Ok(())
+    }
+
+    async fn ensure_auth_in_macro(&self, v: Option<GrandLineAuthConfigEnsure>) -> Res<()> {
+        let v = v.unwrap_or(self.config().auth.default_ensure.clone());
+        match v {
+            GrandLineAuthConfigEnsure::None => {}
+            GrandLineAuthConfigEnsure::Authenticate => self.ensure_authenticated().await?,
+            GrandLineAuthConfigEnsure::Unauthenticated => self.ensure_not_authenticated().await?,
         }
         Ok(())
     }

@@ -16,6 +16,10 @@ where
     fn no_ctx(&self) -> bool {
         false
     }
+    #[cfg(feature = "auth")]
+    fn auth(&self) -> String {
+        "".to_owned()
+    }
 
     fn resolver_fn(&self) -> Ts2 {
         let name = self.name();
@@ -25,6 +29,31 @@ where
         let mut body = self.body();
         let no_tx = self.no_tx();
         let no_ctx = self.no_ctx();
+
+        #[cfg(feature = "auth")]
+        {
+            if no_ctx {
+                let err = self.err("auth requires ctx");
+                pan!(err);
+            }
+            let auth = self.auth();
+            let valid_auth = ["none", "authenticate", "unauthenticated"];
+            if !auth.is_empty() && !valid_auth.contains(&auth.as_str()) {
+                let err = f!("auth should be one of: {}", valid_auth.join(", "));
+                let err = self.err(&err);
+                pan!(err)
+            }
+            let auth = if auth.is_empty() {
+                quote!(None)
+            } else {
+                let auth = pascal!(auth);
+                quote!(Some(GrandLineAuthConfigEnsure::#auth))
+            };
+            body = quote! {
+                ctx.ensure_auth_in_macro(#auth).await?;
+                #body
+            };
+        }
 
         if !no_tx {
             if no_ctx {

@@ -5,10 +5,8 @@ pub struct Forgot {
     pub email: Email,
 }
 
-#[create(AuthOtp, resolver_output)]
+#[create(AuthOtp, resolver_output, auth=unauthenticated)]
 async fn forgot() -> AuthOtpWithSecret {
-    ctx.ensure_not_authenticated().await?;
-
     let h = &ctx.config().auth.handlers;
     ensure_otp_re_request(ctx, tx, AuthOtpTy::Forgot, &data.email.0).await?;
 

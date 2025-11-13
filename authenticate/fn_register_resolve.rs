@@ -1,9 +1,7 @@
 use super::prelude::*;
 
-#[mutation]
+#[mutation(auth=unauthenticated)]
 async fn registerResolve(data: AuthOtpResolve) -> LoginSessionWithSecret {
-    ctx.ensure_not_authenticated().await?;
-
     let h = &ctx.config().auth.handlers;
     let lsd = ensure_login_session_data(ctx)?;
     let t = ensure_otp_resolve(ctx, tx, AuthOtpTy::Register, data).await?;

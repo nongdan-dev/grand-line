@@ -1,9 +1,7 @@
 use super::prelude::*;
 
-#[mutation]
+#[mutation(auth=unauthenticated)]
 async fn forgotResolve(data: AuthOtpResolve, password: String) -> LoginSessionWithSecret {
-    ctx.ensure_not_authenticated().await?;
-
     let h = &ctx.config().auth.handlers;
     h.validate_password(ctx, &password).await?;
     let lsd = ensure_login_session_data(ctx)?;
