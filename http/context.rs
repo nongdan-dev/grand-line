@@ -17,7 +17,7 @@ const SET_COOKIE: &str = "set-cookie";
 const AUTHORIZATION: &str = "authorization";
 const BEARER: &str = "Bearer ";
 
-pub trait GrandLineHttpContext {
+pub trait HttpContext {
     fn get_header(&self, k: &str) -> Res<String>;
     fn get_ip(&self) -> Res<String>;
     fn get_ua(&self) -> Res<HashMap<String, String>>;
@@ -27,7 +27,7 @@ pub trait GrandLineHttpContext {
     fn set_cookie(&self, k: &str, v: &str, expires: i64);
 }
 
-impl GrandLineHttpContext for Context<'_> {
+impl HttpContext for Context<'_> {
     fn get_header(&self, k: &str) -> Res<String> {
         let req_headers = self
             .data_opt::<HeaderMap>()

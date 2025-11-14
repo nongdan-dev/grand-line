@@ -1,6 +1,5 @@
 mod config;
 mod context;
-mod context_async;
 mod email;
 mod err;
 mod fn_forgot;
@@ -22,7 +21,6 @@ mod rand;
 mod schema;
 pub use config::*;
 pub use context::*;
-pub use context_async::*;
 pub use email::*;
 pub use err::MyErr as GrandLineAuthenticateErr;
 pub use fn_forgot::*;

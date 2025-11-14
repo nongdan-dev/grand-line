@@ -15,7 +15,7 @@ pub async fn prepare() -> Res<Prepare> {
     let tmp = tmp_db!(User, AuthOtp, LoginSession);
     let s = schema_qm::<AuthenticateMergedQuery, AuthenticateMergedMutation>(&tmp.db).data(
         GrandLineConfig {
-            auth: GrandLineAuthConfig {
+            auth: AuthConfig {
                 handlers: Arc::new(FakeAuthHandlers),
                 ..Default::default()
             },
@@ -63,7 +63,7 @@ pub fn h_str(v: &str) -> HeaderValue {
 
 pub struct FakeAuthHandlers;
 #[async_trait]
-impl GrandLineAuthHandlers for FakeAuthHandlers {
+impl AuthHandlers for FakeAuthHandlers {
     async fn otp(&self, _ctx: &Context<'_>) -> Res<String> {
         Ok("999999".to_owned())
     }

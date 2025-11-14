@@ -1,6 +1,7 @@
 use super::prelude::*;
 
 /// Abstract extra active model methods implementation.
+#[async_trait]
 pub trait ActiveModelX<E>
 where
     E: EntityX<A = Self>,
@@ -67,5 +68,16 @@ where
     /// Shortcut for Self::default().set_defaults_on_delete()
     fn defaults_on_delete() -> Self {
         <Self as Default>::default().set_defaults_on_delete()
+    }
+
+    /// Set deleted_at and update db.
+    /// It also checks if the model has configured with deleted_at column or not.
+    async fn soft_delete<D>(self, db: &D) -> Res<E::M>
+    where
+        D: ConnectionTrait,
+    {
+        E::ensure_col_deleted_at()?;
+        let r = self.set_defaults_on_delete().update(db).await?;
+        Ok(r)
     }
 }

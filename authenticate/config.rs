@@ -2,20 +2,20 @@ use super::prelude::*;
 use zxcvbn::{Score, zxcvbn};
 
 #[derive(Clone)]
-pub struct GrandLineAuthConfig {
-    pub default_ensure: GrandLineAuthConfigEnsure,
+pub struct AuthConfig {
+    pub default_ensure: GqlAuthEnsure,
     pub cookie_login_session_key: &'static str,
     pub cookie_login_session_expires: i64,
     pub otp_max_attempt: i64,
     pub otp_expire_ms: i64,
     pub otp_re_request_ms: i64,
-    pub handlers: Arc<dyn GrandLineAuthHandlers>,
+    pub handlers: Arc<dyn AuthHandlers>,
 }
 
-impl Default for GrandLineAuthConfig {
+impl Default for AuthConfig {
     fn default() -> Self {
         Self {
-            default_ensure: GrandLineAuthConfigEnsure::None,
+            default_ensure: GqlAuthEnsure::None,
             cookie_login_session_key: "login_session",
             cookie_login_session_expires: 7 * 24 * 60 * 60 * 1000,
             otp_max_attempt: 5,
@@ -27,14 +27,14 @@ impl Default for GrandLineAuthConfig {
 }
 
 #[derive(Clone)]
-pub enum GrandLineAuthConfigEnsure {
+pub enum GqlAuthEnsure {
     None,
     Authenticate,
     Unauthenticated,
 }
 
 #[async_trait]
-pub trait GrandLineAuthHandlers
+pub trait AuthHandlers
 where
     Self: Send + Sync,
 {
@@ -68,4 +68,4 @@ where
 
 struct DefaultAuthHandlers;
 #[async_trait]
-impl GrandLineAuthHandlers for DefaultAuthHandlers {}
+impl AuthHandlers for DefaultAuthHandlers {}

@@ -1,7 +1,7 @@
 use super::prelude::*;
 
 #[async_trait]
-pub trait GrandLineCacheContextAsync {
+pub trait CacheContext {
     async fn cache<T, F, Fu>(&self, init: F) -> Res<Arc<T>>
     where
         T: Send + Sync + 'static,
@@ -10,7 +10,7 @@ pub trait GrandLineCacheContextAsync {
 }
 
 #[async_trait]
-impl GrandLineCacheContextAsync for Context<'_> {
+impl CacheContext for Context<'_> {
     async fn cache<T, F, Fu>(&self, init: F) -> Res<Arc<T>>
     where
         T: Send + Sync + 'static,
@@ -18,7 +18,7 @@ impl GrandLineCacheContextAsync for Context<'_> {
         Fu: Future<Output = Res<T>> + Send,
     {
         let cell = self
-            .grand_line_context()?
+            .grand_line()?
             .cache_others
             .lock()
             .await

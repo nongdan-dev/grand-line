@@ -2,7 +2,7 @@ use super::prelude::*;
 use dataloader::DataLoader;
 
 #[async_trait]
-pub trait GrandLineDataLoaderContextAsync {
+pub trait DataLoaderContext {
     async fn data_loader<E>(
         &self,
         key: String,
@@ -15,7 +15,7 @@ pub trait GrandLineDataLoaderContextAsync {
 }
 
 #[async_trait]
-impl GrandLineDataLoaderContextAsync for Context<'_> {
+impl DataLoaderContext for Context<'_> {
     async fn data_loader<E>(
         &self,
         key: String,
@@ -26,7 +26,7 @@ impl GrandLineDataLoaderContextAsync for Context<'_> {
     where
         E: EntityX,
     {
-        let gl = self.grand_line_context()?;
+        let gl = self.grand_line()?;
         let mut guard = gl.loaders.lock().await;
         let a = if let Some(a) = guard.get(&key) {
             a.clone()

@@ -1,6 +1,7 @@
 use super::prelude::*;
 
 /// Abstract extra Select methods implementation.
+#[async_trait]
 pub trait SelectX<E>
 where
     E: EntityX,
@@ -24,9 +25,20 @@ where
 
     /// Select only id for the graphql delete response.
     fn gql_select_id(self) -> Selector<SelectModel<E::G>>;
+
+    /// Helper to check if exists.
+    async fn exists<D>(self, db: &D) -> Res<bool>
+    where
+        D: ConnectionTrait;
+
+    /// Helper to check if exists and return error if not.
+    async fn exists_or_404<D>(self, db: &D) -> Res<()>
+    where
+        D: ConnectionTrait;
 }
 
 /// Automatically implement for Select<E>.
+#[async_trait]
 impl<E> SelectX<E> for Select<E>
 where
     E: EntityX,
@@ -73,5 +85,44 @@ where
 
     fn gql_select_id(self) -> Selector<SelectModel<E::G>> {
         self.select_only().column(E::col_id()).into_model::<E::G>()
+    }
+
+    async fn exists<D>(self, db: &D) -> Res<bool>
+    where
+        D: ConnectionTrait,
+    {
+        let v = self
+            .select()
+            .expr(Expr::value(1))
+            .limit(1)
+            .one(db)
+            .await?
+            .is_some();
+        Ok(v)
+    }
+
+    async fn exists_or_404<D>(self, db: &D) -> Res<()>
+    where
+        D: ConnectionTrait,
+    {
+        if !self.exists(db).await? {
+            Err(MyErr::Db404)?;
+        }
+        Ok(())
+    }
+}
+
+/// Automatically implement for Select<E>.
+#[async_trait]
+impl<E> SelectorX<E::M> for Select<E>
+where
+    E: EntityX,
+{
+    async fn one_or_404<D>(self, db: &D) -> Res<E::M>
+    where
+        D: ConnectionTrait,
+    {
+        let v = self.one(db).await?.ok_or(MyErr::Db404)?;
+        Ok(v)
     }
 }

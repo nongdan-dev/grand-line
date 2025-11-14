@@ -36,7 +36,7 @@ impl Extension for GrandLineExtensionImpl {
         next: NextExecute<'_>,
     ) -> Response {
         let mut r = next.run(ctx, operation_name).await;
-        match ctx.grand_line_context() {
+        match ctx.grand_line() {
             Ok(gl) => {
                 if let Err(e) = gl.cleanup(!r.errors.is_empty()).await {
                     r.errors.push(e.into());
