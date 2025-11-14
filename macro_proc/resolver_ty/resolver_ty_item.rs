@@ -30,7 +30,7 @@ impl ResolverTyItem {
 impl Parse for ResolverTyItem {
     fn parse(s: ParseStream) -> Result<Self> {
         let ifn = s.parse::<ItemFn>()?;
-        let gql_name = s!(ifn.sig.ident);
+        let gql_name = camel_str!(ifn.sig.ident);
 
         let inputs = ifn.sig.inputs.to_token_stream();
         let output = if let ReturnType::Type(_, ty) = ifn.sig.output {

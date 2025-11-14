@@ -44,7 +44,7 @@ fn resolver() {
 // with extra filter, or default sort in the resolver as well
 // the extra will be combined as and condition with the value from client
 #[search(Todo)]
-fn todoSearch2024() {
+fn todo_search_2024() {
     let extra_filter = filter_some!(Todo {
         content_starts_with: "2024",
     });
