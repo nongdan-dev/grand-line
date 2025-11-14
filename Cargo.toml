@@ -13,7 +13,7 @@ path = "lib.rs"
 
 [features]
 default = ["postgres", "default_without_db"]
-default_without_db = ["auth", "http", "axum"]
+default_without_db = ["auth", "axum"]
 # db
 sqlite = ["_core/sqlite"]
 mysql = ["_core/mysql"]
@@ -39,7 +39,7 @@ tracing = ["_tracing", "_core/tracing"]
 test_utils = ["pretty_assertions", "serde", "thiserror"]
 # http
 http = ["_http"]
-axum = ["_http/axum", "_auth/axum"]
+axum = ["http", "_http/axum", "_auth/axum"]
 # biz
 auth = ["_auth", "_core/auth"]
 
