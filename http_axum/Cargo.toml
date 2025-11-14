@@ -1,0 +1,15 @@
+[package]
+name = "_http_axum"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+name = "_http_axum"
+path = "lib.rs"
+
+[dependencies]
+_core = { path = "../core", default-features = false, features = [] }
+async-graphql-axum = { version = "7.0.17", default-features = false, features = [] }
+axum = { version = "0.8.6", default-features = false, features = ["http1", "http2", "json", "query", "tokio", "multipart"] }
+tower = { version = "0.5.2", default-features = false, features = [] }
+tower-http = { version = "0.6.6", default-features = false, features = ["cors", "normalize-path"] }

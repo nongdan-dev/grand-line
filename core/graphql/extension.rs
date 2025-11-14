@@ -2,9 +2,9 @@ use super::prelude::*;
 
 /// Extension to insert GrandLineState on each request, then cleanup at the end of each request.
 /// The extension also handle error automatically to only expose client errors to the client.
-pub struct GrandLineExtension;
+pub struct GqlExtension;
 
-impl ExtensionFactory for GrandLineExtension {
+impl ExtensionFactory for GqlExtension {
     fn create(&self) -> Arc<dyn Extension> {
         Arc::new(GrandLineExtensionImpl)
     }
@@ -24,7 +24,7 @@ impl Extension for GrandLineExtensionImpl {
         let db = ctx
             .data_opt::<Arc<DatabaseConnection>>()
             .ok_or(MyErr::CtxDb404)?;
-        let gl = GrandLineState::new(db.clone());
+        let gl = GqlContextData::new(db.clone());
         next.run(ctx, request.data(Arc::new(gl))).await
     }
 
@@ -50,11 +50,8 @@ impl Extension for GrandLineExtensionImpl {
             if e.source.is_none() {
                 continue;
             }
-            let gl = e
-                .source
-                .as_deref()
-                .and_then(|e| e.downcast_ref::<GrandLineErr>());
-            if let Some(GrandLineErr(gl)) = gl
+            let gl = e.source.as_deref().and_then(|e| e.downcast_ref::<GqlErr>());
+            if let Some(GqlErr(gl)) = gl
                 && gl.client()
             {
                 e.extensions = Some(gl.extensions());

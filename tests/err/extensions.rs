@@ -41,7 +41,7 @@ async fn should_only_expose_client_errors() -> Res<()> {
 
 async fn check<T>(s: &Schema<Query, EmptyMutation, EmptySubscription>, req: &str, err: T)
 where
-    T: GrandLineErrImpl,
+    T: GqlErrImpl,
 {
     let r = s.execute(req).await;
     check_err(&r, err);

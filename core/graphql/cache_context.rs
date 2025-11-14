@@ -28,7 +28,7 @@ impl CacheContext for Context<'_> {
         let arc = cell
             .get_or_try_init(async move || {
                 let arc = Arc::new(init().await?);
-                Ok::<_, GrandLineErr>(arc as ArcAny)
+                Ok::<_, GqlErr>(arc as ArcAny)
             })
             .await?
             .clone()

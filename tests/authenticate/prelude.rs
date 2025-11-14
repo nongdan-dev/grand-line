@@ -14,11 +14,8 @@ pub struct Prepare {
 pub async fn prepare() -> Res<Prepare> {
     let tmp = tmp_db!(User, AuthOtp, LoginSession);
     let s = schema_qm::<AuthenticateMergedQuery, AuthenticateMergedMutation>(&tmp.db).data(
-        GrandLineConfig {
-            auth: AuthConfig {
-                handlers: Arc::new(FakeAuthHandlers),
-                ..Default::default()
-            },
+        AuthConfig {
+            handlers: Arc::new(FakeAuthHandlers),
             ..Default::default()
         },
     );
@@ -26,7 +23,8 @@ pub async fn prepare() -> Res<Prepare> {
     let mut h = HeaderMap::default();
     h.insert("x-real-ip", h_static("127.0.0.1"));
     h.insert("user-agent", h_static(UA));
-    h.insert("sec-ch-ua", h_static(UA2));
+    h.insert("sec-ch-ua", h_static(UA_SEC_CH));
+    let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
 
     let u = db_create!(
         &tmp.db,
@@ -40,7 +38,7 @@ pub async fn prepare() -> Res<Prepare> {
         LoginSession {
             user_id: u.id.clone(),
             ip: "127.0.0.1",
-            ua: get_ua(&h).to_json()?,
+            ua: ua.to_json()?,
         }
     );
     let token = qs_token(&ls.id, &ls.secret)?;
@@ -70,4 +68,4 @@ impl AuthHandlers for FakeAuthHandlers {
 }
 
 const UA: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36";
-const UA2: &str = r#""Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99""#;
+const UA_SEC_CH: &str = r#""Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99""#;

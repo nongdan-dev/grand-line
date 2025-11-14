@@ -33,6 +33,6 @@ pub enum MyErr {
 
 impl From<MyErr> for ServerError {
     fn from(v: MyErr) -> Self {
-        GrandLineErr(Arc::new(v)).into()
+        GqlErr(Arc::new(v)).into()
     }
 }

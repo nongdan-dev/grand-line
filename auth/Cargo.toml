@@ -1,0 +1,28 @@
+[package]
+name = "_auth"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+name = "_auth"
+path = "lib.rs"
+
+[features]
+axum = ["_http/axum"]
+postgres = []
+
+[dependencies]
+_core = { path = "../core", default-features = false, features = [] }
+_http = { path = "../http", default-features = false, features = [] }
+argon2 = { version = "0.5.3", default-features = false, features = ["alloc", "password-hash"] }
+base64 = { version = "0.22.1", default-features = false, features = [] }
+hmac = { version = "0.12.1", default-features = false, features = [] }
+rand = { version = "0.9.1", default-features = false, features = ["thread_rng"] }
+rand_core = { version = "0.9.3", default-features = false, features = [] }
+serde = { version = "1.0.228", default-features = false, features = ["derive", "std"] }
+serde_qs = { version = "0.15.0", default-features = false, features = [] }
+sha2 = { version = "0.10.9", default-features = false, features = [] }
+subtle = { version = "2.6.1", default-features = false, features = [] }
+thiserror = { version = "2.0.17", default-features = false, features = [] }
+validator = { version = "0.20.0", default-features = false, features = [] }
+zxcvbn = { version = "3.1.0", default-features = false, features = [] }

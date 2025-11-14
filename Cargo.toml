@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "macro_proc", "macro_utils", "macro_utils_proc"]
+members = [".", "auth", "core", "http", "http_axum", "macro_proc", "macro_utils", "macro_utils_proc", "tracing"]
 resolver = "2"
 
 [package]
@@ -13,77 +13,42 @@ path = "lib.rs"
 
 [features]
 default = ["postgres", "default_without_db"]
-default_without_db = ["axum", "authenticate"]
+default_without_db = ["auth", "http", "axum"]
 # db
-sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
-mysql = ["sea-orm/sqlx-mysql", "sqlx/mysql"]
-postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres", "_proc/postgres"]
-# tracing
-tracing = ["dep:tracing", "tracing-subscriber", "async-graphql/tracing"]
+sqlite = ["_core/sqlite"]
+mysql = ["_core/mysql"]
+postgres = ["_core/postgres", "_auth/postgres"]
 # debug macro flags
-debug_macro_cli = ["_proc/debug_macro_cli"]
-debug_macro_file = ["_proc/debug_macro_file"]
+debug_macro_cli = ["_core/debug_macro_cli"]
+debug_macro_file = ["_core/debug_macro_file"]
 # model flags
-no_created_at = ["_proc/no_created_at"]
-no_updated_at = ["_proc/no_updated_at"]
-no_deleted_at = ["_proc/no_deleted_at"]
-no_by_id = ["_proc/no_by_id"]
+no_created_at = ["_core/no_created_at"]
+no_updated_at = ["_core/no_updated_at"]
+no_deleted_at = ["_core/no_deleted_at"]
+no_by_id = ["_core/no_by_id"]
 # resolver flags
-resolver_inputs = ["_proc/resolver_inputs"]
-resolver_output = ["_proc/resolver_output"]
-no_tx = ["_proc/no_tx"]
-no_ctx = ["_proc/no_ctx"]
-no_include_deleted = ["_proc/no_include_deleted"]
-no_permanent_delete = ["_proc/no_permanent_delete"]
-# other features
-test_utils = ["pretty_assertions"]
-axum = ["dep:axum", "async-graphql-axum", "cookie", "tower", "tower-http"]
-authenticate = [
-  "_proc/auth",
-  "argon2",
-  "axum",
-  "base64",
-  "hmac",
-  "rand_core",
-  "rand",
-  "serde_qs",
-  "sha2",
-  "subtle",
-  "validator",
-  "zxcvbn",
-]
-authorize = []
+resolver_inputs = ["_core/resolver_inputs"]
+resolver_output = ["_core/resolver_output"]
+no_tx = ["_core/no_tx"]
+no_ctx = ["_core/no_ctx"]
+no_include_deleted = ["_core/no_include_deleted"]
+no_permanent_delete = ["_core/no_permanent_delete"]
+# tracing
+tracing = ["_tracing", "_core/tracing"]
+# testing
+test_utils = ["pretty_assertions", "serde", "thiserror"]
+# http
+http = ["_http"]
+axum = ["_http/axum", "_auth/axum"]
+# biz
+auth = ["_auth", "_core/auth"]
 
 [dependencies]
-_proc = { path = "./macro_proc", default-features = false, features = [] }
+_auth = { path = "./auth", optional = true, default-features = false, features = [] }
+_core = { path = "./core", default-features = false, features = [] }
+_http = { path = "./http", optional = true, default-features = false, features = [] }
+_tracing = { path = "./tracing", optional = true, default-features = false, features = [] }
 _utils = { path = "./macro_utils", default-features = false, features = [] }
-_utils_proc = { path = "./macro_utils_proc", default-features = false, features = [] }
-argon2 = { version = "0.5.3", optional = true, default-features = false, features = ["alloc", "password-hash"] }
-async-graphql = { version = "7.0.17", default-features = false, features = ["chrono", "chrono-duration", "chrono-tz", "dataloader", "decimal", "string_number", "boxed-trait"] }
-async-graphql-axum = { version = "7.0.17", optional = true, default-features = false, features = [] }
-async-trait = { version = "0.1.89", default-features = false, features = [] }
-axum = { version = "0.8.6", optional = true, default-features = false, features = ["http1", "http2", "json", "query", "tokio", "multipart"] }
-base64 = { version = "0.22.1", optional = true, default-features = false, features = [] }
-chrono = { version = "0.4.42", default-features = false, features = ["now", "serde"] }
-cookie = { version = "0.18.1", optional = true, default-features = false, features = [] }
-hmac = { version = "0.12.1", optional = true, default-features = false, features = [] }
 pretty_assertions = { version = "1.4.1", optional = true, default-features = false, features = ["std"] }
-rand = { version = "0.9.1", optional = true, default-features = false, features = ["thread_rng"] }
-rand_core = { version = "0.9.3", optional = true, default-features = false, features = [] }
-sea-orm = { version = "1.1.17", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
-serde = { version = "1.0.228", default-features = false, features = ["derive", "std"] }
-serde_json = { version = "1.0.145", default-features = false, features = [] }
-serde_qs = { version = "0.15.0", optional = true, default-features = false, features = [] }
-serde_with = { version = "3.15.1", default-features = false, features = ["macros"] }
-sha2 = { version = "0.10.9", optional = true, default-features = false, features = [] }
-sqlx = { version = "0.8.6", default-features = false, features = ["chrono", "json", "macros", "migrate", "runtime-tokio-rustls", "rust_decimal"] }
-subtle = { version = "2.6.1", optional = true, default-features = false, features = [] }
-thiserror = { version = "2.0.17", default-features = false, features = [] }
-tokio = { version = "1.48.0", default-features = false, features = ["full"] }
-tower = { version = "0.5.2", optional = true, default-features = false, features = [] }
-tower-http = { version = "0.6.6", optional = true, default-features = false, features = ["cors", "normalize-path"] }
-tracing = { version = "0.1.41", optional = true, default-features = false, features = [] }
-tracing-subscriber = { version = "0.3.20", optional = true, default-features = false, features = [] }
-ulid = { version = "1.2.1", default-features = false, features = ["std"] }
-validator = { version = "0.20.0", optional = true, default-features = false, features = [] }
-zxcvbn = { version = "3.1.0", optional = true, default-features = false, features = [] }
+serde = { version = "1.0.228", optional = true, default-features = false, features = ["derive", "std"] }
+thiserror = { version = "2.0.17", optional = true, default-features = false, features = [] }

@@ -95,7 +95,7 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
     /// Set deleted_at with filter by id.
     /// It also checks if the model has configured with deleted_at column or not.
     fn soft_delete_by_id(id: &str) -> Res<UpdateMany<Self>> {
-        let r = Self::soft_delete_many()?.by_id(id);
+        let r = Self::soft_delete_many()?.filter_by_id(id);
         Ok(r)
     }
 
@@ -168,7 +168,7 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
     {
         let r = Self::find()
             .include_deleted(include_deleted)
-            .by_id(id)
+            .filter_by_id(id)
             .gql_select(ctx)?
             .one(db)
             .await?;
@@ -181,7 +181,7 @@ pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = 
         D: ConnectionTrait,
     {
         if permanent.unwrap_or_default() {
-            Self::delete_many().by_id(id).exec(db).await?;
+            Self::delete_many().filter_by_id(id).exec(db).await?;
         } else {
             Self::soft_delete_by_id(id)?.exec(db).await?;
         }

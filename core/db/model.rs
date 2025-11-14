@@ -19,7 +19,7 @@ where
             let tx = &*ctx.tx().await?;
             let id = self.get_id();
             E::find()
-                .by_id(&id)
+                .filter_by_id(&id)
                 .gql_select(ctx)?
                 .one(tx)
                 .await?

@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 pub fn check_err<T>(r: &Response, err: T)
 where
-    T: GrandLineErrImpl,
+    T: GqlErrImpl,
 {
     assert!(r.errors.len() == 1, "response should have an error");
 

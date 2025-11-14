@@ -5,12 +5,15 @@ pub enum MyErr {
     // ========================================================================
     // client errors
     //
+    #[error("request header {k} has more than 1 value")]
+    #[client]
+    MultipleHeaderValues { k: String },
     #[error("ip address is missing from the request")]
     #[client]
-    CtxReqIp404,
+    Ip404,
     #[error("user agent is missing from the request")]
     #[client]
-    CtxReqUa404,
+    Ua404,
 
     // ========================================================================
     // server errors

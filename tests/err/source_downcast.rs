@@ -33,9 +33,9 @@ async fn should_be_my_err() {
     let code = e
         .source
         .as_deref()
-        .and_then(|e| e.downcast_ref::<GrandLineErr>())
+        .and_then(|e| e.downcast_ref::<GqlErr>())
         .unwrap_or_else(|| {
-            let err = "downcast to GrandLineErr should be some";
+            let err = "downcast to GqlErr should be some";
             bug!(err)
         })
         .0

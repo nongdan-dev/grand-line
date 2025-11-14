@@ -1,8 +1,6 @@
 use super::prelude::*;
-use axum::http::HeaderMap;
 use cookie::{
     Cookie,
-    // SameSite::Strict,
     time::{Duration, OffsetDateTime},
 };
 use std::{net::IpAddr, str::FromStr};
@@ -18,6 +16,20 @@ const AUTHORIZATION: &str = "authorization";
 const BEARER: &str = "Bearer ";
 
 pub trait HttpContext {
+    fn get_ua_raw(h: Option<HashMap<String, Vec<String>>>) -> Res<HashMap<String, String>> {
+        let mut m = HashMap::<String, String>::new();
+        for (k, v) in h.ok_or(MyErr::CtxReqHeaders404)?.iter() {
+            let k = k.as_str();
+            if k.starts_with(SEC_CH_UA) || k == USER_AGENT {
+                if v.len() > 1 {
+                    Err(MyErr::MultipleHeaderValues { k: k.to_owned() })?;
+                }
+                m.insert(k.to_owned(), v.first().cloned().unwrap_or_default());
+            }
+        }
+        Ok(m)
+    }
+
     fn get_header(&self, k: &str) -> Res<String>;
     fn get_ip(&self) -> Res<String>;
     fn get_ua(&self) -> Res<HashMap<String, String>>;
@@ -29,14 +41,16 @@ pub trait HttpContext {
 
 impl HttpContext for Context<'_> {
     fn get_header(&self, k: &str) -> Res<String> {
-        let req_headers = self
-            .data_opt::<HeaderMap>()
-            .ok_or(MyErr::CtxReqHeaders404)?;
-        let v = req_headers
-            .get(k)
-            .map(|v| v.to_str().ok().map(|v| v.to_owned()))
-            .unwrap_or_default()
-            .unwrap_or_default();
+        let req_headers = self.get_headers().ok_or(MyErr::CtxReqHeaders404)?;
+        let v = if let Some(v) = req_headers.get(k) {
+            v
+        } else {
+            return Ok("".to_owned());
+        };
+        if v.len() > 1 {
+            Err(MyErr::MultipleHeaderValues { k: k.to_owned() })?;
+        }
+        let v = v.first().cloned().unwrap_or_default();
         Ok(v)
     }
 
@@ -50,19 +64,18 @@ impl HttpContext for Context<'_> {
         }
         let ip = v.split(',').next().unwrap_or_default().trim().to_owned();
         if IpAddr::from_str(&ip).is_err() {
-            Err(MyErr::CtxReqIp404)?;
+            Err(MyErr::Ip404)?;
         }
         Ok(ip)
     }
 
     fn get_ua(&self) -> Res<HashMap<String, String>> {
         if self.get_header(USER_AGENT)?.is_empty() {
-            Err(MyErr::CtxReqUa404)?;
+            Err(MyErr::Ua404)?;
         }
-        let h = self
-            .data_opt::<HeaderMap>()
-            .ok_or(MyErr::CtxReqHeaders404)?;
-        Ok(get_ua(h))
+        let h = self.get_headers();
+        let ua = Self::get_ua_raw(h)?;
+        Ok(ua)
     }
 
     fn get_authorization_token(&self) -> Res<String> {
@@ -89,25 +102,11 @@ impl HttpContext for Context<'_> {
     fn set_cookie(&self, k: &str, v: &str, expires: i64) {
         let v = Cookie::build(Cookie::new(k, v))
             .http_only(true)
-            // .secure(true)
-            // .same_site(Strict)
+            .secure(true)
             .max_age(Duration::seconds(expires / 1000))
             .expires(OffsetDateTime::now_utc() + Duration::milliseconds(expires))
             .build()
             .to_string();
         self.append_http_header(SET_COOKIE, &v);
     }
-}
-
-pub fn get_ua(h: &HeaderMap) -> HashMap<String, String> {
-    h.iter()
-        .filter_map(|(k, v)| {
-            let k = k.as_str();
-            if k.starts_with(SEC_CH_UA) || k == USER_AGENT {
-                Some((k.to_owned(), v.to_str().unwrap_or_default().to_owned()))
-            } else {
-                None
-            }
-        })
-        .collect()
 }

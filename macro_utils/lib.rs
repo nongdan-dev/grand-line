@@ -1,8 +1,16 @@
-mod attr;
 mod macros;
+
+mod attr;
 pub use attr::*;
 
-pub use {heck, maplit, proc_macro2, quote, serde, strum, strum_macros, syn};
+pub use heck;
+pub use maplit;
+pub use proc_macro2;
+pub use quote;
+pub use serde;
+pub use strum;
+pub use strum_macros;
+pub use syn;
 
 #[allow(unused_imports, dead_code)]
 mod prelude {

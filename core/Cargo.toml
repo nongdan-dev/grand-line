@@ -1,0 +1,49 @@
+[package]
+name = "_core"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+name = "_core"
+path = "lib.rs"
+
+[features]
+# db
+sqlite = ["sea-orm/sqlx-sqlite", "sqlx/sqlite"]
+mysql = ["sea-orm/sqlx-mysql", "sqlx/mysql"]
+postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres", "_proc/postgres"]
+# debug macro flags
+debug_macro_cli = ["_proc/debug_macro_cli"]
+debug_macro_file = ["_proc/debug_macro_file"]
+# model flags
+no_created_at = ["_proc/no_created_at"]
+no_updated_at = ["_proc/no_updated_at"]
+no_deleted_at = ["_proc/no_deleted_at"]
+no_by_id = ["_proc/no_by_id"]
+# resolver flags
+resolver_inputs = ["_proc/resolver_inputs"]
+resolver_output = ["_proc/resolver_output"]
+no_tx = ["_proc/no_tx"]
+no_ctx = ["_proc/no_ctx"]
+no_include_deleted = ["_proc/no_include_deleted"]
+no_permanent_delete = ["_proc/no_permanent_delete"]
+# tracing
+tracing = ["async-graphql/tracing"]
+# biz
+auth = []
+
+[dependencies]
+_proc = { path = "../macro_proc", default-features = false, features = [] }
+_utils = { path = "../macro_utils", default-features = false, features = [] }
+_utils_proc = { path = "../macro_utils_proc", default-features = false, features = [] }
+async-graphql = { version = "7.0.17", default-features = false, features = ["chrono", "chrono-duration", "chrono-tz", "dataloader", "decimal", "string_number", "boxed-trait"] }
+async-trait = { version = "0.1.89", default-features = false, features = [] }
+chrono = { version = "0.4.42", default-features = false, features = ["now", "serde"] }
+sea-orm = { version = "1.1.17", default-features = false, features = ["macros", "runtime-tokio-rustls", "with-chrono", "with-json", "with-rust_decimal"] }
+serde = { version = "1.0.228", default-features = false, features = ["derive", "std"] }
+serde_json = { version = "1.0.145", default-features = false, features = [] }
+serde_with = { version = "3.15.1", default-features = false, features = ["macros"] }
+sqlx = { version = "0.8.6", default-features = false, features = ["chrono", "json", "macros", "migrate", "runtime-tokio-rustls", "rust_decimal"] }
+thiserror = { version = "2.0.17", default-features = false, features = [] }
+tokio = { version = "1.48.0", default-features = false, features = ["full"] }
+ulid = { version = "1.2.1", default-features = false, features = ["std"] }

@@ -188,7 +188,7 @@ pub fn grand_line_err(attr: TokenStream, item: TokenStream) -> TokenStream {
     gen_grand_line_err(attr, item)
 }
 
-/// Automatically implement GrandLineErrImpl to handle error better.
+/// Automatically implement GqlErrImpl to handle error better.
 #[proc_macro_derive(GrandLineErrDerive, attributes(client, code))]
 pub fn grand_line_err_derive(item: TokenStream) -> TokenStream {
     gen_grand_line_err_derive(item)

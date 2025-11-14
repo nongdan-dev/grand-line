@@ -30,7 +30,7 @@ where
     M: ObjectType + 'static,
     S: SubscriptionType + 'static,
 {
-    sb.extension(GrandLineExtension).data(Arc::new(db.clone()))
+    sb.extension(GqlExtension).data(Arc::new(db.clone()))
 }
 
 #[derive(Default, SimpleObject)]
