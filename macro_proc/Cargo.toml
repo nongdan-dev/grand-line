@@ -32,5 +32,5 @@ auth = []
 [dependencies]
 _utils = { path = "../macro_utils", default-features = false, features = [] }
 _utils_proc = { path = "../macro_utils_proc", default-features = false, features = [] }
-colored = { version = "3.0.0", optional = true, default-features = false, features = [] }
-prettyplease = { version = "0.2.37", optional = true, default-features = false, features = [] }
+colored = { version = "^3.0", optional = true, default-features = false, features = [] }
+prettyplease = { version = "^0.2", optional = true, default-features = false, features = [] }

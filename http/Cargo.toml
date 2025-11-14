@@ -13,5 +13,5 @@ axum = ["_http_axum"]
 [dependencies]
 _core = { path = "../core", default-features = false, features = [] }
 _http_axum = { path = "../http_axum", optional = true, default-features = false, features = [] }
-cookie = { version = "0.18.1", default-features = false, features = [] }
-thiserror = { version = "2.0.17", default-features = false, features = [] }
+cookie = { version = "^0.18", default-features = false, features = [] }
+thiserror = { version = "^2.0", default-features = false, features = [] }
