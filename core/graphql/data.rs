@@ -3,14 +3,14 @@ use super::prelude::*;
 /// GrandLineState should be constructed on each request.
 /// We will get it in the resolvers to manage per-request db transaction, graphql loaders, cache...
 /// We should only use it in the GrandLineExtension to inject this context automatically on each request
-pub struct GqlContextData {
+pub struct GrandLineContextData {
     pub(crate) db: Arc<DatabaseConnection>,
     pub(crate) tx: Mutex<Option<Arc<DatabaseTransaction>>>,
     pub(crate) loaders: Mutex<HashMap<String, ArcAny>>,
     pub(crate) cache_others: Mutex<HashMap<TypeId, Arc<OnceCell<ArcAny>>>>,
 }
 
-impl GqlContextData {
+impl GrandLineContextData {
     pub(crate) fn new(db: Arc<DatabaseConnection>) -> Self {
         Self {
             db,

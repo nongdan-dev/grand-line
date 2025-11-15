@@ -1,11 +1,11 @@
-#![allow(dead_code)]
+#![allow(ambiguous_glob_reexports, dead_code, unused_imports)]
 
 use axum::http::{HeaderMap, HeaderValue};
 pub use grand_line::prelude::*;
 
 pub struct Prepare {
     pub tmp: TmpDb,
-    pub s: SchemaBuilder<AuthenticateMergedQuery, AuthenticateMergedMutation, EmptySubscription>,
+    pub s: SchemaBuilder<AuthMergedQuery, AuthMergedMutation, EmptySubscription>,
     pub h: HeaderMap,
     pub user_id: String,
     pub token: String,
@@ -13,12 +13,10 @@ pub struct Prepare {
 
 pub async fn prepare() -> Res<Prepare> {
     let tmp = tmp_db!(User, AuthOtp, LoginSession);
-    let s = schema_qm::<AuthenticateMergedQuery, AuthenticateMergedMutation>(&tmp.db).data(
-        AuthConfig {
-            handlers: Arc::new(FakeAuthHandlers),
-            ..Default::default()
-        },
-    );
+    let s = schema_qm::<AuthMergedQuery, AuthMergedMutation>(&tmp.db).data(AuthConfig {
+        handlers: Arc::new(MockAuthHandlers),
+        ..Default::default()
+    });
 
     let mut h = HeaderMap::default();
     h.insert("x-real-ip", h_static("127.0.0.1"));
@@ -59,9 +57,9 @@ pub fn h_str(v: &str) -> HeaderValue {
     HeaderValue::from_str(v).unwrap_or_else(|_| h_static(""))
 }
 
-pub struct FakeAuthHandlers;
+pub struct MockAuthHandlers;
 #[async_trait]
-impl AuthHandlers for FakeAuthHandlers {
+impl AuthHandlers for MockAuthHandlers {
     async fn otp(&self, _ctx: &Context<'_>) -> Res<String> {
         Ok("999999".to_owned())
     }

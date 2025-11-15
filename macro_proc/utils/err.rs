@@ -58,7 +58,7 @@ pub fn gen_grand_line_err_derive(item: TokenStream) -> TokenStream {
     }
 
     quote! {
-        impl GqlErrImpl for #name {
+        impl GrandLineErrImpl for #name {
             fn code(&self) -> &'static str {
                 match self {
                     #(#codes),*
@@ -70,9 +70,9 @@ pub fn gen_grand_line_err_derive(item: TokenStream) -> TokenStream {
                 }
             }
         }
-        impl From<#name> for GqlErr {
+        impl From<#name> for GrandLineErr {
             fn from(v: #name) -> Self {
-                GqlErr(Arc::new(v))
+                GrandLineErr(Arc::new(v))
             }
         }
     }

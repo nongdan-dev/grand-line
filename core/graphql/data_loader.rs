@@ -17,7 +17,7 @@ where
     E: EntityX,
 {
     type Value = E::G;
-    type Error = GqlErr;
+    type Error = GrandLineErr;
 
     async fn load(&self, keys: &[String]) -> Res<HashMap<String, E::G>> {
         let tx = self.tx.as_ref();

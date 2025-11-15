@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(ambiguous_glob_reexports, dead_code, unused_imports)]
 
 pub use grand_line::prelude::*;
 

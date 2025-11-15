@@ -6,7 +6,6 @@ pub struct ModelAttr {
     pub no_updated_at: bool,
     pub no_deleted_at: bool,
     pub no_by_id: bool,
-    #[allow(dead_code)]
     #[field_names(skip)]
     pub inner: Attr,
 }

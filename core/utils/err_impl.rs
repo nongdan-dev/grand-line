@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-pub trait GqlErrImpl
+pub trait GrandLineErrImpl
 where
     Self: Error + Send + Sync,
 {

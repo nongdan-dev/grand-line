@@ -47,7 +47,7 @@ where
                 quote!(None)
             } else {
                 let auth = pascal!(auth);
-                quote!(Some(GqlAuthEnsure::#auth))
+                quote!(Some(AuthEnsure::#auth))
             };
             body = quote! {
                 ctx.ensure_auth_in_macro(#auth).await?;

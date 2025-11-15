@@ -3,7 +3,7 @@ use zxcvbn::{Score, zxcvbn};
 
 #[derive(Clone)]
 pub struct AuthConfig {
-    pub default_ensure: GqlAuthEnsure,
+    pub default_ensure: AuthEnsure,
     pub cookie_login_session_key: &'static str,
     pub cookie_login_session_expires: i64,
     pub otp_max_attempt: i64,
@@ -15,7 +15,7 @@ pub struct AuthConfig {
 impl Default for AuthConfig {
     fn default() -> Self {
         Self {
-            default_ensure: GqlAuthEnsure::None,
+            default_ensure: AuthEnsure::None,
             cookie_login_session_key: "login_session",
             cookie_login_session_expires: 7 * 24 * 60 * 60 * 1000,
             otp_max_attempt: 5,
@@ -27,7 +27,7 @@ impl Default for AuthConfig {
 }
 
 #[derive(Clone)]
-pub enum GqlAuthEnsure {
+pub enum AuthEnsure {
     None,
     Authenticate,
     Unauthenticated,

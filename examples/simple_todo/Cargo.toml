@@ -1,0 +1,8 @@
+[package]
+name = "grand-line-examples-simple-todo"
+version = "0.0.0"
+edition = "2024"
+
+[dependencies]
+grand-line = { path = "../..", default-features = false, features = ["axum", "sqlite"] }
+serde = "^1.0"

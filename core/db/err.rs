@@ -26,7 +26,7 @@ pub enum MyErr {
     GqlLookAhead,
 }
 
-impl From<DbErr> for GqlErr {
+impl From<DbErr> for GrandLineErr {
     fn from(v: DbErr) -> Self {
         MyErr::from(v).into()
     }

@@ -3,7 +3,7 @@ mod model;
 mod resolver_ty;
 mod utils;
 
-#[allow(unused_imports, dead_code)]
+#[allow(ambiguous_glob_reexports, dead_code, unused_imports)]
 mod prelude {
     pub use crate::crud::*;
     pub use crate::model::*;
@@ -188,7 +188,7 @@ pub fn grand_line_err(attr: TokenStream, item: TokenStream) -> TokenStream {
     gen_grand_line_err(attr, item)
 }
 
-/// Automatically implement GqlErrImpl to handle error better.
+/// Automatically implement GrandLineErrImpl to handle error better.
 #[proc_macro_derive(GrandLineErrDerive, attributes(client, code))]
 pub fn grand_line_err_derive(item: TokenStream) -> TokenStream {
     gen_grand_line_err_derive(item)

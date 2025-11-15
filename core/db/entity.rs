@@ -2,7 +2,10 @@ use super::prelude::*;
 
 /// Helper trait to abstract extra methods into sea_orm entity.
 #[async_trait]
-pub trait EntityX: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = Self::C> {
+pub trait EntityX
+where
+    Self: EntityTrait<Model = Self::M, ActiveModel = Self::A, Column = Self::C>,
+{
     type M: ModelX<Self>;
     type A: ActiveModelX<Self>;
     type C: ColumnX<Self>;

@@ -59,8 +59,8 @@ fn todo_search_2024() {
   <img src="https://github.com/nongdan-dev/grand-line/blob/master/.md/altair.jpg?raw=true" alt="Altair screenshot"/>
 </p>
 
-- [Simple Todo example](https://github.com/nongdan-dev/grand-line-examples/blob/master/simple_todo/src/main.rs)
-- [All examples](https://github.com/nongdan-dev/grand-line-examples)
+- [Simple Todo example](https://github.com/nongdan-dev/grand-line/blob/master/examples/simple_todo/src/main.rs)
+- [All examples](https://github.com/nongdan-dev/grand-line/blob/master/examples)
 - [Tests](https://github.com/nongdan-dev/grand-line/blob/master/tests)
 
 ### Documentation

@@ -1,7 +1,10 @@
 use super::prelude::*;
 
 /// Helper trait to create sea_orm Select from types like Filter, OrderBy...
-pub trait IntoSelect<E: EntityX> {
+pub trait IntoSelect<E>
+where
+    E: EntityX,
+{
     /// Helper to create sea_orm Select from types like Filter, OrderBy...
     fn into_select(self) -> Select<E>;
 

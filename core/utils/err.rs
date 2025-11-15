@@ -12,7 +12,7 @@ pub enum MyErr {
     },
 }
 
-impl From<JsonErr> for GqlErr {
+impl From<JsonErr> for GrandLineErr {
     fn from(v: JsonErr) -> Self {
         MyErr::from(v).into()
     }

@@ -1,20 +1,20 @@
 use crate::prelude::*;
 
 #[async_trait]
-pub trait AuthenticateContext {
+pub trait AuthContext {
     async fn authenticate_without_cache(&self) -> Res<Option<LoginSessionSql>>;
     async fn authenticate_arc(&self) -> Res<Arc<Option<LoginSessionSql>>>;
     async fn authenticate_opt(&self) -> Res<Option<LoginSessionSql>>;
     async fn authenticate(&self) -> Res<LoginSessionSql>;
     async fn ensure_authenticated(&self) -> Res<()>;
     async fn ensure_not_authenticated(&self) -> Res<()>;
-    async fn ensure_auth_in_macro(&self, v: Option<GqlAuthEnsure>) -> Res<()>;
+    async fn ensure_auth_in_macro(&self, v: Option<AuthEnsure>) -> Res<()>;
     fn get_cookie_login_session(&self) -> Res<String>;
     fn set_cookie_login_session(&self, ls: &LoginSessionSql) -> Res<()>;
 }
 
 #[async_trait]
-impl AuthenticateContext for Context<'_> {
+impl AuthContext for Context<'_> {
     async fn authenticate_without_cache(&self) -> Res<Option<LoginSessionSql>> {
         let mut token = self.get_authorization_token()?;
         if token.is_empty() {
@@ -87,12 +87,12 @@ impl AuthenticateContext for Context<'_> {
         Ok(())
     }
 
-    async fn ensure_auth_in_macro(&self, v: Option<GqlAuthEnsure>) -> Res<()> {
+    async fn ensure_auth_in_macro(&self, v: Option<AuthEnsure>) -> Res<()> {
         let v = v.unwrap_or(self.auth_config().default_ensure.clone());
         match v {
-            GqlAuthEnsure::None => {}
-            GqlAuthEnsure::Authenticate => self.ensure_authenticated().await?,
-            GqlAuthEnsure::Unauthenticated => self.ensure_not_authenticated().await?,
+            AuthEnsure::None => {}
+            AuthEnsure::Authenticate => self.ensure_authenticated().await?,
+            AuthEnsure::Unauthenticated => self.ensure_not_authenticated().await?,
         }
         Ok(())
     }

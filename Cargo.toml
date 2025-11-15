@@ -1,5 +1,16 @@
 [workspace]
-members = [".", "auth", "core", "http", "http_axum", "macro_proc", "macro_utils", "macro_utils_proc", "tracing"]
+members = [
+  ".",
+  "auth",
+  "core",
+  "examples/simple_todo",
+  "http",
+  "http_axum",
+  "macro_proc",
+  "macro_utils",
+  "macro_utils_proc",
+  "tracing",
+]
 resolver = "2"
 
 [package]

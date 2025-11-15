@@ -35,6 +35,4 @@ pub mod prelude {
     pub use _http::prelude::*;
     #[cfg(feature = "tracing")]
     pub use _tracing::prelude::*;
-
-    _utils::use_common_std!();
 }

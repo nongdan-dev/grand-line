@@ -1,14 +1,14 @@
 use crate::prelude::*;
 
 #[derive(Default, MergedObject)]
-pub struct AuthenticateMergedQuery(
+pub struct AuthMergedQuery(
     LoginSessionCurrentQuery,
     LoginSessionSearchQuery,
     LoginSessionCountQuery,
 );
 
 #[derive(Default, MergedObject)]
-pub struct AuthenticateMergedMutation(
+pub struct AuthMergedMutation(
     RegisterMutation,
     RegisterResolveMutation,
     LoginMutation,

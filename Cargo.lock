@@ -1066,6 +1066,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "grand-line-examples-simple-todo"
+version = "0.0.0"
+dependencies = [
+ "grand-line",
+ "serde",
+]
+
+[[package]]
 name = "h2"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
