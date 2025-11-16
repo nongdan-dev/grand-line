@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-/// Extension to insert GrandLineState on each request, then cleanup at the end of each request.
+/// Extension to insert GrandLineContextData on each request, then cleanup at the end of each request.
 /// The extension also handle error automatically to only expose client errors to the client.
 pub struct GrandLineExtension;
 
@@ -14,7 +14,7 @@ struct GrandLineExtensionImpl;
 
 #[async_trait]
 impl Extension for GrandLineExtensionImpl {
-    /// Insert GrandLineState on each request.
+    /// Insert GrandLineContextData on each request.
     async fn prepare_request(
         &self,
         ctx: &ExtensionContext<'_>,
@@ -28,7 +28,7 @@ impl Extension for GrandLineExtensionImpl {
         next.run(ctx, request.data(Arc::new(gl))).await
     }
 
-    /// Cleanup GrandLineState at the end of each request.
+    /// Cleanup GrandLineContextData at the end of each request.
     async fn execute(
         &self,
         ctx: &ExtensionContext<'_>,

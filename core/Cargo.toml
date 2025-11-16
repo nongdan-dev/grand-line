@@ -30,7 +30,8 @@ no_permanent_delete = ["_proc/no_permanent_delete"]
 # tracing
 tracing = ["async-graphql/tracing"]
 # biz
-auth = []
+auth = ["_proc/auth"]
+guard = ["_proc/guard"]
 
 [dependencies]
 _proc = { path = "../macro_proc", default-features = false, features = [] }

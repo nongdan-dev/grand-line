@@ -122,7 +122,7 @@ use tokio::net::TcpListener;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let db = db().await?;
-    let schema = schema(Arc::new(db));
+    let schema = schema(&db);
 
     let svc = GraphQL::new(schema);
     let router = get_service(svc.clone()).post_service(svc);
@@ -159,10 +159,10 @@ struct Mutation(
     TodoDeleteDoneMutation,
 );
 
-fn schema(db: Arc<DatabaseConnection>) -> Schema<Query, Mutation, EmptySubscription> {
+fn schema(db: &DatabaseConnection) -> Schema<Query, Mutation, EmptySubscription> {
     Schema::build(Query::default(), Mutation::default(), EmptySubscription)
         .extension(GrandLineExtension)
-        .data(db)
+        .data(Arc::new(db.clone()))
         .finish()
 }
 

@@ -38,3 +38,6 @@ pub mod prelude {
     };
     _utils::use_common_std!();
 }
+
+#[cfg(not(any(feature = "postgres", feature = "mysql", feature = "sqlite")))]
+panic!("should enable one of: postgres, mysql, sqlite");

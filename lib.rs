@@ -6,6 +6,8 @@ pub mod export {
 
     #[cfg(feature = "auth")]
     pub use _auth::export::*;
+    #[cfg(feature = "auth_utils")]
+    pub use _auth_utils::export::*;
     #[cfg(feature = "http")]
     pub use _http::export::*;
     #[cfg(feature = "tracing")]
@@ -17,6 +19,8 @@ pub mod reexport {
 
     #[cfg(feature = "auth")]
     pub use _auth::reexport::*;
+    #[cfg(feature = "auth_utils")]
+    pub use _auth_utils::reexport::*;
     #[cfg(feature = "http")]
     pub use _http::reexport::*;
     #[cfg(feature = "tracing")]
@@ -31,6 +35,8 @@ pub mod prelude {
     pub use crate::test_utils::prelude::*;
     #[cfg(feature = "auth")]
     pub use _auth::prelude::*;
+    #[cfg(feature = "auth_utils")]
+    pub use _auth_utils::prelude::*;
     #[cfg(feature = "http")]
     pub use _http::prelude::*;
     #[cfg(feature = "tracing")]

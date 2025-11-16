@@ -3,7 +3,7 @@ use crate::prelude::*;
 #[mutation(auth=unauthenticated)]
 async fn forgot_resolve(data: AuthOtpResolve, password: String) -> LoginSessionWithSecret {
     let h = &ctx.auth_config().handlers;
-    h.validate_password(ctx, &password).await?;
+    h.password_validate(ctx, &password).await?;
     let lsd = ensure_login_session_data(ctx)?;
     let t = ensure_otp_resolve(ctx, tx, AuthOtpTy::Forgot, data).await?;
 
@@ -13,7 +13,7 @@ async fn forgot_resolve(data: AuthOtpResolve, password: String) -> LoginSessionW
         tx,
         User {
             id: d.user_id,
-            password_hashed: password_hash(&password)?,
+            password_hashed: auth_utils::password_hash(&password)?,
         }
     );
 

@@ -1,10 +1,10 @@
 #[derive(Clone)]
-pub struct GrandLineCoreConfig {
+pub struct CoreConfig {
     pub limit_default: u64,
     pub limit_max: u64,
 }
 
-impl Default for GrandLineCoreConfig {
+impl Default for CoreConfig {
     fn default() -> Self {
         Self {
             limit_default: 10,

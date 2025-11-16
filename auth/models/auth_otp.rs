@@ -8,7 +8,7 @@ pub struct AuthOtp {
     #[graphql(skip)]
     pub ty: AuthOtpTy,
 
-    #[default(random_secret_256bit())]
+    #[default(auth_utils::secret())]
     #[graphql(skip)]
     pub secret: String,
 
@@ -49,17 +49,17 @@ pub struct AuthOtpDataForgot {
 }
 
 async fn resolve_remaining_attempt(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<i64> {
-    let t = o.total_attempt.ok_or(GrandLineDbErr::GqlResolverNone)?;
+    let t = o.total_attempt.ok_or(CoreDbErr::GqlResolverNone)?;
     let m = ctx.auth_config().otp_max_attempt;
     Ok(m - t)
 }
 async fn resolve_will_expire_at(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<DateTimeUtc> {
-    let c = o.created_at.ok_or(GrandLineDbErr::GqlResolverNone)?;
+    let c = o.created_at.ok_or(CoreDbErr::GqlResolverNone)?;
     let d = Duration::milliseconds(ctx.auth_config().otp_expire_ms);
     Ok(c + d)
 }
 async fn resolve_can_re_request_at(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<DateTimeUtc> {
-    let c = o.created_at.ok_or(GrandLineDbErr::GqlResolverNone)?;
+    let c = o.created_at.ok_or(CoreDbErr::GqlResolverNone)?;
     let d = Duration::milliseconds(ctx.auth_config().otp_re_request_ms);
     Ok(c + d)
 }

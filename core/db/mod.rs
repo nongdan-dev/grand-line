@@ -17,7 +17,7 @@ pub use active_model::*;
 pub use chain_select::*;
 pub use column::*;
 pub use entity::*;
-pub use err::MyErr as GrandLineDbErr;
+pub use err::MyErr as CoreDbErr;
 pub use filter::*;
 pub use gql_model::*;
 pub use into_select::*;

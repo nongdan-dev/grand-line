@@ -4,7 +4,7 @@ use crate::prelude::*;
 pub struct LoginSession {
     pub user_id: String,
 
-    #[default(random_secret_256bit())]
+    #[default(auth_utils::secret())]
     #[graphql(skip)]
     pub secret: String,
 

@@ -12,17 +12,17 @@ async fn register() -> AuthOtpWithSecret {
     ensure_otp_re_request(ctx, tx, AuthOtpTy::Register, &data.email.0).await?;
 
     let h = &ctx.auth_config().handlers;
-    h.validate_password(ctx, &data.password).await?;
+    h.password_validate(ctx, &data.password).await?;
 
     let otp = h.otp(ctx).await?;
-    let (otp_salt, otp_hashed) = otp_hash(&otp)?;
+    let (otp_salt, otp_hashed) = auth_utils::otp_hash(&otp)?;
     let t = db_create!(
         tx,
         AuthOtp {
             ty: AuthOtpTy::Register,
             email: data.email.0,
             data: AuthOtpDataRegister {
-                password_hashed: password_hash(&data.password)?,
+                password_hashed: auth_utils::password_hash(&data.password)?,
             }
             .to_json()?,
             otp_salt,

@@ -2,7 +2,7 @@ mod context;
 mod err;
 
 pub mod export {
-    pub use crate::{context::*, err::MyErr as GrandLineHttpErr};
+    pub use crate::{context::*, err::MyErr as HttpErr};
 
     #[cfg(feature = "axum")]
     pub use _http_axum::export::*;

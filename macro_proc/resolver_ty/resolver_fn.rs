@@ -30,29 +30,38 @@ where
         let no_tx = self.no_tx();
         let no_ctx = self.no_ctx();
 
+        #[cfg(not(any(feature = "auth")))]
+        let (directives, comments): (Vec<Ts2>, Vec<Ts2>) = (vec![], vec![]);
+        #[cfg(any(feature = "auth", feature = "guard"))]
+        let (mut directives, mut comments) = (vec![], vec![]);
+
         #[cfg(feature = "auth")]
         {
             if no_ctx {
                 let err = self.err("auth requires ctx");
                 pan!(err);
             }
-            let auth = self.auth();
+            let mut auth = self.auth();
+            if auth.is_empty() {
+                auth = "none".to_owned();
+            }
             let valid_auth = ["none", "authenticate", "unauthenticated"];
-            if !auth.is_empty() && !valid_auth.contains(&auth.as_str()) {
+            if !valid_auth.contains(&auth.as_str()) {
                 let err = f!("auth should be one of: {}", valid_auth.join(", "));
                 let err = self.err(&err);
                 pan!(err)
             }
-            let auth = if auth.is_empty() {
-                quote!(None)
-            } else {
-                let auth = pascal!(auth);
-                quote!(Some(AuthEnsure::#auth))
-            };
+            let auth_pascal = pascal!(auth);
+            let ensure = quote!(AuthEnsure::#auth_pascal);
             body = quote! {
-                ctx.ensure_auth_in_macro(#auth).await?;
+                ctx.ensure_auth_in_macro(#ensure).await?;
                 #body
             };
+            directives.push(quote! {
+                directive=auth_directive::apply(#ensure),
+            });
+            let auth_scream = scream!(auth);
+            comments.push(f!("@auth(ensure: {auth_scream})"));
         }
 
         if !no_tx {
@@ -80,7 +89,11 @@ where
 
         quote! {
             // TODO: copy #[graphql...] and comments from the original field
-            #[graphql(name=#gql_name)]
+            #[graphql(
+                name=#gql_name,
+                #(#directives)*
+            )]
+            #(#[doc = #comments])*
             async fn #name(&self, #inputs) -> #output {
                 #body
             }

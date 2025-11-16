@@ -26,8 +26,9 @@ no_tx = []
 no_ctx = []
 no_include_deleted = []
 no_permanent_delete = []
-# auth flags
+# biz
 auth = []
+guard = []
 
 [dependencies]
 _utils = { path = "../macro_utils", default-features = false, features = [] }

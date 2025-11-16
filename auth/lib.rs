@@ -9,13 +9,14 @@ pub mod export {
 }
 
 pub mod reexport {
-    pub use {argon2, base64, hmac, rand, rand_core, serde_qs, sha2, subtle, validator, zxcvbn};
+    pub use validator;
 }
 
 #[allow(ambiguous_glob_reexports, dead_code, unused_imports)]
 pub mod prelude {
     pub use crate::{export::*, reexport::*};
     pub(crate) use {
-        crate::export::GrandLineAuthErr as MyErr, _core::prelude::*, _http::prelude::*,
+        crate::export::AuthErr as MyErr, _auth_utils::prelude::*, _core::prelude::*,
+        _http::prelude::*,
     };
 }

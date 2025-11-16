@@ -144,7 +144,7 @@ fn push_struk_resolver(
         ts2!()
     } else {
         quote! {
-            .ok_or(GrandLineDbErr::GqlResolverNone)?
+            .ok_or(CoreDbErr::GqlResolverNone)?
         }
     };
 

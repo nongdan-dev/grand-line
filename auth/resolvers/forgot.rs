@@ -16,7 +16,7 @@ async fn forgot() -> AuthOtpWithSecret {
         .one_or_404(tx)
         .await?;
     let otp = h.otp(ctx).await?;
-    let (otp_salt, otp_hashed) = otp_hash(&otp)?;
+    let (otp_salt, otp_hashed) = auth_utils::otp_hash(&otp)?;
     let t = db_create!(
         tx,
         AuthOtp {

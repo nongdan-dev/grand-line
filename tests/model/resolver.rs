@@ -8,18 +8,16 @@ async fn sql_dep_cols() -> Res<()> {
         #[model]
         pub struct User {
             pub first_name: String,
-            pub middle_name: String,
+            #[graphql(skip)]
             pub last_name: String,
-            #[resolver(sql_dep=first_name+middle_name+last_name)]
+            #[resolver(sql_dep=first_name+last_name)]
             pub full_name: String,
         }
 
         async fn resolve_full_name(u: &UserGql, _: &Context<'_>) -> Res<String> {
-            let err = "should be selected from database already";
             let full_name = vec![
-                u.first_name.clone().unwrap_or_else(|| bug!(err)),
-                u.middle_name.clone().unwrap_or_else(|| bug!(err)),
-                u.last_name.clone().unwrap_or_else(|| bug!(err)),
+                u.first_name.clone().ok_or(CoreDbErr::GqlResolverNone)?,
+                u.last_name.clone().ok_or(CoreDbErr::GqlResolverNone)?,
             ]
             .join(" ");
             Ok(full_name)
@@ -37,7 +35,6 @@ async fn sql_dep_cols() -> Res<()> {
         &tmp.db,
         User {
             first_name: "Olivia",
-            middle_name: "Anna",
             last_name: "Dunham",
         }
     );
@@ -54,7 +51,7 @@ async fn sql_dep_cols() -> Res<()> {
     });
     let expected = value!({
         "userDetail": {
-            "fullName": "Olivia Anna Dunham",
+            "fullName": "Olivia Dunham",
         },
     });
 
@@ -72,19 +69,14 @@ async fn sql_dep_exprs() -> Res<()> {
             a: i64,
             #[sql_expr(Expr::col(Column::A).add(1000))]
             b: i64,
-            #[sql_expr(Expr::col(Column::A).add(2000))]
+            #[resolver(sql_dep=a+b)]
             c: i64,
-            #[resolver(sql_dep=a+b+c)]
-            d: i64,
         }
 
-        async fn resolve_d(u: &UserGql, _: &Context<'_>) -> Res<i64> {
-            let err = "should be selected from database already";
-            let a = u.a.unwrap_or_else(|| bug!(err));
-            let b = u.b.unwrap_or_else(|| bug!(err));
-            let c = u.c.unwrap_or_else(|| bug!(err));
-            let d = a + b + c;
-            Ok(d)
+        async fn resolve_c(u: &UserGql, _: &Context<'_>) -> Res<i64> {
+            let a = u.a.ok_or(CoreDbErr::GqlResolverNone)?;
+            let b = u.b.ok_or(CoreDbErr::GqlResolverNone)?;
+            Ok(a + b)
         }
 
         #[detail(User)]
@@ -100,7 +92,7 @@ async fn sql_dep_exprs() -> Res<()> {
     let q = r#"
     query test($id: ID!) {
         userDetail(id: $id) {
-            d
+            c
         }
     }
     "#;
@@ -109,7 +101,7 @@ async fn sql_dep_exprs() -> Res<()> {
     });
     let expected = value!({
         "userDetail": {
-            "d": 3003,
+            "c": 1002,
         },
     });
 

@@ -28,7 +28,7 @@ pub async fn prepare() -> Res<Prepare> {
         &tmp.db,
         User {
             email: "olivia@example.com",
-            password_hashed: password_hash("123123")?,
+            password_hashed: auth_utils::password_hash("123123")?,
         }
     );
     let ls = db_create!(
@@ -39,7 +39,7 @@ pub async fn prepare() -> Res<Prepare> {
             ua: ua.to_json()?,
         }
     );
-    let token = qs_token(&ls.id, &ls.secret)?;
+    let token = auth_utils::qs_token(&ls.id, &ls.secret)?;
 
     Ok(Prepare {
         tmp,

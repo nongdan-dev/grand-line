@@ -1,9 +1,7 @@
 use crate::prelude::*;
-use zxcvbn::{Score, zxcvbn};
 
 #[derive(Clone)]
 pub struct AuthConfig {
-    pub default_ensure: AuthEnsure,
     pub cookie_login_session_key: &'static str,
     pub cookie_login_session_expires: i64,
     pub otp_max_attempt: i64,
@@ -15,7 +13,6 @@ pub struct AuthConfig {
 impl Default for AuthConfig {
     fn default() -> Self {
         Self {
-            default_ensure: AuthEnsure::None,
             cookie_login_session_key: "login_session",
             cookie_login_session_expires: 7 * 24 * 60 * 60 * 1000,
             otp_max_attempt: 5,
@@ -26,42 +23,30 @@ impl Default for AuthConfig {
     }
 }
 
-#[derive(Clone)]
-pub enum AuthEnsure {
-    None,
-    Authenticate,
-    Unauthenticated,
-}
-
+#[allow(unused_variables)]
 #[async_trait]
 pub trait AuthHandlers
 where
     Self: Send + Sync,
 {
-    async fn validate_password(&self, _ctx: &Context<'_>, password: &str) -> Res<()> {
-        if zxcvbn(password, &[]).score() < Score::Three {
-            Err(MyErr::PasswordInvalid)?;
-        }
+    async fn otp(&self, ctx: &Context<'_>) -> Res<String> {
+        let otp = auth_utils::otp();
+        Ok(otp)
+    }
+    async fn password_validate(&self, ctx: &Context<'_>, password: &str) -> Res<()> {
+        auth_utils::password_validate(password)?;
         Ok(())
     }
-    async fn otp(&self, _ctx: &Context<'_>) -> Res<String> {
-        Ok(otp_new())
-    }
-    async fn on_otp_create(
-        &self,
-        _ctx: &Context<'_>,
-        _otp: &AuthOtpSql,
-        _otp_raw: &str,
-    ) -> Res<()> {
+    async fn on_otp_create(&self, ctx: &Context<'_>, otp: &AuthOtpSql, otp_raw: &str) -> Res<()> {
         Ok(())
     }
-    async fn on_register_resolve(&self, _ctx: &Context<'_>, _user: &UserSql) -> Res<()> {
+    async fn on_register_resolve(&self, ctx: &Context<'_>, user: &UserSql) -> Res<()> {
         Ok(())
     }
-    async fn on_login_resolve(&self, _ctx: &Context<'_>, _user: &UserSql) -> Res<()> {
+    async fn on_login_resolve(&self, ctx: &Context<'_>, user: &UserSql) -> Res<()> {
         Ok(())
     }
-    async fn on_forgot_resolve(&self, _ctx: &Context<'_>, _user: &UserSql) -> Res<()> {
+    async fn on_forgot_resolve(&self, ctx: &Context<'_>, user: &UserSql) -> Res<()> {
         Ok(())
     }
 }

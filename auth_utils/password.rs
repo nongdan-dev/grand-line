@@ -4,6 +4,14 @@ use argon2::{
     password_hash::{PasswordHash, SaltString},
 };
 use rand::{RngCore, rng};
+use zxcvbn::{Score, zxcvbn};
+
+pub fn password_validate(password: &str) -> Res<()> {
+    if zxcvbn(password, &[]).score() < Score::Three {
+        Err(MyErr::PasswordInvalid)?;
+    }
+    Ok(())
+}
 
 pub fn password_hash(password: &str) -> Res<String> {
     let mut b = [0u8; 16];
@@ -16,7 +24,7 @@ pub fn password_hash(password: &str) -> Res<String> {
     Ok(password_hashed)
 }
 
-pub fn password_compare(password_hashed: &str, password: &str) -> bool {
+pub fn password_eq(password_hashed: &str, password: &str) -> bool {
     match PasswordHash::new(password_hashed) {
         Ok(v) => Argon2::default()
             .verify_password(password.as_bytes(), &v)

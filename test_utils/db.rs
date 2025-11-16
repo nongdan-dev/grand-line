@@ -12,8 +12,6 @@ fn db_uri() -> &'static str {
     return "mysql://root:test_pwd@localhost:3306/test_db";
     #[cfg(feature = "sqlite")]
     return "sqlite::memory:";
-    #[cfg(not(any(feature = "postgres", feature = "mysql", feature = "sqlite")))]
-    pan!("should enable one of: postgres, mysql, sqlite");
 }
 
 // ============================================================================

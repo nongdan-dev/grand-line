@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-/// GrandLineState should be constructed on each request.
+/// GrandLineContextData should be constructed on each request.
 /// We will get it in the resolvers to manage per-request db transaction, graphql loaders, cache...
 /// We should only use it in the GrandLineExtension to inject this context automatically on each request
 pub struct GrandLineContextData {

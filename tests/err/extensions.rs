@@ -33,8 +33,8 @@ async fn should_only_expose_client_errors() -> Res<()> {
     let s = schema_q::<Query>(&tmp.db).finish();
 
     check(&s, "{ client }", MyErr::Client).await;
-    check(&s, "{ server }", GrandLineGraphQLErr::InternalServer).await;
-    check(&s, "{ std }", GrandLineGraphQLErr::InternalServer).await;
+    check(&s, "{ server }", CoreGraphQLErr::InternalServer).await;
+    check(&s, "{ std }", CoreGraphQLErr::InternalServer).await;
 
     tmp.drop().await
 }

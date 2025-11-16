@@ -16,8 +16,19 @@ dependencies = [
 name = "_auth"
 version = "0.0.0"
 dependencies = [
+ "_auth_utils",
  "_core",
  "_http",
+ "serde",
+ "thiserror 2.0.17",
+ "validator",
+]
+
+[[package]]
+name = "_auth_utils"
+version = "0.0.0"
+dependencies = [
+ "_core",
  "argon2",
  "base64",
  "hmac",
@@ -28,7 +39,6 @@ dependencies = [
  "sha2",
  "subtle",
  "thiserror 2.0.17",
- "validator",
  "zxcvbn",
 ]
 
@@ -1056,6 +1066,7 @@ name = "grand-line"
 version = "0.0.0"
 dependencies = [
  "_auth",
+ "_auth_utils",
  "_core",
  "_http",
  "_tracing",

@@ -51,8 +51,8 @@ pub(crate) async fn ensure_otp_resolve(
     };
 
     let c = &ctx.auth_config();
-    if !otp_compare(&t.otp_salt, &t.otp_hashed, &data.otp)?
-        || !constant_time_eq(&t.secret, &data.secret)
+    if !auth_utils::otp_eq(&t.otp_salt, &t.otp_hashed, &data.otp)?
+        || !auth_utils::constant_time_eq(&t.secret, &data.secret)
         || t.total_attempt > c.otp_max_attempt
         || t.created_at + Duration::milliseconds(c.otp_expire_ms) < now()
     {

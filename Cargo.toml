@@ -2,6 +2,7 @@
 members = [
   ".",
   "auth",
+  "auth_utils",
   "core",
   "examples/simple_todo",
   "http",
@@ -50,12 +51,15 @@ tracing = ["_tracing", "_core/tracing"]
 test_utils = ["pretty_assertions", "serde", "thiserror"]
 # http
 http = ["_http"]
-axum = ["http", "_http/axum", "_auth/axum"]
+axum = ["http", "_http/axum"]
 # biz
-auth = ["_auth", "_core/auth"]
+auth = ["_auth", "auth_utils", "_core/auth"]
+auth_utils = ["_auth_utils"]
+guard = ["_core/guard"]
 
 [dependencies]
 _auth = { path = "./auth", optional = true, default-features = false, features = [] }
+_auth_utils = { path = "./auth_utils", optional = true, default-features = false, features = [] }
 _core = { path = "./core", default-features = false, features = [] }
 _http = { path = "./http", optional = true, default-features = false, features = [] }
 _tracing = { path = "./tracing", optional = true, default-features = false, features = [] }

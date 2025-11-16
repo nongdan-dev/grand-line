@@ -8,7 +8,7 @@ pub trait AuthContext {
     async fn authenticate(&self) -> Res<LoginSessionSql>;
     async fn ensure_authenticated(&self) -> Res<()>;
     async fn ensure_not_authenticated(&self) -> Res<()>;
-    async fn ensure_auth_in_macro(&self, v: Option<AuthEnsure>) -> Res<()>;
+    async fn ensure_auth_in_macro(&self, v: AuthEnsure) -> Res<()>;
     fn get_cookie_login_session(&self) -> Res<String>;
     fn set_cookie_login_session(&self, ls: &LoginSessionSql) -> Res<()>;
 }
@@ -21,7 +21,7 @@ impl AuthContext for Context<'_> {
             token = self.get_cookie_login_session()?;
         }
 
-        let t = qs_token_parse(&token);
+        let t = auth_utils::qs_token_parse(&token);
         let t = if let Some(t) = t {
             t
         } else {
@@ -37,7 +37,7 @@ impl AuthContext for Context<'_> {
             return Ok(None);
         };
 
-        if !constant_time_eq(&ls.secret, &t.secret) {
+        if !auth_utils::constant_time_eq(&ls.secret, &t.secret) {
             return Ok(None);
         }
 
@@ -87,8 +87,7 @@ impl AuthContext for Context<'_> {
         Ok(())
     }
 
-    async fn ensure_auth_in_macro(&self, v: Option<AuthEnsure>) -> Res<()> {
-        let v = v.unwrap_or(self.auth_config().default_ensure.clone());
+    async fn ensure_auth_in_macro(&self, v: AuthEnsure) -> Res<()> {
         match v {
             AuthEnsure::None => {}
             AuthEnsure::Authenticate => self.ensure_authenticated().await?,
@@ -107,7 +106,7 @@ impl AuthContext for Context<'_> {
 
     fn set_cookie_login_session(&self, ls: &LoginSessionSql) -> Res<()> {
         let c = &self.auth_config();
-        let token = qs_token(&ls.id, &ls.secret)?;
+        let token = auth_utils::qs_token(&ls.id, &ls.secret)?;
         self.set_cookie(
             c.cookie_login_session_key,
             &token,
