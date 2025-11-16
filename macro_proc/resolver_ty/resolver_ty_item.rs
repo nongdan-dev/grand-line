@@ -12,12 +12,10 @@ impl ResolverTyItem {
     pub fn init(mut self, operation: &str, crud: &str, crud_model: &str) -> (Self, Ts2, Ts2) {
         if self.gql_name == "resolver" {
             if crud.is_empty() {
-                let err = "resolver name should be different than the reserved keyword `resolver`";
-                pan!(err);
+                pan!("resolver name should be different than the reserved keyword `resolver`");
             }
             if crud_model.is_empty() {
-                let err = "empty model name should be validated earlier";
-                pan!(err);
+                pan!("empty model name should be already validated at the previous step");
             }
             self.gql_name = camel_str!(crud_model, crud);
         }
@@ -36,7 +34,7 @@ impl Parse for ResolverTyItem {
         let output = if let ReturnType::Type(_, ty) = ifn.sig.output {
             ty.to_token_stream()
         } else {
-            ts2!("()")
+            quote!(())
         };
 
         let body = ifn.block.stmts;

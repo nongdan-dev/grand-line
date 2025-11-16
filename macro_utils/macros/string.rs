@@ -29,18 +29,6 @@ macro_rules! ident {
 
 /// Internal macro utils to handle strings and casings.
 #[macro_export]
-macro_rules! ts2 {
-    ($($s:expr),*) => {
-        s!($($s),*).parse::<Ts2>()
-            .unwrap_or_else(|e| {
-                let err = f!("cannot parse token stream: {}", e);
-                pan!(err);
-            })
-    };
-}
-
-/// Internal macro utils to handle strings and casings.
-#[macro_export]
 macro_rules! pascal_str {
     ($($s:expr),*) => {
         s!($(s!($s).to_upper_camel_case()),*)
@@ -51,7 +39,7 @@ macro_rules! pascal_str {
 #[macro_export]
 macro_rules! pascal {
     ($($s:expr),*) => {
-        ts2!(pascal_str!($($s),*))
+        pascal_str!($($s),*).ts2()
     };
 }
 
@@ -67,7 +55,7 @@ macro_rules! camel_str {
 #[macro_export]
 macro_rules! camel {
     ($($s:expr),*) => {
-        ts2!(camel_str!($($s),*))
+        camel_str!($($s),*).ts2()
     };
 }
 
@@ -83,7 +71,7 @@ macro_rules! snake_str {
 #[macro_export]
 macro_rules! snake {
     ($($s:expr),*) => {
-        ts2!(snake_str!($($s),*))
+        snake_str!($($s),*).ts2()
     };
 }
 
@@ -99,23 +87,26 @@ macro_rules! scream_str {
 #[macro_export]
 macro_rules! scream {
     ($($s:expr),*) => {
-        ts2!(scream_str!($($s),*))
+        scream_str!($($s),*).ts2()
     };
 }
 
 /// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! bug {
-    ($err:ident) => {{
-        let err = f!("SHOULD NOT HAPPEN, FRAMEWORK BUG: {}", $err);
-        pan!(err);
+    ($($s:tt)*) => {{
+        let err = f!($($s)*);
+        pan!("SHOULD NOT HAPPEN, FRAMEWORK BUG: {err}");
     }};
 }
 
 /// Internal macro utils to handle strings and casings.
 #[macro_export]
 macro_rules! pan {
-    ($err:ident) => {
-        panic!("panic at {}:{}\n{}", file!(), line!(), $err)
-    };
+    ($($s:tt)*) => {{
+        let err = f!($($s)*);
+        let file = file!();
+        let line = line!();
+        panic!("panic at {file}:{line}\n{err}");
+    }};
 }

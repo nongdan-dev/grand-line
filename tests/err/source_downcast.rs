@@ -30,15 +30,14 @@ async fn should_be_my_err() {
     let e = &r.errors[0];
     pretty_eq!(e.message, "test", "error message should match");
 
-    let code = e
+    let e = e
         .source
         .as_deref()
-        .and_then(|e| e.downcast_ref::<GrandLineErr>())
-        .unwrap_or_else(|| {
-            let err = "downcast to GrandLineErr should be some";
-            bug!(err)
-        })
-        .0
-        .code();
-    pretty_eq!(code, "Test", "error code after downcast should match");
+        .and_then(|e| e.downcast_ref::<GrandLineErr>());
+    if let Some(e) = e {
+        let code = e.0.code();
+        pretty_eq!(code, "Test", "error code after downcast should match");
+    } else {
+        assert!(false, "downcast to GrandLineErr should be some");
+    }
 }

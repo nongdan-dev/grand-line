@@ -23,19 +23,19 @@ impl ResolverFn for GenResolver {
         self.a.ra.no_ctx
     }
     fn name(&self) -> Ts2 {
-        ts2!(self.a.inner.field_name())
+        self.a.inner.field_name().ts2()
     }
     fn gql_name(&self) -> String {
         camel_str!(self.name())
     }
     fn inputs(&self) -> Ts2 {
-        ts2!()
+        quote!()
     }
     fn output(&self) -> Ts2 {
-        ts2!(self.a.inner.field_ty())
+        self.a.inner.field_ty().ts2()
     }
     fn body(&self) -> Ts2 {
-        let f = ts2!(self.a.call);
+        let f = self.a.call.ts2();
         if self.no_ctx() {
             quote!(#f(self).await?)
         } else {

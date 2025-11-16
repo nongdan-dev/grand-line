@@ -36,11 +36,7 @@ impl TmpDb {
             "mysql" => Self::new_mysql(uri).await,
             "sqlite" => Self::new_sqlite(uri).await,
             scheme => {
-                let err = f!(
-                    "TmpDb::new expect postgres or mysql or sqlite, found {}",
-                    scheme,
-                );
-                bug!(err)
+                pan!("TmpDb::new expect postgres or mysql or sqlite, found {scheme}");
             }
         }
     }
@@ -49,10 +45,10 @@ impl TmpDb {
         let name = new_db_name();
         let db = conn(uri).await?;
 
-        let stmt = f!("CREATE SCHEMA {};", name);
+        let stmt = f!("CREATE SCHEMA {name};");
         exec(&db, DbBackend::Postgres, &stmt).await?;
 
-        let stmt = f!("SET search_path TO {};", name);
+        let stmt = f!("SET search_path TO {name};");
         exec(&db, DbBackend::Postgres, &stmt).await?;
 
         Ok(Self {
@@ -66,7 +62,7 @@ impl TmpDb {
         let name = new_db_name();
         let admin = conn(uri).await?;
 
-        let stmt = f!("CREATE DATABASE {};", name);
+        let stmt = f!("CREATE DATABASE {name};");
         exec(&admin, DbBackend::MySql, &stmt).await?;
 
         let uri = replace_db_name(uri, &name);
@@ -95,13 +91,15 @@ impl TmpDb {
             TmpDbType::Postgres => {
                 let stmt = "SET search_path TO public;";
                 exec(&self.db, DbBackend::Postgres, &stmt).await?;
-                let stmt = f!("DROP SCHEMA IF EXISTS {} CASCADE;", self.name);
+                let name = &self.name;
+                let stmt = f!("DROP SCHEMA IF EXISTS {name} CASCADE;");
                 exec(&self.db, DbBackend::Postgres, &stmt).await?;
                 self.db.clone().close().await?;
             }
             TmpDbType::MySql { admin } => {
                 self.db.clone().close().await?;
-                let stmt = f!("DROP DATABASE IF EXISTS {};", self.name);
+                let name = &self.name;
+                let stmt = f!("DROP DATABASE IF EXISTS {name};");
                 exec(admin, DbBackend::MySql, &stmt).await?;
             }
             TmpDbType::Sqlite => {
@@ -115,7 +113,8 @@ impl TmpDb {
 // helpers
 
 fn new_db_name() -> String {
-    f!("test_{}", ulid())
+    let id = ulid();
+    f!("test_{id}")
 }
 
 fn get_uri_scheme(uri: &str) -> String {
@@ -124,9 +123,10 @@ fn get_uri_scheme(uri: &str) -> String {
 
 fn replace_db_name(uri: &str, name: &str) -> String {
     if let Some((head, _)) = uri.rsplit_once('/') {
-        f!("{}/{}", head, name)
+        f!("{head}/{name}")
     } else {
-        f!("{}/{}", uri.trim_end_matches('/'), name)
+        let head = uri.trim_end_matches('/');
+        f!("{head}/{name}")
     }
 }
 

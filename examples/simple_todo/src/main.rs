@@ -129,7 +129,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let app = Router::new().route("/api/graphql", router);
 
     let port = 4000;
-    let addr = format!("0.0.0.0:{}", port);
+    let addr = format!("0.0.0.0:{port}");
     let listener = TcpListener::bind(addr).await?;
 
     println!("listening on port {}", port);

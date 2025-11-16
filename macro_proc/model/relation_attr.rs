@@ -33,13 +33,13 @@ impl AttrValidate for RelationAttr {
 
 impl RelationAttr {
     pub fn to(&self) -> Ts2 {
-        ts2!(self.inner.field_ty())
+        self.inner.field_ty().ts2()
     }
     pub fn gql_to(&self) -> Ts2 {
         ty_gql(self.to())
     }
     pub fn name(&self) -> Ts2 {
-        ts2!(self.inner.field_name())
+        self.inner.field_name().ts2()
     }
 
     pub fn key_str(&self) -> String {
@@ -51,28 +51,28 @@ impl RelationAttr {
         })
     }
     pub fn through(&self) -> Ts2 {
-        let v = self.inner.str(Self::F_THROUGH).unwrap_or_else(|| {
-            match self.inner.attr == RelationTy::ManyToMany {
+        self.inner
+            .str(Self::F_THROUGH)
+            .unwrap_or_else(|| match self.inner.attr == RelationTy::ManyToMany {
                 true => pascal_str!(self.inner.field_model(), "in", self.inner.field_ty()),
                 false => self.bug(Self::F_THROUGH),
-            }
-        });
-        ts2!(v)
+            })
+            .ts2()
     }
     pub fn other_key(&self) -> Ts2 {
-        let v = self.inner.str(Self::F_OTHER_KEY).unwrap_or_else(|| {
-            match self.inner.attr == RelationTy::ManyToMany {
+        self.inner
+            .str(Self::F_OTHER_KEY)
+            .unwrap_or_else(|| match self.inner.attr == RelationTy::ManyToMany {
                 true => snake_str!(self.inner.field_ty(), "id"),
                 false => self.bug(Self::F_OTHER_KEY),
-            }
-        });
-        ts2!(v)
+            })
+            .ts2()
     }
 
     fn bug(&self, k: &str) -> ! {
         let err = self
             .inner
             .errk(k, "should not access this key in this attr");
-        bug!(err);
+        bug!("{err}");
     }
 }

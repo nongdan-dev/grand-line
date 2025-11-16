@@ -30,24 +30,21 @@ pub fn debug_macro(name: &str, ts: Ts2) {
         use std::process::Command;
 
         let content = s!(ts);
+        let path = f!("target/grand-line/{name}.rs");
+        let path = PathBuf::from(path);
 
-        let path = PathBuf::from(f!("target/grand-line/{}.rs", name));
-        let _ = create_dir_all(path.parent().unwrap_or_else(|| {
-            let err = "path.parent: None";
-            pan!(err);
-        }))
-        .unwrap_or_else(|e| {
-            let err = f!("create_dir_all: {}", e);
-            pan!(err);
+        let parent = path.parent().unwrap_or_else(|| {
+            pan!("path.parent: None");
+        });
+        let _ = create_dir_all(parent).unwrap_or_else(|e| {
+            pan!("create_dir_all: {e}");
         });
 
         let mut file = File::create(&path).unwrap_or_else(|e| {
-            let err = f!("File::create: {}", e);
-            pan!(err);
+            pan!("File::create: {e}");
         });
         let _ = writeln!(file, "{}", content).unwrap_or_else(|e| {
-            let err = f!("writeln!: {}", e);
-            pan!(err);
+            pan!("writeln!: {e}");
         });
 
         let _ = Command::new("rustfmt")
@@ -56,8 +53,7 @@ pub fn debug_macro(name: &str, ts: Ts2) {
             .arg(&path)
             .status()
             .unwrap_or_else(|e| {
-                let err = f!("rustfmt: {}", e);
-                pan!(err);
+                pan!("rustfmt: {e}");
             });
     }
 }

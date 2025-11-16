@@ -31,7 +31,7 @@ pub fn gen_delete(attr: TokenStream, item: TokenStream) -> TokenStream {
         };
 
         let body = r.body;
-        let model = ts2!(a.model);
+        let model = a.model.ts2();
         r.body = quote! {
             #body
             #model::gql_delete(tx, &id, #permanent).await?

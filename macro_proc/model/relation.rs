@@ -15,7 +15,7 @@ impl GenRelation {
         }
     }
     fn input_one(&self) -> Ts2 {
-        let mut inputs = ts2!();
+        let mut inputs = quote!();
         inputs = push_include_deleted(inputs, !self.ra.no_include_deleted);
         inputs
     }
@@ -42,7 +42,7 @@ impl GenRelation {
     }
 
     fn body_utils(&self, r: Ts2, vec: bool) -> Ts2 {
-        let sql_dep = ts2!(self.sql_dep_str());
+        let sql_dep = self.sql_dep_str().ts2();
         let none = if vec { quote!(vec![]) } else { quote!(None) };
         quote! {
             if let Some(id) = self.#sql_dep.clone() {

@@ -11,9 +11,9 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut fields = match item.fields {
         Fields::Named(f) => f.named,
         _ => {
-            let err = f!("{} struct should be named fields", model);
+            let err = f!("{model} struct should be named fields");
             let err = a.inner.err(&err);
-            pan!(err);
+            pan!("{err}");
         }
     };
     fields.insert(
@@ -94,8 +94,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         if raw_str.starts_with("\"") || raw_str.starts_with("r#") {
             raw_str += ".to_owned()"
         }
-        let raw = ts2!(raw_str);
-        let name = ts2!(a.field_name());
+        let raw = raw_str.ts2();
+        let name = a.field_name().ts2();
         am_defaults.push(quote! {
             if !matches!(am.#name, Set(_)) {
                 am.#name = Set(#raw);
@@ -203,8 +203,8 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                     a: a.clone().into_with_validate(),
                 }),
                 _ => {
-                    let err = f!("invalid attr={} dyn VirtualGen", a.attr);
-                    bug!(err);
+                    let attr = &a.attr;
+                    bug!("invalid attr={attr} dyn VirtualGen");
                 }
             });
         }
@@ -242,7 +242,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let gql_into_default = if gql_struk.len() > gql_into.len() {
         quote!(..Default::default())
     } else {
-        ts2!()
+        quote!()
     };
 
     let r = quote! {

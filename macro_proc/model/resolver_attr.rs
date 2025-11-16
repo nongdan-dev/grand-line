@@ -12,14 +12,15 @@ pub struct ResolverAttr {
 impl From<Attr> for ResolverAttr {
     fn from(a: Attr) -> Self {
         Self {
-            call: a
-                .str("call")
-                .unwrap_or_else(|| f!("resolve_{}", a.field_name())),
+            call: a.str("call").unwrap_or_else(|| {
+                let field = a.field_name();
+                f!("resolve_{field}")
+            }),
             sql_dep: a
                 .str("sql_dep")
                 .unwrap_or_default()
                 .split('+')
-                .map(|s| s.trim().to_owned())
+                .map(|s| s!(s.trim()))
                 .collect(),
             ra: a.clone().into(),
             inner: a,

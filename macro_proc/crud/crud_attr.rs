@@ -42,38 +42,32 @@ impl AttrValidate for CrudAttr {
 
 impl CrudAttr {
     pub fn validate(&self, r: &ResolverTyItem) {
-        if !self.resolver_inputs && !s!(r.inputs).is_empty() {
-            let err = f!(
-                "{} inputs should be empty unless resolver_inputs=true, found {}",
-                r.gql_name,
-                r.inputs,
-            );
-            pan!(err);
+        let ResolverTyItem {
+            gql_name,
+            inputs,
+            output,
+            ..
+        } = &r;
+        if !self.resolver_inputs && !s!(inputs).is_empty() {
+            pan!("{gql_name} inputs should be empty unless resolver_inputs=true, found {inputs}");
         }
         if !self.resolver_output {
-            if s!(r.output) != "()" {
-                let err = f!(
-                    "{} output should be empty unless resolver_output=true, found {}",
-                    r.gql_name,
-                    r.output,
+            if s!(output) != "()" {
+                pan!(
+                    "{gql_name} output should be empty unless resolver_output=true, found {output}",
                 );
-                pan!(err);
             }
             if self.ra.no_tx || self.ra.no_ctx {
-                let err = f!("{} output requires tx, ctx", r.gql_name);
-                pan!(err);
+                pan!("{gql_name} output requires tx, ctx");
             }
         }
         if self.resolver_inputs && self.resolver_output {
-            let err = f!(
-                "{} should use #[query] or #[mutation] instead since both resolver_inputs=true and resolver_output=true",
-                r.gql_name,
+            pan!(
+                "{gql_name} should use #[query] or #[mutation] instead since both resolver_inputs=true and resolver_output=true",
             );
-            pan!(err);
         }
         if !self.ra.no_tx && self.ra.no_ctx {
-            let err = f!("{} tx requires ctx", r.gql_name);
-            pan!(err);
+            pan!("{gql_name} tx requires ctx");
         }
     }
 }

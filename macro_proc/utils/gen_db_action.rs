@@ -21,8 +21,8 @@ impl Parse for Args {
 pub fn gen_db_action(am: &str, db_fn: &str, item: TokenStream) -> TokenStream {
     let Args { db, struk, .. } = parse_macro_input!(item as Args);
 
-    let am = ts2!("am_", am);
-    let db_fn = ts2!(db_fn);
+    let am = f!("am_{am}").ts2();
+    let db_fn = db_fn.ts2();
 
     quote! {
         #am!(#struk)

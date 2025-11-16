@@ -25,7 +25,7 @@ pub fn gen_detail(attr: TokenStream, item: TokenStream) -> TokenStream {
         };
 
         let body = r.body;
-        let model = ts2!(a.model);
+        let model = a.model.ts2();
         r.body = quote! {
             #body
             #model::gql_detail(ctx, tx, &id, #include_deleted).await?

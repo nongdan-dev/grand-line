@@ -94,12 +94,11 @@ pub fn gql_exprs_ts2(exprs: &Vec<Vec<Attr>>) -> GqlAttrExprs {
             .iter()
             .find(|a| a.attr == VirtualTy::SqlExpr)
             .unwrap_or_else(|| {
-                let err = "cannot find VirtualTy::SqlExpr to build select as";
-                bug!(err);
+                bug!("cannot find VirtualTy::SqlExpr to build select as");
             });
         let name_str = a.field_name();
-        let name = ts2!(name_str);
-        let ty = ts2!(a.field_ty());
+        let name = name_str.ts2();
+        let ty = a.field_ty().ts2();
         push_struk_resolver(&name, &ty, &mut struk, &mut resolver, false);
         push_default(&mut defaults, &name);
 
@@ -107,7 +106,7 @@ pub fn gql_exprs_ts2(exprs: &Vec<Vec<Attr>>) -> GqlAttrExprs {
         select.push(quote! {
             m.entry(#gql_name).or_insert_with(HashSet::new).insert(#name_str);
         });
-        let sql_expr = ts2!(a.raw());
+        let sql_expr = a.raw().ts2();
         gql_exprs.push(quote! {
             m.insert(#name_str, #sql_expr);
         });
@@ -141,7 +140,7 @@ fn push_struk_resolver(
 
     let gql_name = camel_str!(name);
     let unwrap = if opt {
-        ts2!()
+        quote!()
     } else {
         quote! {
             .ok_or(CoreDbErr::GqlResolverNone)?

@@ -34,7 +34,7 @@ impl Attr {
         for (k, v) in args {
             if a.args.contains_key(&k) {
                 let err = a.errk(&k, "appears more than once");
-                pan!(err);
+                pan!("{err}");
             }
             a.args.insert(k, v);
         }
@@ -55,13 +55,11 @@ impl Attr {
     }
     fn from_field_attr(model: &str, f: &Field, a: &Attribute, raw: &dyn Fn(&str) -> bool) -> Self {
         let attr = s!(a.path().to_token_stream());
-        let debug = f!("{}.{}", model, f.ident.to_token_stream());
+        let field = f.ident.to_token_stream();
+        let debug = f!("{model}.{field}");
         let field = Some((s!(model), a.clone(), f.clone()));
         if raw(&attr) {
-            let panic = || {
-                let err = f!("should match syntax #[{}(some_thing)]", attr);
-                pan!(err)
-            };
+            let panic = || pan!("should match syntax #[{attr}(some_thing)]");
             let raw = a
                 .meta
                 .to_token_stream()
@@ -127,16 +125,17 @@ impl Attr {
         match self.first_path.clone() {
             Some(v) => {
                 if v != pascal_str!(v) {
-                    let err = f!("model `{}` is not pascal case", v);
+                    let err = f!("model `{v}` is not pascal case");
                     let err = self.err(&err);
-                    pan!(err);
+                    pan!("{err}");
                 }
                 v
             }
             None => {
-                let err = f!("missing model #[{}(Model, ...)]", self.attr);
+                let attr = &self.attr;
+                let err = f!("missing model #[{attr}(Model, ...)]");
                 let err = self.err(&err);
-                pan!(err);
+                pan!("{err}");
             }
         }
     }
@@ -148,12 +147,12 @@ impl Attr {
                 true => Some(false),
                 false => {
                     let err = self.err_bool(k);
-                    pan!(err);
+                    pan!("{err}");
                 }
             },
             Some(_) => {
                 let err = self.err_bool(k);
-                pan!(err);
+                pan!("{err}");
             }
             None => None,
         }
@@ -163,7 +162,7 @@ impl Attr {
             Some(v) => v,
             None => {
                 let err = self.err_404(k);
-                pan!(err);
+                pan!("{err}");
             }
         }
     }
@@ -175,13 +174,13 @@ impl Attr {
                     true => Some(s!(v)),
                     false => {
                         let err = self.err_str(k);
-                        pan!(err);
+                        pan!("{err}");
                     }
                 }
             }
             Some(_) => {
                 let err = self.err_str(k);
-                pan!(err);
+                pan!("{err}");
             }
             None => None,
         }
@@ -191,7 +190,7 @@ impl Attr {
             Some(v) => v,
             None => {
                 let err = self.err_404(k);
-                pan!(err);
+                pan!("{err}");
             }
         }
     }
@@ -204,14 +203,15 @@ impl Attr {
             Some((v, AttrParseTy::NameValue)) => match v.parse::<V>() {
                 Ok(v) => Some(v),
                 Err(_) => {
-                    let err = f!("cannot parse `{}` as {}", v, type_name::<V>());
+                    let t = type_name::<V>();
+                    let err = f!("cannot parse `{v}` as {t}");
                     let err = self.errk(k, err);
-                    pan!(err);
+                    pan!("{err}");
                 }
             },
             Some(_) => {
                 let err = self.err_str(k);
-                pan!(err);
+                pan!("{err}");
             }
             None => None,
         }
@@ -224,7 +224,7 @@ impl Attr {
             Some(v) => v,
             None => {
                 let err = self.err_404(k);
-                pan!(err);
+                pan!("{err}");
             }
         }
     }
@@ -234,7 +234,7 @@ impl Attr {
             Some(v) => v,
             None => {
                 let err = self.err("field: None");
-                bug!(err);
+                bug!("{err}");
             }
         }
     }
@@ -256,7 +256,7 @@ impl Attr {
             Some(v) => v,
             None => {
                 let err = self.err("raw: None");
-                bug!(err);
+                bug!("{err}");
             }
         }
     }
@@ -269,7 +269,7 @@ impl Attr {
         for (k, _) in self.args.clone() {
             if !map.contains(&k) {
                 let err = self.err_incorrect(&k);
-                pan!(err);
+                pan!("{err}");
             }
         }
         self.into()
@@ -284,25 +284,26 @@ impl Attr {
         self.errk(k, err)
     }
     pub fn err_bool(&self, k: &str) -> String {
-        let err = f!("use `{}` for true, or `{}=0` for false", k, k);
+        let err = f!("use `{k}` for true, or `{k}=0` for false");
         self.errk(k, err)
     }
     pub fn err_str(&self, k: &str) -> String {
-        let err = f!("use `{}=value` without quotes for string", k);
+        let err = f!("use `{k}=value` without quotes for string");
         self.errk(k, err)
     }
     pub fn errk(&self, k: &str, err: impl Display) -> String {
-        let err = f!("key `{}` {}", k, err);
+        let err = f!("key `{k}` {err}");
         self.err(&err)
     }
 }
 
 impl AttrDebug for Attr {
     fn attr_debug(&self) -> String {
+        let Attr { attr, debug, .. } = &self;
         if self.debug.is_empty() {
-            f!("macro `{}`:", self.attr)
+            f!("macro `{attr}`:")
         } else {
-            f!("{} attr `{}`:", self.debug, self.attr)
+            f!("{debug} attr `{attr}`:")
         }
     }
 }

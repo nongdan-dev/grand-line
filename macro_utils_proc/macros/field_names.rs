@@ -11,8 +11,7 @@ pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
     for mut f in match item.fields {
         Fields::Named(f) => f.named,
         _ => {
-            let err = f!("{} struct should be named fields", name);
-            pan!(err);
+            pan!("{name} struct should be named fields");
         }
     } {
         let attrs = Attr::from_field(&s!(name), &f, &|_| false);
@@ -26,11 +25,11 @@ pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
             if a.virt {
                 if s!(f.to_token_stream()).starts_with("pub ") {
                     let err = a.inner.err("virtual field name should not be public");
-                    pan!(err);
+                    pan!("{err}");
                 }
                 if s!(f.ty.to_token_stream()) != "!" {
                     let err = a.inner.err("virtual field name type should be `!`");
-                    pan!(err);
+                    pan!("{err}");
                 }
             }
             if !a.skip {
@@ -54,9 +53,13 @@ pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
     let mut impls = vec![];
     for f in idents {
         let f_str = s!(f);
-        all.push(quote!(#f_str,));
+        all.push(quote! {
+            #f_str,
+        });
         let f = scream!("F", f);
-        impls.push(quote!(pub const #f: &'static str = #f_str;));
+        impls.push(quote! {
+            pub const #f: &'static str = #f_str;
+        });
     }
     let l = all.len();
 

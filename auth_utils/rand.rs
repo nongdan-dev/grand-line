@@ -11,7 +11,7 @@ pub fn secret() -> String {
 
 pub fn otp() -> String {
     let otp = rng().random_range(0..=999_999);
-    format!("{:06}", otp)
+    format!("{otp:06}")
 }
 pub fn otp_hash(otp: &str) -> Res<(String, String)> {
     let salt = random_b64(8);

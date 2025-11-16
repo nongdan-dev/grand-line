@@ -65,13 +65,10 @@ fn attr_validate(attrs: &[Attr]) {
         }
     }
     if matches.len() > 1 {
-        let err = f!(
-            "{}.{} should have only one between: {}",
-            attrs[0].field_model(),
-            attrs[0].field_name(),
-            matches.iter().map(|v| s!(v)).collect::<Vec<_>>().join(", "),
-        );
-        pan!(err);
+        let model = attrs[0].field_model();
+        let field = attrs[0].field_name();
+        let matches = matches.iter().map(|v| s!(v)).collect::<Vec<_>>().join(", ");
+        pan!("{model}.{field} should have only one between: {matches}");
     }
 }
 

@@ -40,3 +40,6 @@ imagemin:
 git-ls:
 	bash -c 'comm -3 <(git ls-files) <(git ls-files -d)' \
 	| egrep -h '\.($(EXT))$$';
+
+# missing trailing comma
+# ([^,\s.*])([\s\n]+\))

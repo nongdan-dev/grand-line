@@ -7,9 +7,13 @@ pub fn filter_and_or_not(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
 }
 
 fn push_and_or(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
-    let op = ts2!(op_str);
+    let op = op_str.ts2();
     let gql_op = op_str.to_uppercase();
-    let cond = ts2!(if op_str == "and" { "all" } else { "any" });
+    let cond = if op_str == "and" {
+        quote!(all)
+    } else {
+        quote!(any)
+    };
 
     struk.push(quote! {
         #[graphql(name=#gql_op)]

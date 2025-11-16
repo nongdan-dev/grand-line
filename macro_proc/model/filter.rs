@@ -37,7 +37,7 @@ pub fn filter(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
 fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
     // sea_orm generated Column::Name.op(v)
     let col = pascal!(f.ident.to_token_stream());
-    let op = ts2!(op_str);
+    let op = op_str.ts2();
     let mut gql_op = s!(op_str);
     // unwrap Option<type>
     // the type can be generic such as Box<type>
@@ -61,7 +61,7 @@ fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
             .get(op_str)
             .map(|v| s!(v))
             .unwrap_or_else(|| camel_str!(gql_op));
-        gql_name = s!(gql_name, "_", gql_op_camel);
+        gql_name = f!("{gql_name}_{gql_op_camel}");
     }
     // push struk
     let opt_eq_ne = opt && (op_str == "eq" || op_str == "ne");
@@ -76,11 +76,11 @@ fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
     });
     // push query
     let q = if opt_eq_ne {
-        let op_null = ts2!(if op_str == "eq" {
-            "is_null"
+        let op_null = if op_str == "eq" {
+            quote!(is_null)
         } else {
-            "is_not_null"
-        });
+            quote!(is_not_null)
+        };
         quote! {
             if matches!(this.#name, Undefined::Null) {
                 c = c.add(Column::#col.#op_null());

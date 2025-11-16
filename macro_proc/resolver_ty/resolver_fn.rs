@@ -18,7 +18,7 @@ where
     }
     #[cfg(feature = "auth")]
     fn auth(&self) -> String {
-        "".to_owned()
+        s!()
     }
 
     fn resolver_fn(&self) -> Ts2 {
@@ -39,17 +39,18 @@ where
         {
             if no_ctx {
                 let err = self.err("auth requires ctx");
-                pan!(err);
+                pan!("{err}");
             }
             let mut auth = self.auth();
             if auth.is_empty() {
                 auth = "none".to_owned();
             }
-            let valid_auth = ["none", "authenticate", "unauthenticated"];
-            if !valid_auth.contains(&auth.as_str()) {
-                let err = f!("auth should be one of: {}", valid_auth.join(", "));
+            let valid = ["none", "authenticate", "unauthenticated"];
+            if !valid.contains(&auth.as_str()) {
+                let valid = valid.join(", ");
+                let err = f!("auth should be one of: {valid}");
                 let err = self.err(&err);
-                pan!(err)
+                pan!("{err}");
             }
             let auth_pascal = pascal!(auth);
             let ensure = quote!(AuthEnsure::#auth_pascal);
@@ -67,7 +68,7 @@ where
         if !no_tx {
             if no_ctx {
                 let err = self.err("tx requires ctx");
-                pan!(err);
+                pan!("{err}");
             }
             body = quote! {
                 let tx = &*ctx.tx().await?;

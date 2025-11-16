@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 pub fn unwrap_option(ty: impl Display) -> (bool, Ts2) {
     let (opt, uw_str) = unwrap_option_str(ty);
-    (opt, ts2!(uw_str))
+    (opt, uw_str.ts2())
 }
 
 pub fn unwrap_option_str(ty: impl Display) -> (bool, String) {
