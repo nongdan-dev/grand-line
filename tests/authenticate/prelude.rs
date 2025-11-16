@@ -29,7 +29,7 @@ pub async fn prepare() -> Res<Prepare> {
         User {
             email: "olivia@example.com",
             password_hashed: auth_utils::password_hash("123123")?,
-        }
+        },
     );
     let ls = db_create!(
         &tmp.db,
@@ -37,7 +37,7 @@ pub async fn prepare() -> Res<Prepare> {
             user_id: u.id.clone(),
             ip: "127.0.0.1",
             ua: ua.to_json()?,
-        }
+        },
     );
     let token = auth_utils::qs_token(&ls.id, &ls.secret)?;
 

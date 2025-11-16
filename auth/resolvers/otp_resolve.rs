@@ -64,7 +64,7 @@ pub(crate) async fn ensure_otp_resolve(
         AuthOtp {
             total_attempt: 0,
             ..t.into_active_model()
-        }
+        },
     );
 
     Ok(t)

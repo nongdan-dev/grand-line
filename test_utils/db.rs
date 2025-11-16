@@ -38,7 +38,7 @@ impl TmpDb {
             scheme => {
                 let err = f!(
                     "TmpDb::new expect postgres or mysql or sqlite, found {}",
-                    scheme
+                    scheme,
                 );
                 bug!(err)
             }

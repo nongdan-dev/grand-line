@@ -30,7 +30,7 @@ async fn t() -> Res<()> {
         Alias {
             name: "Liv",
             user_id: u.id.clone(),
-        }
+        },
     );
 
     let q = r#"

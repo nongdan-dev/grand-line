@@ -53,7 +53,7 @@ pub(crate) async fn create_login_session(
             user_id: user_id.to_owned(),
             ip: data.ip.clone(),
             ua: data.ua.clone().to_json()?,
-        }
+        },
     );
     ctx.set_cookie_login_session(&ls)?;
     Ok(ls)

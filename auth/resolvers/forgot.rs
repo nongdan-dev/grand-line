@@ -25,7 +25,7 @@ async fn forgot() -> AuthOtpWithSecret {
             data: AuthOtpDataForgot { user_id: u.id }.to_json()?,
             otp_salt,
             otp_hashed,
-        }
+        },
     );
 
     h.on_otp_create(ctx, &t, &otp).await?;

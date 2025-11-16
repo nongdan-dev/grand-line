@@ -14,7 +14,7 @@ async fn register_resolve(data: AuthOtpResolve) -> LoginSessionWithSecret {
         User {
             email: t.email,
             password_hashed: d.password_hashed,
-        }
+        },
     );
 
     let ls = create_login_session(ctx, tx, &u.id, &lsd).await?;

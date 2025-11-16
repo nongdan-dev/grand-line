@@ -32,12 +32,12 @@ pub fn expr_struct(item: TokenStream, suf: &str, wrap: &str, method: &str) -> To
             f.expr.to_token_stream()
         };
         let wrap = ts2!(f.member.to_token_stream(), ":", wrap);
-        fields.push(quote!(#wrap(#v)));
+        fields.push(quote!(#wrap(#v),));
     }
 
     let r = quote! {
         #name {
-            #(#fields,)*
+            #(#fields)*
             #rest
         }
     };

@@ -36,7 +36,7 @@ async fn sql_dep_cols() -> Res<()> {
         User {
             first_name: "Olivia",
             last_name: "Dunham",
-        }
+        },
     );
 
     let q = r#"

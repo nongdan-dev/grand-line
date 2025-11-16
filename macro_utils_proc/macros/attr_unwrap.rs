@@ -25,14 +25,14 @@ pub fn gen_attr_unwrap(item: TokenStream, default: bool) -> TokenStream {
             let attrs = &f.attrs;
             quote! {
                 #(#attrs)*
-                #k: #v
+                #k: #v,
             }
         })
         .collect::<Vec<_>>();
 
     quote! {
         #name {
-            #(#fields,)*
+            #(#fields)*
         }
     }
     .into()

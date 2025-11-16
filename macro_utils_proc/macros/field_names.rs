@@ -54,17 +54,17 @@ pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
     let mut impls = vec![];
     for f in idents {
         let f_str = s!(f);
-        all.push(quote!(#f_str));
+        all.push(quote!(#f_str,));
         let f = scream!("F", f);
-        impls.push(quote!(pub const #f: &'static str = #f_str));
+        impls.push(quote!(pub const #f: &'static str = #f_str;));
     }
     let l = all.len();
 
     quote! {
         #item
         impl #name {
-            pub const F: [&'static str; #l] = [#(#all,)*];
-            #(#impls;)*
+            pub const F: [&'static str; #l] = [#(#all)*];
+            #(#impls)*
         }
     }
     .into()

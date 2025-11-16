@@ -35,7 +35,7 @@ async fn t() -> Res<()> {
         UserInOrg {
             user_id: u.id.clone(),
             org_id: o.id.clone(),
-        }
+        },
     );
 
     let q = r#"

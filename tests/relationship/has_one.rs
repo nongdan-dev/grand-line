@@ -30,7 +30,7 @@ async fn t() -> Res<()> {
         Person {
             gender: "Unknown",
             user_id: u.id.clone(),
-        }
+        },
     );
 
     let q = r#"

@@ -27,7 +27,7 @@ async fn t() -> Res<()> {
         count => assert!(
             count == 0,
             "it should delete permanently in db, found count={}",
-            count
+            count,
         ),
     }
 

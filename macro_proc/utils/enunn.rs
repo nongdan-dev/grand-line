@@ -9,7 +9,7 @@ pub fn gen_enunn(_: TokenStream, item: TokenStream) -> TokenStream {
         #[sea_orm(
             rs_type = "String",
             db_type = "String(StringLen::N(255))",
-            rename_all = "snake_case"
+            rename_all = "snake_case",
         )]
         #item
     }

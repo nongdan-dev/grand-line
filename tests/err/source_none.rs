@@ -27,11 +27,11 @@ async fn on_parse_error() {
 
     assert!(
         e.source.is_none(),
-        "parse request error source should be none"
+        "parse request error source should be none",
     );
     assert!(
         e.path.is_empty(),
-        "parse request error path should be empty"
+        "parse request error path should be empty",
     );
 }
 
@@ -46,11 +46,11 @@ async fn on_unknown_field() {
 
     assert!(
         e.source.is_none(),
-        "unknown field error source should be none"
+        "unknown field error source should be none",
     );
     assert!(
         e.path.is_empty(),
-        "unknown field error path should be empty"
+        "unknown field error path should be empty",
     );
 }
 
@@ -77,10 +77,10 @@ async fn on_variable_type_mismatch() {
 
     assert!(
         e.source.is_none(),
-        "variable type mismatch error source should be none"
+        "variable type mismatch error source should be none",
     );
     assert!(
         e.path.is_empty(),
-        "variable type mismatch error path should be empty"
+        "variable type mismatch error path should be empty",
     );
 }

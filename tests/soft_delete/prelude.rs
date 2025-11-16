@@ -83,14 +83,14 @@ pub async fn prepare() -> Res<Prepare> {
         Person {
             gender: "Female",
             user_id: u1.id.clone(),
-        }
+        },
     );
     let p2 = db_create!(
         &tmp.db,
         Person {
             gender: "Male",
             user_id: u2.id.clone(),
-        }
+        },
     );
     let _ = db_soft_delete_by_id!(&tmp.db, Person, &p1.id);
 
@@ -99,14 +99,14 @@ pub async fn prepare() -> Res<Prepare> {
         Alias {
             name: "Liv",
             user_id: u1.id.clone(),
-        }
+        },
     );
     let a = db_create!(
         &tmp.db,
         Alias {
             name: "Fauxlivia",
             user_id: u1.id.clone(),
-        }
+        },
     );
     let _ = db_soft_delete_by_id!(&tmp.db, Alias, &a.id);
 
@@ -119,14 +119,14 @@ pub async fn prepare() -> Res<Prepare> {
         UserInOrg {
             user_id: u1.id.clone(),
             org_id: o1.id.clone(),
-        }
+        },
     );
     let _ = db_create!(
         &tmp.db,
         UserInOrg {
             user_id: u1.id.clone(),
             org_id: o2.id.clone(),
-        }
+        },
     );
 
     Ok(Prepare {

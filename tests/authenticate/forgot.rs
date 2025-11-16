@@ -54,7 +54,7 @@ async fn t() -> Res<()> {
         .await?;
     assert!(
         auth_utils::password_eq(&u.password_hashed, "Str0ngP@ssw0rd?"),
-        "password should be updated"
+        "password should be updated",
     );
 
     d.tmp.drop().await

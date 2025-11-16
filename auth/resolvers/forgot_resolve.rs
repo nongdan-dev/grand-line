@@ -14,7 +14,7 @@ async fn forgot_resolve(data: AuthOtpResolve, password: String) -> LoginSessionW
         User {
             id: d.user_id,
             password_hashed: auth_utils::password_hash(&password)?,
-        }
+        },
     );
 
     let ls = create_login_session(ctx, tx, &u.id, &lsd).await?;

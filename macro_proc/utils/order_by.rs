@@ -20,7 +20,7 @@ impl Parse for Item {
 pub fn gen_order_by(item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as Item);
     let order_by = ty_order_by(item.model);
-    let paths = item.fields.iter().map(|f| quote!(#order_by::#f));
+    let paths = item.fields.iter().map(|f| quote!(#order_by::#f,));
 
-    quote!(vec![#(#paths,)*]).into()
+    quote!(vec![#(#paths)*]).into()
 }
