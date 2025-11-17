@@ -11,40 +11,70 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut fields = match item.fields {
         Fields::Named(f) => f.named,
         _ => {
-            let err = f!("{model} struct should be named fields");
-            let err = a.inner.err(&err);
-            pan!("{err}");
+            let err = format!("{model} struct should be named fields");
+            a.inner.panic(&err);
         }
     };
     fields.insert(
         0,
-        field! {
+        quote! {
             #[sea_orm(primary_key, column_type="String(StringLen::N(26))", auto_increment=false)]
             pub id: String
-        },
+        }
+        .field_or_panic(),
     );
     if !a.no_created_at {
-        fields.push(field!(pub created_at: DateTimeUtc));
+        fields.push(
+            quote! {
+                pub created_at: DateTimeUtc
+            }
+            .field_or_panic(),
+        );
         if !a.no_by_id {
-            fields.push(field!(pub created_by_id: Option<String>));
+            fields.push(
+                quote! {
+                    pub created_by_id: Option<String>
+                }
+                .field_or_panic(),
+            );
         }
     }
     if !a.no_updated_at {
-        fields.push(field!(pub updated_at: Option<DateTimeUtc>));
+        fields.push(
+            quote! {
+                pub updated_at: Option<DateTimeUtc>
+            }
+            .field_or_panic(),
+        );
         if !a.no_by_id {
-            fields.push(field!(pub updated_by_id: Option<String>));
+            fields.push(
+                quote! {
+                    pub updated_by_id: Option<String>
+                }
+                .field_or_panic(),
+            );
         }
     }
     if !a.no_deleted_at {
-        fields.push(field!(pub deleted_at: Option<DateTimeUtc>));
+        fields.push(
+            quote! {
+                pub deleted_at: Option<DateTimeUtc>
+            }
+            .field_or_panic(),
+        );
         if !a.no_by_id {
-            fields.push(field!(pub deleted_by_id: Option<String>));
+            fields.push(
+                quote! {
+                    pub deleted_by_id: Option<String>
+                }
+                .field_or_panic(),
+            );
         }
     }
 
     // ------------------------------------------------------------------------
     // parse macro attributes, extract and validate fields
-    let model_str = s!(model);
+    let model_str = model.to_string();
     let ModelDeriveAttr {
         defaults,
         virtuals,
@@ -56,15 +86,15 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
     // get the original model name in snake case for sql table, non-plural
-    item.ident = ident!("Model");
+    item.ident = format_ident!("Model");
     item.fields = Fields::Named(sql_fields);
-    let module = snake!(model);
+    let module = model.to_string().to_snake_case().ts2_or_panic();
     let sql = ty_sql(&model);
     let gql = ty_gql(&model);
     let column = ty_column(&model);
     let active_model = ty_active_model(&model);
-    let gql_alias = s!(model);
-    let sql_alias = snake_str!(model);
+    let gql_alias = model.to_string();
+    let sql_alias = model.to_string().to_snake_case();
 
     // ------------------------------------------------------------------------
     // model built in cols
@@ -91,11 +121,13 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut self_am_defaults = vec![];
     for a in defaults {
         let mut raw_str = a.raw();
-        if raw_str.starts_with("\"") || raw_str.starts_with("r#") {
+        if (raw_str.starts_with('"') && raw_str.ends_with('"'))
+            || (raw_str.starts_with("r#") && raw_str.ends_with('#'))
+        {
             raw_str += ".to_owned()"
         }
-        let raw = raw_str.ts2();
-        let name = a.field_name().ts2();
+        let raw = raw_str.ts2_or_panic();
+        let name = a.field_name().ts2_or_panic();
         am_defaults.push(quote! {
             if !matches!(am.#name, Set(_)) {
                 am.#name = Set(#raw);
@@ -187,12 +219,12 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut virtual_resolvers = Vec::<Box<dyn VirtualResolverFn>>::new();
     for attrs in virtuals {
         let map = attrs
-            .into_iter()
-            .map(|a| (a.attr.clone(), a))
+            .iter()
+            .map(|a| (a.attr.clone(), a.clone()))
             .collect::<HashMap<_, _>>();
         for (a, v) in VirtualTy::all()
             .iter()
-            .filter_map(|v| map.get(&s!(v)).map(move |a| (a, v)))
+            .filter_map(|v| map.get(v.to_string().as_str()).map(move |a| (a, v)))
         {
             virtual_resolvers.push(match v {
                 VirtualTy::Relation(ty) => Box::new(GenRelation {
@@ -204,7 +236,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 }),
                 _ => {
                     let attr = &a.attr;
-                    bug!("invalid attr={attr} dyn VirtualGen");
+                    panic!("invalid attr={attr} dyn VirtualGen");
                 }
             });
         }

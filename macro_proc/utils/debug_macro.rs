@@ -17,7 +17,7 @@ pub fn debug_macro(name: &str, ts: Ts2) {
 
         let code = match parse2::<File>(ts.clone()) {
             Ok(v) => prettyplease::unparse(&v),
-            _ => s!(ts),
+            _ => ts.to_string(),
         };
         println!("{}", code.bright_black());
     }
@@ -29,31 +29,31 @@ pub fn debug_macro(name: &str, ts: Ts2) {
         use std::path::PathBuf;
         use std::process::Command;
 
-        let content = s!(ts);
-        let path = f!("target/grand-line/{name}.rs");
+        let code = ts.to_string();
+        let path = format!("target/grand-line/{name}.rs");
         let path = PathBuf::from(path);
 
         let parent = path.parent().unwrap_or_else(|| {
-            pan!("path.parent: None");
+            panic!("path.parent: None");
         });
-        let _ = create_dir_all(parent).unwrap_or_else(|e| {
-            pan!("create_dir_all: {e}");
+        create_dir_all(parent).unwrap_or_else(|e| {
+            panic!("create_dir_all: {e}");
         });
 
         let mut file = File::create(&path).unwrap_or_else(|e| {
-            pan!("File::create: {e}");
+            panic!("File::create: {e}");
         });
-        let _ = writeln!(file, "{}", content).unwrap_or_else(|e| {
-            pan!("writeln!: {e}");
+        writeln!(file, "{}", code).unwrap_or_else(|e| {
+            panic!("writeln!: {e}");
         });
 
-        let _ = Command::new("rustfmt")
+        Command::new("rustfmt")
             .arg("--edition")
             .arg("2024")
             .arg(&path)
             .status()
             .unwrap_or_else(|e| {
-                pan!("rustfmt: {e}");
+                panic!("rustfmt: {e}");
             });
     }
 }

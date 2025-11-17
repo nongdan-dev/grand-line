@@ -33,7 +33,7 @@ pub fn gen_grand_line_err_derive(item: TokenStream) -> TokenStream {
     for v in &d.variants {
         let v_ident = &v.ident;
 
-        let f = match &v.fields {
+        let field = match &v.fields {
             Fields::Unit => quote! { Self::#v_ident },
             Fields::Unnamed(_) => quote! { Self::#v_ident ( .. ) },
             Fields::Named(_) => quote! { Self::#v_ident { .. } },
@@ -50,23 +50,27 @@ pub fn gen_grand_line_err_derive(item: TokenStream) -> TokenStream {
                 code = Some(s.value());
             }
         }
-        let code = code.unwrap_or_else(|| s!(&v_ident));
-        codes.push(quote! { #f => #code });
+        let code = code.unwrap_or_else(|| v_ident.to_string());
+        codes.push(quote! {
+            #field => #code,
+        });
 
         let client = v.attrs.iter().any(|a| a.path().is_ident("client"));
-        clients.push(quote! { #f => #client });
+        clients.push(quote! {
+            #field => #client,
+        });
     }
 
     quote! {
         impl GrandLineErrImpl for #name {
             fn code(&self) -> &'static str {
                 match self {
-                    #(#codes),*
+                    #(#codes)*
                 }
             }
             fn client(&self) -> bool {
                 match self {
-                    #(#clients),*
+                    #(#clients)*
                 }
             }
         }

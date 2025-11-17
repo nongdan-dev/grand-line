@@ -9,7 +9,7 @@ pub fn filter(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
     }
     push(f, struk, query, "is_in");
     push(f, struk, query, "is_not_in");
-    let name_str = s!(f.ident.to_token_stream());
+    let name_str = f.ident.to_token_stream().to_string();
     if name_str == "id" || name_str.ends_with("_id") {
         return;
     }
@@ -35,10 +35,14 @@ pub fn filter(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
 }
 
 fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
-    // sea_orm generated Column::Name.op(v)
-    let col = pascal!(f.ident.to_token_stream());
-    let op = op_str.ts2();
-    let mut gql_op = s!(op_str);
+    let col = f
+        .ident
+        .to_token_stream()
+        .to_string()
+        .to_pascal_case()
+        .ts2_or_panic();
+    let op = op_str.ts2_or_panic();
+    let mut gql_op = op_str.to_owned();
     // unwrap Option<type>
     // the type can be generic such as Box<type>
     let (opt, mut ty) = unwrap_option(f.ty.to_token_stream());
@@ -54,14 +58,14 @@ fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
         "not_ilike" => "notILike",
     };
     let mut name = f.ident.to_token_stream();
-    let mut gql_name = camel_str!(name);
+    let mut gql_name = name.to_string().to_lower_camel_case();
     if op_str != "eq" {
-        name = snake!(name, gql_op);
+        name = format!("{name}_{gql_op}").to_snake_case().ts2_or_panic();
         let gql_op_camel = pg
             .get(op_str)
-            .map(|v| s!(v))
-            .unwrap_or_else(|| camel_str!(gql_op));
-        gql_name = f!("{gql_name}_{gql_op_camel}");
+            .map(|v| (*v).to_owned())
+            .unwrap_or_else(|| gql_op.to_lower_camel_case());
+        gql_name = format!("{gql_name}_{gql_op_camel}");
     }
     // push struk
     let opt_eq_ne = opt && (op_str == "eq" || op_str == "ne");

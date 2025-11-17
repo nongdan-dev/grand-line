@@ -1,22 +1,25 @@
 use crate::prelude::*;
 
-#[search(LoginSession, no_include_deleted, auth=authenticate)]
+#[search(LoginSession, no_include_deleted, auth)]
 fn resolver() {
     let f = get_filter(ctx).await?;
-    let o = order_by_some!(LoginSession[UpdatedAtDesc]);
-    (f, o)
+    let o = order_by!(LoginSession[UpdatedAtDesc]);
+    (Some(f), Some(o))
 }
 
-#[count(LoginSession, no_include_deleted, auth=authenticate)]
+#[count(LoginSession, no_include_deleted, auth)]
 fn resolver() {
-    get_filter(ctx).await?
+    let f = get_filter(ctx).await?;
+    Some(f)
 }
 
-async fn get_filter(ctx: &Context<'_>) -> Res<Option<LoginSessionFilter>> {
-    let ls = ctx.authenticate().await?;
-    let f = filter_some!(LoginSession {
-        id_ne: ls.id,
-        user_id: ls.user_id,
+async fn get_filter(ctx: &Context<'_>) -> Res<LoginSessionFilter> {
+    let arc = ctx.auth_arc().await?;
+    let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;
+
+    let f = filter!(LoginSession {
+        id_ne: ls.id.clone(),
+        user_id: ls.user_id.clone(),
     });
     Ok(f)
 }

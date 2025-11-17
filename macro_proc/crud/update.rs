@@ -8,7 +8,7 @@ pub fn gen_update(attr: TokenStream, item: TokenStream) -> TokenStream {
     a.validate(&r);
 
     if !a.resolver_inputs {
-        let data = pascal!(name);
+        let data = name.to_string().to_pascal_case().ts2_or_panic();
         r.inputs = quote! {
             id: String,
             data: #data,

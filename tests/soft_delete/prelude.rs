@@ -74,60 +74,54 @@ pub async fn prepare() -> Res<Prepare> {
     let tmp = tmp_db!(User, Person, Alias, Org, UserInOrg);
     let s = schema_qm::<Query, Mutation>(&tmp.db).finish();
 
-    let u1 = db_create!(&tmp.db, User { name: "Olivia" });
-    let u2 = db_create!(&tmp.db, User { name: "Peter" });
-    let _ = db_soft_delete_by_id!(&tmp.db, User, &u2.id);
+    let u1 = am_create!(User { name: "Olivia" }).insert(&tmp.db).await?;
+    let u2 = am_create!(User { name: "Peter" }).insert(&tmp.db).await?;
+    User::soft_delete_by_id(&u2.id)?.exec(&tmp.db).await?;
 
-    let p1 = db_create!(
-        &tmp.db,
-        Person {
-            gender: "Female",
-            user_id: u1.id.clone(),
-        },
-    );
-    let p2 = db_create!(
-        &tmp.db,
-        Person {
-            gender: "Male",
-            user_id: u2.id.clone(),
-        },
-    );
-    let _ = db_soft_delete_by_id!(&tmp.db, Person, &p1.id);
+    let p1 = am_create!(Person {
+        gender: "Female",
+        user_id: u1.id.clone(),
+    })
+    .insert(&tmp.db)
+    .await?;
+    let p2 = am_create!(Person {
+        gender: "Male",
+        user_id: u2.id.clone(),
+    })
+    .insert(&tmp.db)
+    .await?;
+    Person::soft_delete_by_id(&p1.id)?.exec(&tmp.db).await?;
 
-    let _ = db_create!(
-        &tmp.db,
-        Alias {
-            name: "Liv",
-            user_id: u1.id.clone(),
-        },
-    );
-    let a = db_create!(
-        &tmp.db,
-        Alias {
-            name: "Fauxlivia",
-            user_id: u1.id.clone(),
-        },
-    );
-    let _ = db_soft_delete_by_id!(&tmp.db, Alias, &a.id);
+    am_create!(Alias {
+        name: "Liv",
+        user_id: u1.id.clone(),
+    })
+    .insert(&tmp.db)
+    .await?;
+    let a = am_create!(Alias {
+        name: "Fauxlivia",
+        user_id: u1.id.clone(),
+    })
+    .insert(&tmp.db)
+    .await?;
+    Alias::soft_delete_by_id(&a.id)?.exec(&tmp.db).await?;
 
-    let o1 = db_create!(&tmp.db, Org { name: "Fringe" });
-    let o2 = db_create!(&tmp.db, Org { name: "FBI" });
-    let _ = db_soft_delete_by_id!(&tmp.db, Org, &o2.id);
+    let o1 = am_create!(Org { name: "Fringe" }).insert(&tmp.db).await?;
+    let o2 = am_create!(Org { name: "FBI" }).insert(&tmp.db).await?;
+    Org::soft_delete_by_id(&o2.id)?.exec(&tmp.db).await?;
 
-    let _ = db_create!(
-        &tmp.db,
-        UserInOrg {
-            user_id: u1.id.clone(),
-            org_id: o1.id.clone(),
-        },
-    );
-    let _ = db_create!(
-        &tmp.db,
-        UserInOrg {
-            user_id: u1.id.clone(),
-            org_id: o2.id.clone(),
-        },
-    );
+    am_create!(UserInOrg {
+        user_id: u1.id.clone(),
+        org_id: o1.id,
+    })
+    .insert(&tmp.db)
+    .await?;
+    am_create!(UserInOrg {
+        user_id: u1.id.clone(),
+        org_id: o2.id,
+    })
+    .insert(&tmp.db)
+    .await?;
 
     Ok(Prepare {
         tmp,

@@ -6,7 +6,7 @@ pub struct Login {
     pub password: String,
 }
 
-#[create(LoginSession, resolver_output, auth=unauthenticated)]
+#[create(LoginSession, resolver_output, auth = 0)]
 async fn login() -> LoginSessionWithSecret {
     let h = &ctx.auth_config().handlers;
     let lsd = ensure_login_session_data(ctx)?;
@@ -47,14 +47,13 @@ pub(crate) async fn create_login_session(
     user_id: &str,
     data: &EnsureLoginSessionData,
 ) -> Res<LoginSessionSql> {
-    let ls = db_create!(
-        tx,
-        LoginSession {
-            user_id: user_id.to_owned(),
-            ip: data.ip.clone(),
-            ua: data.ua.clone().to_json()?,
-        },
-    );
+    let ls = am_create!(LoginSession {
+        user_id: user_id.to_owned(),
+        ip: data.ip.clone(),
+        ua: data.ua.clone().to_json()?,
+    })
+    .insert(tx)
+    .await?;
     ctx.set_cookie_login_session(&ls)?;
     Ok(ls)
 }

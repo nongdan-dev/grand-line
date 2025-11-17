@@ -1,19 +1,19 @@
 use crate::prelude::*;
 
-pub trait ToTs2 {
-    fn ts2(&self) -> Ts2;
+pub trait StringToTs2OrPanic {
+    fn ts2_or_panic(&self) -> Ts2;
 }
 
-impl ToTs2 for String {
-    fn ts2(&self) -> Ts2 {
-        self.to_string().parse::<Ts2>().unwrap_or_else(|e| {
-            pan!("ts2 parse error: {e}");
+impl StringToTs2OrPanic for String {
+    fn ts2_or_panic(&self) -> Ts2 {
+        self.parse::<Ts2>().unwrap_or_else(|e| {
+            panic!("string to ts2 error: {e}");
         })
     }
 }
 
-impl ToTs2 for str {
-    fn ts2(&self) -> Ts2 {
-        self.to_owned().ts2()
+impl StringToTs2OrPanic for str {
+    fn ts2_or_panic(&self) -> Ts2 {
+        self.to_owned().ts2_or_panic()
     }
 }

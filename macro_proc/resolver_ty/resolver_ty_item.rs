@@ -12,15 +12,17 @@ impl ResolverTyItem {
     pub fn init(mut self, operation: &str, crud: &str, crud_model: &str) -> (Self, Ts2, Ts2) {
         if self.gql_name == "resolver" {
             if crud.is_empty() {
-                pan!("resolver name should be different than the reserved keyword `resolver`");
+                panic!("resolver name should be different than the reserved keyword `resolver`");
             }
             if crud_model.is_empty() {
-                pan!("empty model name should be already validated at the previous step");
+                panic!("empty model name should be already validated at the previous step");
             }
-            self.gql_name = camel_str!(crud_model, crud);
+            self.gql_name = format!("{crud_model}_{crud}").to_lower_camel_case();
         }
-        let name = snake!(self.gql_name);
-        let ty = pascal!(name, operation);
+        let name = self.gql_name.to_snake_case().ts2_or_panic();
+        let ty = format!("{name}_{operation}")
+            .to_pascal_case()
+            .ts2_or_panic();
         (self, ty, name)
     }
 }
@@ -28,7 +30,7 @@ impl ResolverTyItem {
 impl Parse for ResolverTyItem {
     fn parse(s: ParseStream) -> Result<Self> {
         let ifn = s.parse::<ItemFn>()?;
-        let gql_name = camel_str!(ifn.sig.ident);
+        let gql_name = ifn.sig.ident.to_string().to_lower_camel_case();
 
         let inputs = ifn.sig.inputs.to_token_stream();
         let output = if let ReturnType::Type(_, ty) = ifn.sig.output {

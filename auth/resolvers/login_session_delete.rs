@@ -1,8 +1,9 @@
 use crate::prelude::*;
 
-#[mutation(auth=authenticate)]
+#[mutation(auth)]
 fn login_session_delete(id: String) -> LoginSessionGql {
-    let ls = ctx.authenticate().await?;
+    let arc = ctx.auth_arc().await?;
+    let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;
 
     LoginSession::delete_by_id(&id)
         .filter(LoginSessionColumn::UserId.eq(&ls.user_id))
@@ -12,9 +13,10 @@ fn login_session_delete(id: String) -> LoginSessionGql {
     LoginSessionGql::from_id(&ls.id)
 }
 
-#[mutation(auth=authenticate)]
+#[mutation(auth)]
 fn login_session_delete_all() -> Vec<LoginSessionGql> {
-    let ls = ctx.authenticate().await?;
+    let arc = ctx.auth_arc().await?;
+    let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;
 
     let r = LoginSession::find()
         .filter(LoginSessionColumn::Id.ne(&ls.id))

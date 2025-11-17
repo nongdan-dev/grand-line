@@ -2,9 +2,9 @@ use crate::prelude::*;
 
 pub static TY_INCLUDE_DELETED: LazyLock<HashSet<String>> = LazyLock::new(|| {
     let mut set = HashSet::new();
-    set.insert(s!(MacroTy::Search));
-    set.insert(s!(MacroTy::Count));
-    set.insert(s!(MacroTy::Detail));
+    set.insert(MacroTy::Search.to_string());
+    set.insert(MacroTy::Count.to_string());
+    set.insert(MacroTy::Detail.to_string());
     set
 });
 

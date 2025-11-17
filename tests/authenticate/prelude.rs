@@ -24,21 +24,19 @@ pub async fn prepare() -> Res<Prepare> {
     h.insert("sec-ch-ua", h_static(UA_SEC_CH));
     let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
 
-    let u = db_create!(
-        &tmp.db,
-        User {
-            email: "olivia@example.com",
-            password_hashed: auth_utils::password_hash("123123")?,
-        },
-    );
-    let ls = db_create!(
-        &tmp.db,
-        LoginSession {
-            user_id: u.id.clone(),
-            ip: "127.0.0.1",
-            ua: ua.to_json()?,
-        },
-    );
+    let u = am_create!(User {
+        email: "olivia@example.com",
+        password_hashed: auth_utils::password_hash("123123")?,
+    })
+    .insert(&tmp.db)
+    .await?;
+    let ls = am_create!(LoginSession {
+        user_id: u.id.clone(),
+        ip: "127.0.0.1",
+        ua: ua.to_json()?,
+    })
+    .insert(&tmp.db)
+    .await?;
     let token = auth_utils::qs_token(&ls.id, &ls.secret)?;
 
     Ok(Prepare {

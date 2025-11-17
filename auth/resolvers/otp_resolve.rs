@@ -8,7 +8,7 @@ pub struct AuthOtpResolve {
     pub otp: String,
 }
 
-#[mutation(auth=unauthenticated)]
+#[mutation(auth = 0)]
 fn auth_otp_resolve(ty: AuthOtpTy, data: AuthOtpResolve) -> AuthOtpGql {
     ensure_otp_resolve(ctx, tx, ty, data)
         .await?
@@ -35,9 +35,9 @@ pub(crate) async fn ensure_otp_resolve(
     let t = {
         u.exec_with_returning(tx)
             .await?
-            .into_iter()
-            .next()
+            .first()
             .ok_or(MyErr::OtpResolveInvalid)?
+            .to_owned()
     };
     #[cfg(not(feature = "postgres"))]
     let t = {
@@ -59,13 +59,12 @@ pub(crate) async fn ensure_otp_resolve(
         Err(MyErr::OtpResolveInvalid)?;
     }
 
-    let t = db_update!(
-        tx,
-        AuthOtp {
-            total_attempt: 0,
-            ..t.into_active_model()
-        },
-    );
+    let t = am_update!(AuthOtp {
+        total_attempt: 0,
+        ..t.into_active_model()
+    })
+    .update(tx)
+    .await?;
 
     Ok(t)
 }

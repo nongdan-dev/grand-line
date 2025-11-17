@@ -2,10 +2,9 @@ use crate::prelude::*;
 
 #[async_trait]
 pub trait AuthContext {
-    async fn authenticate_without_cache(&self) -> Res<Option<LoginSessionSql>>;
-    async fn authenticate_arc(&self) -> Res<Arc<Option<LoginSessionSql>>>;
-    async fn authenticate_opt(&self) -> Res<Option<LoginSessionSql>>;
-    async fn authenticate(&self) -> Res<LoginSessionSql>;
+    async fn auth(&self) -> Res<String>;
+    async fn auth_without_cache(&self) -> Res<Option<LoginSessionSql>>;
+    async fn auth_arc(&self) -> Res<Arc<Option<LoginSessionSql>>>;
     async fn ensure_authenticated(&self) -> Res<()>;
     async fn ensure_not_authenticated(&self) -> Res<()>;
     async fn ensure_auth_in_macro(&self, v: AuthEnsure) -> Res<()>;
@@ -15,7 +14,18 @@ pub trait AuthContext {
 
 #[async_trait]
 impl AuthContext for Context<'_> {
-    async fn authenticate_without_cache(&self) -> Res<Option<LoginSessionSql>> {
+    async fn auth(&self) -> Res<String> {
+        let user_id = self
+            .auth_arc()
+            .await?
+            .as_ref()
+            .as_ref()
+            .map(|ls| ls.user_id.clone())
+            .ok_or(MyErr::Unauthenticated)?;
+        Ok(user_id)
+    }
+
+    async fn auth_without_cache(&self) -> Res<Option<LoginSessionSql>> {
         let mut token = self.get_authorization_token()?;
         if token.is_empty() {
             token = self.get_cookie_login_session()?;
@@ -41,47 +51,31 @@ impl AuthContext for Context<'_> {
             return Ok(None);
         }
 
-        let ls = db_update!(
-            tx,
-            LoginSession {
-                ip: self.get_ip()?,
-                ua: self.get_ua()?.to_json()?,
-                ..ls.into_active_model()
-            },
-        );
+        let ls = am_update!(LoginSession {
+            ip: self.get_ip()?,
+            ua: self.get_ua()?.to_json()?,
+            ..ls.into_active_model()
+        })
+        .update(tx)
+        .await?;
+
         Ok(Some(ls))
     }
 
-    async fn authenticate_arc(&self) -> Res<Arc<Option<LoginSessionSql>>> {
-        let arc = self.cache(|| self.authenticate_without_cache()).await?;
+    async fn auth_arc(&self) -> Res<Arc<Option<LoginSessionSql>>> {
+        let arc = self.cache(|| self.auth_without_cache()).await?;
         Ok(arc)
     }
 
-    async fn authenticate_opt(&self) -> Res<Option<LoginSessionSql>> {
-        let ls = self.authenticate_arc().await?.as_ref().as_ref().cloned();
-        Ok(ls)
-    }
-
-    async fn authenticate(&self) -> Res<LoginSessionSql> {
-        let ls = self
-            .authenticate_arc()
-            .await?
-            .as_ref()
-            .as_ref()
-            .cloned()
-            .ok_or(MyErr::Unauthenticated)?;
-        Ok(ls)
-    }
-
     async fn ensure_authenticated(&self) -> Res<()> {
-        if self.authenticate_arc().await?.as_ref().is_none() {
+        if self.auth_arc().await?.as_ref().is_none() {
             Err(MyErr::Unauthenticated)?;
         }
         Ok(())
     }
 
     async fn ensure_not_authenticated(&self) -> Res<()> {
-        if self.authenticate_arc().await?.as_ref().is_some() {
+        if self.auth_arc().await?.as_ref().is_some() {
             Err(MyErr::AlreadyAuthenticated)?;
         }
         Ok(())

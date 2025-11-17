@@ -14,10 +14,12 @@ pub struct RelationAttr {
 }
 impl From<Attr> for RelationAttr {
     fn from(a: Attr) -> Self {
-        attr_unwrap_or_else!(Self {
-            no_include_deleted: bool,
+        Self {
+            no_include_deleted: a
+                .bool(Self::F_NO_INCLUDE_DELETED)
+                .unwrap_or(FEATURE_NO_INCLUDE_DELETED),
             inner: a,
-        })
+        }
     }
 }
 impl AttrValidate for RelationAttr {
@@ -27,52 +29,59 @@ impl AttrValidate for RelationAttr {
             f.push(Self::F_THROUGH);
             f.push(Self::F_OTHER_KEY);
         }
-        f.iter().map(|f| s!(f)).collect()
+        f.iter().map(|f| (*f).to_owned()).collect()
     }
 }
 
 impl RelationAttr {
     pub fn to(&self) -> Ts2 {
-        self.inner.field_ty().ts2()
+        self.inner.field_ty().ts2_or_panic()
     }
     pub fn gql_to(&self) -> Ts2 {
         ty_gql(self.to())
     }
     pub fn name(&self) -> Ts2 {
-        self.inner.field_name().ts2()
+        self.inner.field_name().ts2_or_panic()
     }
 
     pub fn key_str(&self) -> String {
         self.inner.str(Self::F_KEY).unwrap_or_else(|| {
+            let field = self.inner.field_name();
+            let model = self.inner.field_model();
             match self.inner.attr == RelationTy::BelongsTo {
-                true => snake_str!(self.inner.field_name(), "id"),
-                false => snake_str!(self.inner.field_model(), "id"),
+                true => format!("{field}_id").to_snake_case(),
+                false => format!("{model}_id").to_snake_case(),
             }
         })
     }
     pub fn through(&self) -> Ts2 {
         self.inner
             .str(Self::F_THROUGH)
-            .unwrap_or_else(|| match self.inner.attr == RelationTy::ManyToMany {
-                true => pascal_str!(self.inner.field_model(), "in", self.inner.field_ty()),
-                false => self.bug(Self::F_THROUGH),
+            .unwrap_or_else(|| {
+                let model = self.inner.field_model();
+                let ty = self.inner.field_ty();
+                match self.inner.attr == RelationTy::ManyToMany {
+                    true => format!("{model}_in_{ty}").to_pascal_case(),
+                    false => self.bug(Self::F_THROUGH),
+                }
             })
-            .ts2()
+            .ts2_or_panic()
     }
     pub fn other_key(&self) -> Ts2 {
         self.inner
             .str(Self::F_OTHER_KEY)
-            .unwrap_or_else(|| match self.inner.attr == RelationTy::ManyToMany {
-                true => snake_str!(self.inner.field_ty(), "id"),
-                false => self.bug(Self::F_OTHER_KEY),
+            .unwrap_or_else(|| {
+                let ty = self.inner.field_ty();
+                match self.inner.attr == RelationTy::ManyToMany {
+                    true => format!("{ty}_id").to_snake_case(),
+                    false => self.bug(Self::F_OTHER_KEY),
+                }
             })
-            .ts2()
+            .ts2_or_panic()
     }
 
     fn bug(&self, k: &str) -> ! {
-        let err = self
-            .inner
-            .errk(k, "should not access this key in this attr");
-        bug!("{err}");
+        self.inner
+            .panic_by_key(k, "should not access this key in this attr");
     }
 }

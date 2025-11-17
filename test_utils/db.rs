@@ -36,7 +36,7 @@ impl TmpDb {
             "mysql" => Self::new_mysql(uri).await,
             "sqlite" => Self::new_sqlite(uri).await,
             scheme => {
-                pan!("TmpDb::new expect postgres or mysql or sqlite, found {scheme}");
+                panic!("TmpDb::new expect postgres or mysql or sqlite, found {scheme}");
             }
         }
     }
@@ -45,10 +45,10 @@ impl TmpDb {
         let name = new_db_name();
         let db = conn(uri).await?;
 
-        let stmt = f!("CREATE SCHEMA {name};");
+        let stmt = format!("CREATE SCHEMA {name};");
         exec(&db, DbBackend::Postgres, &stmt).await?;
 
-        let stmt = f!("SET search_path TO {name};");
+        let stmt = format!("SET search_path TO {name};");
         exec(&db, DbBackend::Postgres, &stmt).await?;
 
         Ok(Self {
@@ -62,7 +62,7 @@ impl TmpDb {
         let name = new_db_name();
         let admin = conn(uri).await?;
 
-        let stmt = f!("CREATE DATABASE {name};");
+        let stmt = format!("CREATE DATABASE {name};");
         exec(&admin, DbBackend::MySql, &stmt).await?;
 
         let uri = replace_db_name(uri, &name);
@@ -92,14 +92,14 @@ impl TmpDb {
                 let stmt = "SET search_path TO public;";
                 exec(&self.db, DbBackend::Postgres, &stmt).await?;
                 let name = &self.name;
-                let stmt = f!("DROP SCHEMA IF EXISTS {name} CASCADE;");
+                let stmt = format!("DROP SCHEMA IF EXISTS {name} CASCADE;");
                 exec(&self.db, DbBackend::Postgres, &stmt).await?;
                 self.db.clone().close().await?;
             }
             TmpDbType::MySql { admin } => {
                 self.db.clone().close().await?;
                 let name = &self.name;
-                let stmt = f!("DROP DATABASE IF EXISTS {name};");
+                let stmt = format!("DROP DATABASE IF EXISTS {name};");
                 exec(admin, DbBackend::MySql, &stmt).await?;
             }
             TmpDbType::Sqlite => {
@@ -114,7 +114,7 @@ impl TmpDb {
 
 fn new_db_name() -> String {
     let id = ulid();
-    f!("test_{id}")
+    format!("test_{id}")
 }
 
 fn get_uri_scheme(uri: &str) -> String {
@@ -123,10 +123,10 @@ fn get_uri_scheme(uri: &str) -> String {
 
 fn replace_db_name(uri: &str, name: &str) -> String {
     if let Some((head, _)) = uri.rsplit_once('/') {
-        f!("{head}/{name}")
+        format!("{head}/{name}")
     } else {
         let head = uri.trim_end_matches('/');
-        f!("{head}/{name}")
+        format!("{head}/{name}")
     }
 }
 

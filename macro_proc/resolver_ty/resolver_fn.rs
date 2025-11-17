@@ -17,8 +17,8 @@ where
         false
     }
     #[cfg(feature = "auth")]
-    fn auth(&self) -> String {
-        s!()
+    fn auth(&self) -> Option<bool> {
+        None
     }
 
     fn resolver_fn(&self) -> Ts2 {
@@ -31,29 +31,22 @@ where
         let no_ctx = self.no_ctx();
 
         #[cfg(not(any(feature = "auth")))]
-        let (directives, comments): (Vec<Ts2>, Vec<Ts2>) = (vec![], vec![]);
+        let (directives, directive_comments): (Vec<Ts2>, Vec<Ts2>) = (vec![], vec![]);
         #[cfg(any(feature = "auth", feature = "guard"))]
-        let (mut directives, mut comments) = (vec![], vec![]);
+        let (mut directives, mut directive_comments) = (vec![], vec![]);
 
         #[cfg(feature = "auth")]
         {
             if no_ctx {
-                let err = self.err("auth requires ctx");
-                pan!("{err}");
+                self.panic("auth requires ctx");
             }
-            let mut auth = self.auth();
-            if auth.is_empty() {
-                auth = "none".to_owned();
-            }
-            let valid = ["none", "authenticate", "unauthenticated"];
-            if !valid.contains(&auth.as_str()) {
-                let valid = valid.join(", ");
-                let err = f!("auth should be one of: {valid}");
-                let err = self.err(&err);
-                pan!("{err}");
-            }
-            let auth_pascal = pascal!(auth);
-            let ensure = quote!(AuthEnsure::#auth_pascal);
+            let auth = match self.auth() {
+                Some(true) => "authenticate",
+                Some(false) => "unauthenticated",
+                None => "none",
+            };
+            let pascal = auth.to_pascal_case().ts2_or_panic();
+            let ensure = quote!(AuthEnsure::#pascal);
             body = quote! {
                 ctx.ensure_auth_in_macro(#ensure).await?;
                 #body
@@ -61,14 +54,13 @@ where
             directives.push(quote! {
                 directive=auth_directive::apply(#ensure),
             });
-            let auth_scream = scream!(auth);
-            comments.push(f!("@auth(ensure: {auth_scream})"));
+            let shouty = auth.to_shouty_snake_case().ts2_or_panic();
+            directive_comments.push(format!("@auth(ensure: {shouty})"));
         }
 
         if !no_tx {
             if no_ctx {
-                let err = self.err("tx requires ctx");
-                pan!("{err}");
+                self.panic("tx requires ctx");
             }
             body = quote! {
                 let tx = &*ctx.tx().await?;
@@ -89,12 +81,12 @@ where
         output = quote!(Res<#output>);
 
         quote! {
-            // TODO: copy #[graphql...] and comments from the original field
+            // TODO: copy #[graphql...] and directive_comments from the original field
             #[graphql(
                 name=#gql_name,
                 #(#directives)*
             )]
-            #(#[doc = #comments])*
+            #(#[doc = #directive_comments])*
             async fn #name(&self, #inputs) -> #output {
                 #body
             }

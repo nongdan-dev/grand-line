@@ -15,8 +15,8 @@ pub enum MacroTy {
 
 pub static ATTR_RAW: LazyLock<HashSet<String>> = LazyLock::new(|| {
     let mut set = HashSet::new();
-    set.insert(s!(AttrTy::Default));
-    set.insert(s!(VirtualTy::SqlExpr));
+    set.insert(AttrTy::Default.to_string());
+    set.insert(VirtualTy::SqlExpr.to_string());
     set
 });
 

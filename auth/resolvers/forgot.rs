@@ -5,7 +5,7 @@ pub struct Forgot {
     pub email: Email,
 }
 
-#[create(AuthOtp, resolver_output, auth=unauthenticated)]
+#[create(AuthOtp, resolver_output, auth = 0)]
 async fn forgot() -> AuthOtpWithSecret {
     let h = &ctx.auth_config().handlers;
     ensure_otp_re_request(ctx, tx, AuthOtpTy::Forgot, &data.email.0).await?;
@@ -17,16 +17,15 @@ async fn forgot() -> AuthOtpWithSecret {
         .await?;
     let otp = h.otp(ctx).await?;
     let (otp_salt, otp_hashed) = auth_utils::otp_hash(&otp)?;
-    let t = db_create!(
-        tx,
-        AuthOtp {
-            ty: AuthOtpTy::Forgot,
-            email: data.email.0,
-            data: AuthOtpDataForgot { user_id: u.id }.to_json()?,
-            otp_salt,
-            otp_hashed,
-        },
-    );
+    let t = am_create!(AuthOtp {
+        ty: AuthOtpTy::Forgot,
+        email: data.email.0,
+        data: AuthOtpDataForgot { user_id: u.id }.to_json()?,
+        otp_salt,
+        otp_hashed,
+    })
+    .insert(tx)
+    .await?;
 
     h.on_otp_create(ctx, &t, &otp).await?;
 

@@ -6,7 +6,7 @@ pub struct Register {
     pub password: String,
 }
 
-#[create(AuthOtp, resolver_output, auth=unauthenticated)]
+#[create(AuthOtp, resolver_output, auth = 0)]
 async fn register() -> AuthOtpWithSecret {
     ensure_email_not_registered(tx, &data.email.0).await?;
     ensure_otp_re_request(ctx, tx, AuthOtpTy::Register, &data.email.0).await?;
@@ -16,19 +16,18 @@ async fn register() -> AuthOtpWithSecret {
 
     let otp = h.otp(ctx).await?;
     let (otp_salt, otp_hashed) = auth_utils::otp_hash(&otp)?;
-    let t = db_create!(
-        tx,
-        AuthOtp {
-            ty: AuthOtpTy::Register,
-            email: data.email.0,
-            data: AuthOtpDataRegister {
-                password_hashed: auth_utils::password_hash(&data.password)?,
-            }
-            .to_json()?,
-            otp_salt,
-            otp_hashed,
-        },
-    );
+    let t = am_create!(AuthOtp {
+        ty: AuthOtpTy::Register,
+        email: data.email.0,
+        data: AuthOtpDataRegister {
+            password_hashed: auth_utils::password_hash(&data.password)?,
+        }
+        .to_json()?,
+        otp_salt,
+        otp_hashed,
+    })
+    .insert(tx)
+    .await?;
 
     h.on_otp_create(ctx, &t, &otp).await?;
 

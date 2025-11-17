@@ -13,7 +13,7 @@ impl ResolverTy {
 
         let ty = &g.ty;
         let resolver = g.resolver_fn();
-        let m = snake!(&g.ty);
+        let m = g.ty.to_string().to_snake_case().ts2_or_panic();
 
         let r = quote! {
             mod #m {
@@ -65,7 +65,7 @@ impl ResolverFn for ResolverTy {
         self.ra.no_ctx
     }
     #[cfg(feature = "auth")]
-    fn auth(&self) -> String {
-        self.ra.auth.clone()
+    fn auth(&self) -> Option<bool> {
+        self.ra.auth
     }
 }

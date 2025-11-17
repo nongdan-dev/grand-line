@@ -6,27 +6,29 @@ pub struct ResolverTyAttr {
     pub no_ctx: bool,
     pub no_include_deleted: bool,
     #[cfg(feature = "auth")]
-    pub auth: String,
+    pub auth: Option<bool>,
     #[field_names(skip)]
     pub inner: Attr,
 }
 impl From<Attr> for ResolverTyAttr {
     fn from(a: Attr) -> Self {
-        attr_unwrap_or_else!(Self {
-            no_tx: bool,
-            no_ctx: bool,
+        Self {
+            no_tx: a.bool(Self::F_NO_TX).unwrap_or(FEATURE_NO_TX),
+            no_ctx: a.bool(Self::F_NO_CTX).unwrap_or(FEATURE_NO_CTX),
             #[cfg(feature = "auth")]
-            auth: a.str("auth").unwrap_or_default(),
-            no_include_deleted: bool,
+            auth: a.bool(Self::F_AUTH),
+            no_include_deleted: a
+                .bool(Self::F_NO_INCLUDE_DELETED)
+                .unwrap_or(FEATURE_NO_INCLUDE_DELETED),
             inner: a,
-        })
+        }
     }
 }
 impl AttrValidate for ResolverTyAttr {
     fn attr_fields(a: &Attr) -> Vec<String> {
         Self::F
             .iter()
-            .map(|f| s!(f))
+            .map(|f| (*f).to_owned())
             .filter(|f| {
                 if TY_INCLUDE_DELETED.contains(&a.attr) {
                     true

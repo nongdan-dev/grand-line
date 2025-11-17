@@ -28,15 +28,14 @@ async fn t() -> Res<()> {
     let tmp = tmp_db!(User, Org, UserInOrg);
     let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
-    let u = db_create!(&tmp.db, User);
-    let o = db_create!(&tmp.db, Org { name: "Fringe" });
-    let _ = db_create!(
-        &tmp.db,
-        UserInOrg {
-            user_id: u.id.clone(),
-            org_id: o.id.clone(),
-        },
-    );
+    let u = am_create!(User).insert(&tmp.db).await?;
+    let o = am_create!(Org { name: "Fringe" }).insert(&tmp.db).await?;
+    am_create!(UserInOrg {
+        user_id: u.id.clone(),
+        org_id: o.id,
+    })
+    .insert(&tmp.db)
+    .await?;
 
     let q = r#"
     query test($id: ID!) {

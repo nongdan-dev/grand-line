@@ -24,8 +24,8 @@ pub struct Attr {
 impl Attr {
     fn init(debug: &str, attr: &str, args: Vec<(String, (String, AttrParseTy))>) -> Self {
         let mut a = Self {
-            debug: s!(debug),
-            attr: s!(attr),
+            debug: debug.to_owned(),
+            attr: attr.to_owned(),
             args: HashMap::new(),
             first_path: None,
             field: None,
@@ -33,8 +33,7 @@ impl Attr {
         };
         for (k, v) in args {
             if a.args.contains_key(&k) {
-                let err = a.errk(&k, "appears more than once");
-                pan!("{err}");
+                a.panic_by_key(&k, "appears more than once");
             }
             a.args.insert(k, v);
         }
@@ -54,12 +53,12 @@ impl Attr {
             .collect::<Vec<_>>()
     }
     fn from_field_attr(model: &str, f: &Field, a: &Attribute, raw: &dyn Fn(&str) -> bool) -> Self {
-        let attr = s!(a.path().to_token_stream());
+        let attr = a.path().to_token_stream().to_string();
         let field = f.ident.to_token_stream();
-        let debug = f!("{model}.{field}");
-        let field = Some((s!(model), a.clone(), f.clone()));
+        let debug = format!("{model}.{field}");
+        let field = Some((model.to_owned(), a.clone(), f.clone()));
         if raw(&attr) {
-            let panic = || pan!("should match syntax #[{attr}(some_thing)]");
+            let panic = || panic!("should match syntax #[{attr}(some_thing)]");
             let raw = a
                 .meta
                 .to_token_stream()
@@ -87,18 +86,18 @@ impl Attr {
         let mut first = true;
         let mut first_path = None;
         let _ = a.parse_nested_meta(|m| {
-            let k = s!(m.path.get_ident().to_token_stream());
+            let k = m.path.get_ident().to_token_stream().to_string();
             let (v, ty);
             if m.input.peek(Eq) {
-                v = s!(m.value()?);
+                v = m.value()?.to_string();
                 ty = AttrParseTy::NameValue;
             } else if m.input.peek(Paren) {
                 let nested;
                 parenthesized!(nested in m.input);
-                v = s!(nested.parse::<Ts2>()?);
+                v = nested.parse::<Ts2>()?.to_string();
                 ty = AttrParseTy::List;
             } else {
-                v = s!();
+                v = "".to_owned();
                 ty = AttrParseTy::Path;
             }
             if first && ty == AttrParseTy::Path {
@@ -124,18 +123,16 @@ impl Attr {
     pub fn model_from_first_path(&self) -> String {
         match self.first_path.clone() {
             Some(v) => {
-                if v != pascal_str!(v) {
-                    let err = f!("model `{v}` is not pascal case");
-                    let err = self.err(&err);
-                    pan!("{err}");
+                if v != v.to_pascal_case() {
+                    let err = format!("model `{v}` is not pascal case");
+                    self.panic(&err);
                 }
                 v
             }
             None => {
                 let attr = &self.attr;
-                let err = f!("missing model #[{attr}(Model, ...)]");
-                let err = self.err(&err);
-                pan!("{err}");
+                let err = format!("missing model #[{attr}(Model, ...)]");
+                self.panic(&err);
             }
         }
     }
@@ -146,13 +143,11 @@ impl Attr {
             Some((v, AttrParseTy::NameValue)) => match v == "0" {
                 true => Some(false),
                 false => {
-                    let err = self.err_bool(k);
-                    pan!("{err}");
+                    self.panic_invalid_bool(k);
                 }
             },
             Some(_) => {
-                let err = self.err_bool(k);
-                pan!("{err}");
+                self.panic_invalid_bool(k);
             }
             None => None,
         }
@@ -161,8 +156,7 @@ impl Attr {
         match self.bool(k) {
             Some(v) => v,
             None => {
-                let err = self.err_404(k);
-                pan!("{err}");
+                self.panic_required(k);
             }
         }
     }
@@ -170,17 +164,15 @@ impl Attr {
     pub fn str(&self, k: &str) -> Option<String> {
         match self.args.get(k) {
             Some((v, AttrParseTy::NameValue)) => {
-                match !(v.starts_with("\"") || v.starts_with("r#")) {
-                    true => Some(s!(v)),
+                match !(v.starts_with('"') || v.starts_with("r#")) {
+                    true => Some(v.to_owned()),
                     false => {
-                        let err = self.err_str(k);
-                        pan!("{err}");
+                        self.panic_invalid_string(k);
                     }
                 }
             }
             Some(_) => {
-                let err = self.err_str(k);
-                pan!("{err}");
+                self.panic_invalid_string(k);
             }
             None => None,
         }
@@ -189,8 +181,7 @@ impl Attr {
         match self.str(k) {
             Some(v) => v,
             None => {
-                let err = self.err_404(k);
-                pan!("{err}");
+                self.panic_required(k);
             }
         }
     }
@@ -204,14 +195,12 @@ impl Attr {
                 Ok(v) => Some(v),
                 Err(_) => {
                     let t = type_name::<V>();
-                    let err = f!("cannot parse `{v}` as {t}");
-                    let err = self.errk(k, err);
-                    pan!("{err}");
+                    let err = format!("cannot parse `{v}` as {t}");
+                    self.panic_by_key(k, &err);
                 }
             },
             Some(_) => {
-                let err = self.err_str(k);
-                pan!("{err}");
+                self.panic_invalid_string(k);
             }
             None => None,
         }
@@ -223,8 +212,7 @@ impl Attr {
         match self.parse(k) {
             Some(v) => v,
             None => {
-                let err = self.err_404(k);
-                pan!("{err}");
+                self.panic_required(k);
             }
         }
     }
@@ -233,8 +221,7 @@ impl Attr {
         match self.field.clone() {
             Some(v) => v,
             None => {
-                let err = self.err("field: None");
-                bug!("{err}");
+                self.panic("field: None");
             }
         }
     }
@@ -245,18 +232,17 @@ impl Attr {
         self.field().1
     }
     pub fn field_name(&self) -> String {
-        s!(self.field().2.ident.to_token_stream())
+        self.field().2.ident.to_token_stream().to_string()
     }
     pub fn field_ty(&self) -> String {
-        s!(self.field().2.ty.to_token_stream())
+        self.field().2.ty.to_token_stream().to_string()
     }
 
     pub fn raw(&self) -> String {
         match self.raw.clone() {
             Some(v) => v,
             None => {
-                let err = self.err("raw: None");
-                bug!("{err}");
+                self.panic("raw: None");
             }
         }
     }
@@ -265,45 +251,46 @@ impl Attr {
     where
         V: From<Self> + AttrValidate,
     {
-        let map = V::attr_fields(&self).into_iter().collect::<HashSet<_>>();
+        let attrs = V::attr_fields(&self);
+        let map = attrs.iter().collect::<HashSet<_>>();
         for (k, _) in self.args.clone() {
             if !map.contains(&k) {
-                let err = self.err_incorrect(&k);
-                pan!("{err}");
+                self.panic_invalid(&k, &attrs);
             }
         }
         self.into()
     }
 
-    pub fn err_incorrect(&self, k: &str) -> String {
-        let err = "should not be here";
-        self.errk(k, err)
+    pub fn panic_required(&self, k: &str) -> ! {
+        let err = "is required";
+        self.panic_by_key(k, err);
     }
-    pub fn err_404(&self, k: &str) -> String {
-        let err = "not found";
-        self.errk(k, err)
+    pub fn panic_invalid(&self, k: &str, valid: &[String]) -> ! {
+        let valid = valid.join(", ");
+        let err = format!("is not valid here, should be one of: {valid}");
+        self.panic_by_key(k, &err);
     }
-    pub fn err_bool(&self, k: &str) -> String {
-        let err = f!("use `{k}` for true, or `{k}=0` for false");
-        self.errk(k, err)
+    pub fn panic_invalid_bool(&self, k: &str) -> ! {
+        let err = format!("should be `{k}` for true, or `{k}=0` for false");
+        self.panic_by_key(k, &err);
     }
-    pub fn err_str(&self, k: &str) -> String {
-        let err = f!("use `{k}=value` without quotes for string");
-        self.errk(k, err)
+    pub fn panic_invalid_string(&self, k: &str) -> ! {
+        let err = format!("should be `{k}=value` without quotes for string");
+        self.panic_by_key(k, &err);
     }
-    pub fn errk(&self, k: &str, err: impl Display) -> String {
-        let err = f!("key `{k}` {err}");
-        self.err(&err)
+    pub fn panic_by_key(&self, k: &str, err: &str) -> ! {
+        let err = format!("key `{k}` {err}");
+        self.panic(&err);
     }
 }
 
 impl AttrDebug for Attr {
     fn attr_debug(&self) -> String {
         let Attr { attr, debug, .. } = &self;
-        if self.debug.is_empty() {
-            f!("macro `{attr}`:")
+        if debug.is_empty() {
+            format!("macro `{attr}`:")
         } else {
-            f!("{debug} attr `{attr}`:")
+            format!("{debug} attr `{attr}`:")
         }
     }
 }

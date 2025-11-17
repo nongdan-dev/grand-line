@@ -11,10 +11,10 @@ pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
     for mut f in match item.fields {
         Fields::Named(f) => f.named,
         _ => {
-            pan!("{name} struct should be named fields");
+            panic!("{name} struct should be named fields");
         }
     } {
-        let attrs = Attr::from_field(&s!(name), &f, &|_| false);
+        let attrs = Attr::from_field(&name.to_string(), &f, &|_| false);
         if let Some(a) = attrs.iter().find(|a| a.is("field_names")) {
             f.attrs = attrs
                 .iter()
@@ -23,13 +23,11 @@ pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
                 .collect();
             let a = a.clone().into_with_validate::<FieldNamesAttr>();
             if a.virt {
-                if s!(f.to_token_stream()).starts_with("pub ") {
-                    let err = a.inner.err("virtual field name should not be public");
-                    pan!("{err}");
+                if f.to_token_stream().to_string().starts_with("pub ") {
+                    a.inner.panic("virtual field should not be public");
                 }
-                if s!(f.ty.to_token_stream()) != "!" {
-                    let err = a.inner.err("virtual field name type should be `!`");
-                    pan!("{err}");
+                if f.ty.to_token_stream().to_string() != "!" {
+                    a.inner.panic("virtual field type should be `!`");
                 }
             }
             if !a.skip {
@@ -52,11 +50,11 @@ pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
     let mut all = vec![];
     let mut impls = vec![];
     for f in idents {
-        let f_str = s!(f);
+        let f_str = f.to_string();
         all.push(quote! {
             #f_str,
         });
-        let f = scream!("F", f);
+        let f = format!("F_{f}").to_shouty_snake_case().ts2_or_panic();
         impls.push(quote! {
             pub const #f: &'static str = #f_str;
         });
@@ -89,6 +87,6 @@ impl From<Attr> for FieldNamesAttr {
 }
 impl AttrValidate for FieldNamesAttr {
     fn attr_fields(_: &Attr) -> Vec<String> {
-        ["skip", "virt"].map(|f| s!(f)).to_vec()
+        ["skip", "virt"].map(|f| f.to_owned()).to_vec()
     }
 }

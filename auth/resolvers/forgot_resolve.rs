@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[mutation(auth=unauthenticated)]
+#[mutation(auth = 0)]
 async fn forgot_resolve(data: AuthOtpResolve, password: String) -> LoginSessionWithSecret {
     let h = &ctx.auth_config().handlers;
     h.password_validate(ctx, &password).await?;
@@ -9,13 +9,12 @@ async fn forgot_resolve(data: AuthOtpResolve, password: String) -> LoginSessionW
 
     let d = AuthOtpDataForgot::from_json(t.data)?;
 
-    let u = db_update!(
-        tx,
-        User {
-            id: d.user_id,
-            password_hashed: auth_utils::password_hash(&password)?,
-        },
-    );
+    let u = am_update!(User {
+        id: d.user_id,
+        password_hashed: auth_utils::password_hash(&password)?,
+    })
+    .update(tx)
+    .await?;
 
     let ls = create_login_session(ctx, tx, &u.id, &lsd).await?;
     AuthOtp::delete_by_id(t.id).exec(tx).await?;

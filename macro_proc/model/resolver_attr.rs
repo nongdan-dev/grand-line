@@ -12,15 +12,15 @@ pub struct ResolverAttr {
 impl From<Attr> for ResolverAttr {
     fn from(a: Attr) -> Self {
         Self {
-            call: a.str("call").unwrap_or_else(|| {
+            call: a.str(Self::F_CALL).unwrap_or_else(|| {
                 let field = a.field_name();
-                f!("resolve_{field}")
+                format!("resolve_{field}")
             }),
             sql_dep: a
-                .str("sql_dep")
+                .str(Self::F_SQL_DEP)
                 .unwrap_or_default()
                 .split('+')
-                .map(|s| s!(s.trim()))
+                .map(|s| s.trim().to_owned())
                 .collect(),
             ra: a.clone().into(),
             inner: a,
@@ -31,7 +31,7 @@ impl AttrValidate for ResolverAttr {
     fn attr_fields(a: &Attr) -> Vec<String> {
         Self::F
             .iter()
-            .map(|f| s!(f))
+            .map(|f| (*f).to_owned())
             .chain(ResolverTyAttr::attr_fields(a))
             .collect()
     }

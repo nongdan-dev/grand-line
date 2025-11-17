@@ -7,7 +7,7 @@ pub fn filter_and_or_not(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
 }
 
 fn push_and_or(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
-    let op = op_str.ts2();
+    let op = op_str.ts2_or_panic();
     let gql_op = op_str.to_uppercase();
     let cond = if op_str == "and" {
         quote!(all)

@@ -34,18 +34,18 @@ impl Parse for AttrParse {
             let (k, v, ty);
             match m {
                 Meta::Path(m) => {
-                    k = s!(m.get_ident().to_token_stream());
-                    v = s!();
+                    k = m.get_ident().to_token_stream().to_string();
+                    v = "".to_owned();
                     ty = AttrParseTy::Path;
                 }
                 Meta::NameValue(m) => {
-                    k = s!(m.path.get_ident().to_token_stream());
-                    v = s!(m.value.to_token_stream());
+                    k = m.path.get_ident().to_token_stream().to_string();
+                    v = m.value.to_token_stream().to_string();
                     ty = AttrParseTy::NameValue;
                 }
                 Meta::List(m) => {
-                    k = s!(m.path.get_ident().to_token_stream());
-                    v = s!(m.tokens);
+                    k = m.path.get_ident().to_token_stream().to_string();
+                    v = m.tokens.to_string();
                     ty = AttrParseTy::List;
                 }
             }

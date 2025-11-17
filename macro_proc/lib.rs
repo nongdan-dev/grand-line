@@ -95,24 +95,10 @@ pub fn filter(item: TokenStream) -> TokenStream {
     expr_struct(item, "Filter", "Some", "")
 }
 
-/// Helper to quickly create a filter with concise syntax and wrap with Some.
-#[proc_macro]
-pub fn filter_some(item: TokenStream) -> TokenStream {
-    let item = Into::<Ts2>::into(item);
-    quote!(Some(filter!(#item))).into()
-}
-
 /// Helper to quickly create an order_by with concise syntax.
 #[proc_macro]
 pub fn order_by(item: TokenStream) -> TokenStream {
     gen_order_by(item)
-}
-
-/// Helper to quickly create an order_by with concise syntax and wrap with Some.
-#[proc_macro]
-pub fn order_by_some(item: TokenStream) -> TokenStream {
-    let item = Into::<Ts2>::into(item);
-    quote!(Some(order_by!(#item))).into()
 }
 
 /// Helper to quickly create an active model with concise syntax
@@ -147,39 +133,6 @@ pub fn am_update(item: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn am_soft_delete(item: TokenStream) -> TokenStream {
     expr_struct(item, "ActiveModel", "Set", "set_defaults_on_delete")
-}
-
-/// Helper to quickly create an active model using am_create
-/// then call insert with db and await.
-#[proc_macro]
-pub fn db_create(item: TokenStream) -> TokenStream {
-    gen_db_action("create", "insert", item)
-}
-
-/// Helper to quickly create an active model using am_update
-/// then call update with db and await.
-#[proc_macro]
-pub fn db_update(item: TokenStream) -> TokenStream {
-    gen_db_action("update", "update", item)
-}
-
-/// Helper to quickly create an active model using am_soft_delete
-/// then call soft_delete with db and await.
-#[proc_macro]
-pub fn db_soft_delete(item: TokenStream) -> TokenStream {
-    gen_db_action("soft_delete", "soft_delete", item)
-}
-
-/// Helper to quickly call soft_delete_by_id with db and await.
-#[proc_macro]
-pub fn db_soft_delete_by_id(item: TokenStream) -> TokenStream {
-    gen_db_soft_delete_by_id(item)
-}
-
-/// Helper to quickly call soft_delete_many with db and await.
-#[proc_macro]
-pub fn db_soft_delete_many(item: TokenStream) -> TokenStream {
-    gen_db_soft_delete_many(item)
 }
 
 /// Automatically derive ThisErr, GrandLineErrDerive, Debug.

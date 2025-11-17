@@ -10,7 +10,7 @@ pub struct GqlAttr {
     pub get_string: Vec<Ts2>,
 }
 
-pub fn gql_attr(gql_fields: &Vec<(Field, Vec<Attr>)>) -> GqlAttr {
+pub fn gql_attr(gql_fields: &[(Field, Vec<Attr>)]) -> GqlAttr {
     let (mut struk, mut defaults, mut resolver, mut into, mut cols, mut select, mut get_string) =
         (vec![], vec![], vec![], vec![], vec![], vec![], vec![]);
 
@@ -21,13 +21,13 @@ pub fn gql_attr(gql_fields: &Vec<(Field, Vec<Attr>)>) -> GqlAttr {
         push_struk_resolver(&name, &ty, &mut struk, &mut resolver, attr_is_gql_skip(a));
         push_default(&mut defaults, &name);
 
-        let name_str = s!(name);
-        let col = pascal!(name);
+        let name_str = name.to_string();
+        let col = name.to_string().to_pascal_case().ts2_or_panic();
         cols.push(quote! {
             m.insert(#name_str, Column::#col);
         });
 
-        let gql_name = camel_str!(name);
+        let gql_name = name.to_string().to_lower_camel_case();
         select.push(quote! {
             m.entry(#gql_name).or_insert_with(HashSet::new).insert(#name_str);
         });
@@ -64,7 +64,7 @@ pub struct GqlAttrVirtuals {
     pub select: Vec<Ts2>,
 }
 
-pub fn gql_attr_virtuals(virtual_resolvers: &Vec<Box<dyn VirtualResolverFn>>) -> GqlAttrVirtuals {
+pub fn gql_attr_virtuals(virtual_resolvers: &[Box<dyn VirtualResolverFn>]) -> GqlAttrVirtuals {
     let mut select = vec![];
     for v in virtual_resolvers {
         let gql_name = v.gql_name();
@@ -85,7 +85,7 @@ pub struct GqlAttrExprs {
     pub exprs: Vec<Ts2>,
 }
 
-pub fn gql_exprs_ts2(exprs: &Vec<Vec<Attr>>) -> GqlAttrExprs {
+pub fn gql_exprs_ts2(exprs: &[Vec<Attr>]) -> GqlAttrExprs {
     let (mut struk, mut defaults, mut resolver, mut select, mut gql_exprs) =
         (vec![], vec![], vec![], vec![], vec![]);
 
@@ -94,19 +94,19 @@ pub fn gql_exprs_ts2(exprs: &Vec<Vec<Attr>>) -> GqlAttrExprs {
             .iter()
             .find(|a| a.attr == VirtualTy::SqlExpr)
             .unwrap_or_else(|| {
-                bug!("cannot find VirtualTy::SqlExpr to build select as");
+                panic!("cannot find VirtualTy::SqlExpr to build select as");
             });
         let name_str = a.field_name();
-        let name = name_str.ts2();
-        let ty = a.field_ty().ts2();
+        let name = name_str.ts2_or_panic();
+        let ty = a.field_ty().ts2_or_panic();
         push_struk_resolver(&name, &ty, &mut struk, &mut resolver, false);
         push_default(&mut defaults, &name);
 
-        let gql_name = camel_str!(name);
+        let gql_name = name.to_string().to_lower_camel_case();
         select.push(quote! {
             m.entry(#gql_name).or_insert_with(HashSet::new).insert(#name_str);
         });
-        let sql_expr = a.raw().ts2();
+        let sql_expr = a.raw().ts2_or_panic();
         gql_exprs.push(quote! {
             m.insert(#name_str, #sql_expr);
         });
@@ -138,7 +138,7 @@ fn push_struk_resolver(
         return;
     }
 
-    let gql_name = camel_str!(name);
+    let gql_name = name.to_string().to_lower_camel_case();
     let unwrap = if opt {
         quote!()
     } else {

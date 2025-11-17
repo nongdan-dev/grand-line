@@ -13,20 +13,11 @@ pub struct Todo {
 // variables are generated automatically
 #[search(Todo)]
 fn resolver() {
-    println!(
-        "todoSearch filter={} order_by={} page={}",
-        json(&filter)?,
-        json(&order_by)?,
-        json(&page)?,
-    );
+    let f = json(&filter)?;
+    let o = json(&order_by)?;
+    let p = json(&page)?;
+    println!("todoSearch filter={f} order_by={o} page={p}");
     (None, None)
-}
-
-// count Todo with filter from client
-#[count(Todo)]
-fn resolver() {
-    println!("todoCount filter={}", json(&filter)?);
-    None
 }
 
 // we can also have a custom name
@@ -34,17 +25,25 @@ fn resolver() {
 // the extra will be combined as and condition with the value from client
 #[search(Todo)]
 fn todo_search_2024() {
-    let extra_filter = filter_some!(Todo {
+    let extra_filter = filter!(Todo {
         content_starts_with: "2024",
     });
-    let default_order_by = order_by_some!(Todo [DoneAsc, ContentAsc]);
-    (extra_filter, default_order_by)
+    let default_order_by = order_by!(Todo [DoneAsc, ContentAsc]);
+    (Some(extra_filter), Some(default_order_by))
+}
+
+// count Todo with filter from client
+#[count(Todo)]
+fn resolver() {
+    let f = json(&filter)?;
+    println!("todoCount filter={f}");
+    None
 }
 
 // get detail of a Todo by id
 #[detail(Todo)]
 fn resolver() {
-    println!("todoDetail id={}", id);
+    println!("todoDetail id={id}");
 }
 
 // create a new Todo
@@ -54,7 +53,8 @@ pub struct TodoCreate {
 }
 #[create(Todo)]
 fn resolver() {
-    println!("todoCreate data={}", json(&data)?);
+    let d = json(&data)?;
+    println!("todoCreate data={d}");
     am_create!(Todo {
         content: data.content
     })
@@ -67,7 +67,8 @@ pub struct TodoUpdate {
 }
 #[update(Todo)]
 fn resolver() {
-    println!("todoUpdate id={} data={}", id, json(&data)?);
+    let d = json(&data)?;
+    println!("todoUpdate id={id} data={d}");
     Todo::find_by_id(&id).exists_or_404(tx).await?;
     am_update!(Todo {
         id: id.clone(),
@@ -79,7 +80,7 @@ fn resolver() {
 // with custom resolver name and inputs
 #[update(Todo, resolver_inputs)]
 fn todo_toggle_done(id: String) {
-    println!("todoToggleDone id={}", id);
+    println!("todoToggleDone id={id}");
     let todo = Todo::find_by_id(&id).one_or_404(tx).await?;
     am_update!(Todo {
         id: id.clone(),
@@ -90,7 +91,7 @@ fn todo_toggle_done(id: String) {
 // delete a Todo by id
 #[delete(Todo)]
 fn resolver() {
-    println!("todoDelete id={}", id);
+    println!("todoDelete id={id}");
     Todo::find_by_id(&id).exists_or_404(tx).await?;
 }
 
@@ -132,7 +133,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let addr = format!("0.0.0.0:{port}");
     let listener = TcpListener::bind(addr).await?;
 
-    println!("listening on port {}", port);
+    println!("listening on port {port}");
     serve(listener, app).await?;
 
     Ok(())

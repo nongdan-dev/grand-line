@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[mutation(auth=unauthenticated)]
+#[mutation(auth = 0)]
 async fn register_resolve(data: AuthOtpResolve) -> LoginSessionWithSecret {
     let h = &ctx.auth_config().handlers;
     let lsd = ensure_login_session_data(ctx)?;
@@ -9,13 +9,12 @@ async fn register_resolve(data: AuthOtpResolve) -> LoginSessionWithSecret {
 
     ensure_email_not_registered(tx, &t.email).await?;
 
-    let u = db_create!(
-        tx,
-        User {
-            email: t.email,
-            password_hashed: d.password_hashed,
-        },
-    );
+    let u = am_create!(User {
+        email: t.email,
+        password_hashed: d.password_hashed,
+    })
+    .insert(tx)
+    .await?;
 
     let ls = create_login_session(ctx, tx, &u.id, &lsd).await?;
     AuthOtp::delete_by_id(t.id).exec(tx).await?;

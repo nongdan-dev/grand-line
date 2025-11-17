@@ -25,7 +25,7 @@ async fn t() -> Res<()> {
     let expected = value!({
         "login": {
             "inner": {
-                "userId": d.user_id.clone(),
+                "userId": d.user_id,
             },
         },
     });

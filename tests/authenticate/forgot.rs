@@ -19,7 +19,7 @@ async fn t() -> Res<()> {
             "email": "olivia@example.com",
         },
     });
-    let _ = exec_assert_ok(&s, q, Some(&v)).await;
+    exec_assert_ok(&s, q, Some(&v)).await;
 
     let t = AuthOtp::find().one_or_404(&d.tmp.db).await?;
     let q = r#"
@@ -33,8 +33,8 @@ async fn t() -> Res<()> {
     "#;
     let v = value!({
         "data": {
-            "id": t.id.clone(),
-            "secret": t.secret.clone(),
+            "id": t.id,
+            "secret": t.secret,
             "otp": "999999",
         },
         "password": "Str0ngP@ssw0rd?",

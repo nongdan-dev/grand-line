@@ -26,7 +26,7 @@ pub fn gen_count(attr: TokenStream, item: TokenStream) -> TokenStream {
         };
 
         let body = r.body;
-        let model = a.model.ts2();
+        let model = a.model.ts2_or_panic();
         r.body = quote! {
             let filter_extra: Option<#filter> = {
                 #body

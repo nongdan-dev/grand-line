@@ -56,7 +56,7 @@ fn attr_validate(attrs: &[Attr]) {
     // ensure it should not have more than one of our attributes
     let map = AttrTy::all()
         .iter()
-        .map(|v| (s!(v), v.clone()))
+        .map(|t| (t.to_string(), t.clone()))
         .collect::<HashMap<_, _>>();
     let mut matches = vec![];
     for a in attrs {
@@ -67,8 +67,12 @@ fn attr_validate(attrs: &[Attr]) {
     if matches.len() > 1 {
         let model = attrs[0].field_model();
         let field = attrs[0].field_name();
-        let matches = matches.iter().map(|v| s!(v)).collect::<Vec<_>>().join(", ");
-        pan!("{model}.{field} should have only one between: {matches}");
+        let matches = matches
+            .iter()
+            .map(|t| t.to_string())
+            .collect::<Vec<_>>()
+            .join(", ");
+        panic!("{model}.{field} should have only one between: {matches}");
     }
 }
 
@@ -77,7 +81,7 @@ fn attr_validate(attrs: &[Attr]) {
 fn attr_is_virtual(attrs: &[Attr]) -> Option<VirtualTy> {
     let map = VirtualTy::all()
         .iter()
-        .map(|v| (s!(v), v.clone()))
+        .map(|t| (t.to_string(), t.clone()))
         .collect::<HashMap<_, _>>();
     attrs
         .iter()
@@ -89,8 +93,11 @@ fn attr_is_virtual(attrs: &[Attr]) -> Option<VirtualTy> {
 /// Filter to only keep related attrs for the sql model.
 /// If any of these attributes matched, we should removed them out of the field.
 fn attr_sql(attrs: &[Attr]) -> Vec<Attribute> {
-    let mut tobe_removed = AttrTy::all().iter().map(|a| s!(a)).collect::<HashSet<_>>();
-    tobe_removed.insert(s!(AttrTy::Graphql));
+    let mut tobe_removed = AttrTy::all()
+        .iter()
+        .map(|t| t.to_string())
+        .collect::<HashSet<_>>();
+    tobe_removed.insert(AttrTy::Graphql.to_string());
     attrs
         .iter()
         .filter(|a| !tobe_removed.contains(&a.attr))
@@ -104,8 +111,8 @@ fn attr_gql(attrs: &[Attr]) -> Vec<Attribute> {
         // TODO: copy #[graphql...] and comments from the original field
         "",
     ]
-    .into_iter()
-    .map(|a| s!(a))
+    .iter()
+    .map(|a| (*a).to_owned())
     .collect::<HashSet<_>>();
     attrs
         .iter()

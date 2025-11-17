@@ -9,9 +9,9 @@ impl GenRelation {
     fn sql_dep_str(&self) -> String {
         match self.ty {
             RelationTy::BelongsTo => self.ra.key_str(),
-            RelationTy::HasOne => s!("id"),
-            RelationTy::HasMany => s!("id"),
-            RelationTy::ManyToMany => s!("id"),
+            RelationTy::HasOne => "id".to_owned(),
+            RelationTy::HasMany => "id".to_owned(),
+            RelationTy::ManyToMany => "id".to_owned(),
         }
     }
     fn input_one(&self) -> Ts2 {
@@ -42,7 +42,7 @@ impl GenRelation {
     }
 
     fn body_utils(&self, r: Ts2, vec: bool) -> Ts2 {
-        let sql_dep = self.sql_dep_str().ts2();
+        let sql_dep = self.sql_dep_str().ts2_or_panic();
         let none = if vec { quote!(vec![]) } else { quote!(None) };
         quote! {
             if let Some(id) = self.#sql_dep.clone() {
@@ -59,10 +59,10 @@ impl GenRelation {
     }
     fn col(&self) -> Ts2 {
         match self.ty {
-            RelationTy::BelongsTo => pascal!("id"),
-            RelationTy::HasOne => pascal!(self.ra.key_str()),
-            RelationTy::HasMany => pascal!(self.ra.key_str()),
-            RelationTy::ManyToMany => pascal!("id"),
+            RelationTy::BelongsTo => "id".to_pascal_case().ts2_or_panic(),
+            RelationTy::HasOne => self.ra.key_str().to_pascal_case().ts2_or_panic(),
+            RelationTy::HasMany => self.ra.key_str().to_pascal_case().ts2_or_panic(),
+            RelationTy::ManyToMany => "id".to_pascal_case().ts2_or_panic(),
         }
     }
 
@@ -99,8 +99,13 @@ impl GenRelation {
         let col = self.col();
         let through = self.ra.through();
         let through_column = ty_column(&through);
-        let through_key_col = pascal!(self.ra.key_str());
-        let through_other_key_col = pascal!(self.ra.other_key());
+        let through_key_col = self.ra.key_str().to_pascal_case().ts2_or_panic();
+        let through_other_key_col = self
+            .ra
+            .other_key()
+            .to_string()
+            .to_pascal_case()
+            .ts2_or_panic();
         let extra_cond = quote! {
             let sub = #through::find()
                 .select_only()
@@ -129,7 +134,7 @@ impl ResolverFn for GenRelation {
         self.ra.name()
     }
     fn gql_name(&self) -> String {
-        camel_str!(self.name())
+        self.name().to_string().to_lower_camel_case()
     }
     fn inputs(&self) -> Ts2 {
         match self.ty {

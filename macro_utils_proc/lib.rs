@@ -24,13 +24,3 @@ pub fn field_names(attr: TokenStream, input: TokenStream) -> TokenStream {
 pub fn attr_default_flag(input: TokenStream) -> TokenStream {
     gen_attr_default_flag(input)
 }
-
-#[proc_macro]
-pub fn attr_unwrap_default(input: TokenStream) -> TokenStream {
-    gen_attr_unwrap(input, true)
-}
-
-#[proc_macro]
-pub fn attr_unwrap_or_else(input: TokenStream) -> TokenStream {
-    gen_attr_unwrap(input, false)
-}

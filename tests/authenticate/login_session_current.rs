@@ -8,7 +8,7 @@ async fn t() -> Res<()> {
 
     let mut h = d.h;
     let token = &d.token;
-    let token = f!("Bearer {token}");
+    let token = format!("Bearer {token}");
     h.insert("Authorization", h_str(&token));
 
     let s = d.s.data(h).finish();
@@ -22,7 +22,7 @@ async fn t() -> Res<()> {
     "#;
     let expected = value!({
         "loginSessionCurrent": {
-            "userId": d.user_id.clone(),
+            "userId": d.user_id,
         },
     });
     exec_assert(&s, q, None, &expected).await;

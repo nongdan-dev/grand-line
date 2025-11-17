@@ -14,7 +14,7 @@ async fn t() -> Res<()> {
     }
     "#;
     let v = value!({
-        "id": d.id2.clone(),
+        "id": d.id2,
     });
     let expected = value!({
         "userDetail": {

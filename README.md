@@ -24,20 +24,11 @@ pub struct Todo {
 // variables are generated automatically
 #[search(Todo)]
 fn resolver() {
-    println!(
-        "todoSearch filter={} order_by={} page={}",
-        json(&filter)?,
-        json(&order_by)?,
-        json(&page)?,
-    );
+    let f = json(&filter)?;
+    let o = json(&order_by)?;
+    let p = json(&page)?;
+    println!("todoSearch filter={f} order_by={o} page={p}");
     (None, None)
-}
-
-// count Todo with filter from client
-#[count(Todo)]
-fn resolver() {
-    println!("todoCount filter={}", json(&filter)?);
-    None
 }
 
 // we can also have a custom name
@@ -45,14 +36,14 @@ fn resolver() {
 // the extra will be combined as and condition with the value from client
 #[search(Todo)]
 fn todo_search_2024() {
-    let extra_filter = filter_some!(Todo {
+    let extra_filter = filter!(Todo {
         content_starts_with: "2024",
     });
-    let default_order_by = order_by_some!(Todo [DoneAsc, ContentAsc]);
-    (extra_filter, default_order_by)
+    let default_order_by = order_by!(Todo [DoneAsc, ContentAsc]);
+    (Some(extra_filter), Some(default_order_by))
 }
 
-// checkout the examples and documentation for more
+// checkout the examples and documentation below for more
 ```
 
 <p align="center">

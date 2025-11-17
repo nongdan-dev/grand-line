@@ -30,7 +30,7 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
         };
 
         let body = r.body;
-        let model = a.model.ts2();
+        let model = a.model.ts2_or_panic();
         r.body = quote! {
             let (filter_extra, order_by_default): (Option<#filter>, Option<Vec<#order_by>>) = {
                 #body
