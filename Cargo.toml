@@ -1,17 +1,5 @@
 [workspace]
-members = [
-  ".",
-  "auth",
-  "auth_utils",
-  "core",
-  "examples/simple_todo",
-  "http",
-  "http_axum",
-  "macro_proc",
-  "macro_utils",
-  "macro_utils_proc",
-  "tracing",
-]
+members = [".", "examples/*", "packages/*"]
 resolver = "2"
 
 [package]
@@ -25,7 +13,7 @@ path = "lib.rs"
 
 [features]
 default = ["postgres", "default_without_db"]
-default_without_db = ["auth", "axum"]
+default_without_db = ["axum", "auth", "policy"]
 # db
 sqlite = ["_core/sqlite"]
 mysql = ["_core/mysql"]
@@ -45,25 +33,24 @@ no_tx = ["_core/no_tx"]
 no_ctx = ["_core/no_ctx"]
 no_include_deleted = ["_core/no_include_deleted"]
 no_permanent_delete = ["_core/no_permanent_delete"]
-# tracing
-tracing = ["_tracing", "_core/tracing"]
 # testing
 test_utils = ["pretty_assertions", "serde", "thiserror"]
-# http
+# packages
+tracing = ["_tracing", "_core/tracing"]
 http = ["_http"]
 axum = ["http", "_http/axum"]
-# biz
-auth = ["_auth", "auth_utils", "_core/auth"]
-auth_utils = ["_auth_utils"]
-guard = ["_core/guard"]
+auth = ["_auth", "_core/auth", "rand_utils"]
+policy = ["_policy", "_core/policy", "_auth"]
+rand_utils = ["_rand_utils"]
 
 [dependencies]
-_auth = { path = "./auth", optional = true, default-features = false, features = [] }
-_auth_utils = { path = "./auth_utils", optional = true, default-features = false, features = [] }
-_core = { path = "./core", default-features = false, features = [] }
-_http = { path = "./http", optional = true, default-features = false, features = [] }
-_tracing = { path = "./tracing", optional = true, default-features = false, features = [] }
-_utils = { path = "./macro_utils", default-features = false, features = [] }
+_auth = { path = "./packages/auth", optional = true, default-features = false, features = [] }
+_core = { path = "./packages/core", default-features = false, features = [] }
+_http = { path = "./packages/http", optional = true, default-features = false, features = [] }
+_policy = { path = "./packages/policy", optional = true, default-features = false, features = [] }
+_rand_utils = { path = "./packages/rand_utils", optional = true, default-features = false, features = [] }
+_tracing = { path = "./packages/tracing", optional = true, default-features = false, features = [] }
+_utils = { path = "./packages/macro_utils", default-features = false, features = [] }
 pretty_assertions = { version = "^1.4", optional = true, default-features = false, features = ["std"] }
 serde = { version = "^1.0", optional = true, default-features = false, features = ["derive", "std"] }
 thiserror = { version = "^2.0", optional = true, default-features = false, features = [] }

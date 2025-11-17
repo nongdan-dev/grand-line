@@ -53,7 +53,7 @@ async fn t() -> Res<()> {
         .one_or_404(&d.tmp.db)
         .await?;
     assert!(
-        auth_utils::password_eq(&u.password_hashed, "Str0ngP@ssw0rd?"),
+        rand_utils::password_eq(&u.password_hashed, "Str0ngP@ssw0rd?"),
         "password should be updated",
     );
 

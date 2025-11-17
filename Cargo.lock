@@ -16,30 +16,12 @@ dependencies = [
 name = "_auth"
 version = "0.0.0"
 dependencies = [
- "_auth_utils",
  "_core",
  "_http",
+ "_rand_utils",
  "serde",
  "thiserror 2.0.17",
  "validator",
-]
-
-[[package]]
-name = "_auth_utils"
-version = "0.0.0"
-dependencies = [
- "_core",
- "argon2",
- "base64",
- "hmac",
- "rand 0.9.2",
- "rand_core 0.9.3",
- "serde",
- "serde_qs",
- "sha2",
- "subtle",
- "thiserror 2.0.17",
- "zxcvbn",
 ]
 
 [[package]]
@@ -84,6 +66,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "_policy"
+version = "0.0.0"
+dependencies = [
+ "_core",
+ "serde",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "_proc"
 version = "0.0.0"
 dependencies = [
@@ -91,6 +82,24 @@ dependencies = [
  "_utils_proc",
  "colored",
  "prettyplease",
+]
+
+[[package]]
+name = "_rand_utils"
+version = "0.0.0"
+dependencies = [
+ "_core",
+ "argon2",
+ "base64",
+ "hmac",
+ "rand 0.9.2",
+ "rand_core 0.9.3",
+ "serde",
+ "serde_qs",
+ "sha2",
+ "subtle",
+ "thiserror 2.0.17",
+ "zxcvbn",
 ]
 
 [[package]]
@@ -1066,9 +1075,10 @@ name = "grand-line"
 version = "0.0.0"
 dependencies = [
  "_auth",
- "_auth_utils",
  "_core",
  "_http",
+ "_policy",
+ "_rand_utils",
  "_tracing",
  "_utils",
  "pretty_assertions",

@@ -6,10 +6,12 @@ pub mod export {
 
     #[cfg(feature = "auth")]
     pub use _auth::export::*;
-    #[cfg(feature = "auth_utils")]
-    pub use _auth_utils::export::*;
     #[cfg(feature = "http")]
     pub use _http::export::*;
+    #[cfg(feature = "policy")]
+    pub use _policy::export::*;
+    #[cfg(feature = "rand_utils")]
+    pub use _rand_utils::export::*;
     #[cfg(feature = "tracing")]
     pub use _tracing::export::*;
 }
@@ -19,10 +21,12 @@ pub mod reexport {
 
     #[cfg(feature = "auth")]
     pub use _auth::reexport::*;
-    #[cfg(feature = "auth_utils")]
-    pub use _auth_utils::reexport::*;
     #[cfg(feature = "http")]
     pub use _http::reexport::*;
+    #[cfg(feature = "policy")]
+    pub use _policy::reexport::*;
+    #[cfg(feature = "rand_utils")]
+    pub use _rand_utils::reexport::*;
     #[cfg(feature = "tracing")]
     pub use _tracing::reexport::*;
 }
@@ -35,10 +39,18 @@ pub mod prelude {
     pub use crate::test_utils::prelude::*;
     #[cfg(feature = "auth")]
     pub use _auth::prelude::*;
-    #[cfg(feature = "auth_utils")]
-    pub use _auth_utils::prelude::*;
     #[cfg(feature = "http")]
     pub use _http::prelude::*;
+    #[cfg(feature = "policy")]
+    pub use _policy::prelude::*;
+    #[cfg(feature = "rand_utils")]
+    pub use _rand_utils::prelude::*;
     #[cfg(feature = "tracing")]
     pub use _tracing::prelude::*;
 }
+
+#[cfg(not(any(feature = "postgres", feature = "mysql", feature = "sqlite")))]
+compile_error!("should enable one of features: postgres, mysql, sqlite");
+
+#[cfg(all(feature = "http", not(any(feature = "axum"))))]
+compile_error!("should enable one of features: axum");

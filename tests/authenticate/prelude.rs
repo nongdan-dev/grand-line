@@ -26,7 +26,7 @@ pub async fn prepare() -> Res<Prepare> {
 
     let u = am_create!(User {
         email: "olivia@example.com",
-        password_hashed: auth_utils::password_hash("123123")?,
+        password_hashed: rand_utils::password_hash("123123")?,
     })
     .insert(&tmp.db)
     .await?;
@@ -37,7 +37,7 @@ pub async fn prepare() -> Res<Prepare> {
     })
     .insert(&tmp.db)
     .await?;
-    let token = auth_utils::qs_token(&ls.id, &ls.secret)?;
+    let token = rand_utils::qs_token(&ls.id, &ls.secret)?;
 
     Ok(Prepare {
         tmp,
