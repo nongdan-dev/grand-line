@@ -2,13 +2,13 @@ use crate::prelude::*;
 
 pub struct GenRelation {
     pub ty: RelationTy,
-    pub ra: RelationAttr,
+    pub a: RelationAttr,
 }
 
 impl GenRelation {
     fn sql_dep_str(&self) -> String {
         match self.ty {
-            RelationTy::BelongsTo => self.ra.key_str(),
+            RelationTy::BelongsTo => self.a.key_str(),
             RelationTy::HasOne => "id".to_owned(),
             RelationTy::HasMany => "id".to_owned(),
             RelationTy::ManyToMany => "id".to_owned(),
@@ -16,11 +16,11 @@ impl GenRelation {
     }
     fn input_one(&self) -> Ts2 {
         let mut inputs = quote!();
-        inputs = push_include_deleted(inputs, !self.ra.no_include_deleted);
+        inputs = push_include_deleted(inputs, !self.a.no_include_deleted);
         inputs
     }
     fn input_many(&self) -> Ts2 {
-        let to = self.ra.to();
+        let to = self.a.to();
         let filter = ty_filter(&to);
         let order_by = ty_order_by(&to);
         let mut inputs = quote! {
@@ -28,16 +28,16 @@ impl GenRelation {
             order_by: Option<Vec<#order_by>>,
             page: Option<Pagination>,
         };
-        inputs = push_include_deleted(inputs, !self.ra.no_include_deleted);
+        inputs = push_include_deleted(inputs, !self.a.no_include_deleted);
         inputs
     }
 
     fn output_one(&self) -> Ts2 {
-        let to = self.ra.gql_to();
+        let to = self.a.gql_to();
         quote!(Option<#to>)
     }
     fn output_many(&self) -> Ts2 {
-        let to = self.ra.gql_to();
+        let to = self.a.gql_to();
         quote!(Vec<#to>)
     }
 
@@ -55,30 +55,32 @@ impl GenRelation {
     }
 
     fn column(&self) -> Ts2 {
-        ty_column(self.ra.to())
+        ty_column(self.a.to())
     }
     fn col(&self) -> Ts2 {
         match self.ty {
-            RelationTy::BelongsTo => "id".to_pascal_case().ts2_or_panic(),
-            RelationTy::HasOne => self.ra.key_str().to_pascal_case().ts2_or_panic(),
-            RelationTy::HasMany => self.ra.key_str().to_pascal_case().ts2_or_panic(),
-            RelationTy::ManyToMany => "id".to_pascal_case().ts2_or_panic(),
+            RelationTy::BelongsTo => "id".to_owned(),
+            RelationTy::HasOne => self.a.key_str(),
+            RelationTy::HasMany => self.a.key_str(),
+            RelationTy::ManyToMany => "id".to_owned(),
         }
+        .to_pascal_case()
+        .ts2_or_panic()
     }
 
     fn body_one(&self) -> Ts2 {
-        let model = self.ra.to();
+        let model = self.a.to();
         let column = self.column();
         let col = self.col();
-        let include_deleted = get_include_deleted(!self.ra.no_include_deleted);
+        let include_deleted = get_include_deleted(!self.a.no_include_deleted);
         let r = quote! {
             #model::gql_load(ctx, #column::#col, id, #include_deleted).await?
         };
         self.body_utils(r, false)
     }
     fn body_many(&self, extra_cond: Ts2) -> Ts2 {
-        let model = self.ra.to();
-        let include_deleted = get_include_deleted(!self.ra.no_include_deleted);
+        let model = self.a.to();
+        let include_deleted = get_include_deleted(!self.a.no_include_deleted);
         let r = quote! {
             #extra_cond
             #model::gql_search(ctx, tx, Some(extra_cond), filter, None, order_by, None, page, #include_deleted).await?
@@ -97,11 +99,11 @@ impl GenRelation {
     fn body_many_to_many(&self) -> Ts2 {
         let column = self.column();
         let col = self.col();
-        let through = self.ra.through();
+        let through = self.a.through();
         let through_column = ty_column(&through);
-        let through_key_col = self.ra.key_str().to_pascal_case().ts2_or_panic();
+        let through_key_col = self.a.key_str().to_pascal_case().ts2_or_panic();
         let through_other_key_col = self
-            .ra
+            .a
             .other_key()
             .to_string()
             .to_pascal_case()
@@ -125,13 +127,13 @@ impl VirtualResolverFn for GenRelation {
 }
 impl AttrDebug for GenRelation {
     fn attr_debug(&self) -> String {
-        self.ra.inner.attr_debug()
+        self.a.inner.attr_debug()
     }
 }
 
 impl ResolverFn for GenRelation {
     fn name(&self) -> Ts2 {
-        self.ra.name()
+        self.a.name()
     }
     fn gql_name(&self) -> String {
         self.name().to_string().to_lower_camel_case()

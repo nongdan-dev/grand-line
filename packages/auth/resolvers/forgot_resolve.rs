@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[mutation(auth = "unauthenticated")]
+#[mutation(auth(unauthenticated))]
 async fn forgot_resolve(data: AuthOtpResolve, password: String) -> LoginSessionWithSecret {
     let h = &ctx.auth_config().handlers;
     h.password_validate(ctx, &password).await?;

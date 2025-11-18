@@ -6,7 +6,7 @@ pub struct Login {
     pub password: String,
 }
 
-#[create(LoginSession, resolver_output, auth = "unauthenticated")]
+#[create(LoginSession, resolver_output, auth(unauthenticated))]
 async fn login() -> LoginSessionWithSecret {
     let h = &ctx.auth_config().handlers;
     let lsd = login_session_ensure_data(ctx)?;

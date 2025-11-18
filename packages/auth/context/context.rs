@@ -7,7 +7,7 @@ pub trait AuthContext {
     async fn auth_without_cache(&self) -> Res<Option<LoginSessionCache>>;
     async fn auth_ensure_authenticated(&self) -> Res<()>;
     async fn auth_ensure_not_authenticated(&self) -> Res<()>;
-    async fn auth_ensure_in_macro(&self, rule: AuthDirectiveRule) -> Res<()>;
+    async fn auth_ensure_in_macro(&self, check: AuthDirectiveCheck) -> Res<()>;
     fn get_cookie_login_session(&self) -> Res<String>;
     fn set_cookie_login_session(&self, ls: &LoginSessionSql) -> Res<()>;
 }
@@ -91,10 +91,10 @@ impl AuthContext for Context<'_> {
         Ok(())
     }
 
-    async fn auth_ensure_in_macro(&self, rule: AuthDirectiveRule) -> Res<()> {
-        match rule {
-            AuthDirectiveRule::Authenticated => self.auth_ensure_authenticated().await?,
-            AuthDirectiveRule::Unauthenticated => self.auth_ensure_not_authenticated().await?,
+    async fn auth_ensure_in_macro(&self, check: AuthDirectiveCheck) -> Res<()> {
+        match check {
+            AuthDirectiveCheck::Authenticated => self.auth_ensure_authenticated().await?,
+            AuthDirectiveCheck::Unauthenticated => self.auth_ensure_not_authenticated().await?,
         }
         Ok(())
     }

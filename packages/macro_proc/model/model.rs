@@ -262,7 +262,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             virtual_resolvers.push(match v {
                 VirtualTy::Relation(ty) => Box::new(GenRelation {
                     ty: ty.clone(),
-                    ra: a.clone().into_with_validate(),
+                    a: a.clone().into_with_validate(),
                 }),
                 VirtualTy::Resolver => {
                     let g = GenResolver {

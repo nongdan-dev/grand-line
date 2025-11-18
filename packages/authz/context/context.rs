@@ -2,20 +2,14 @@ use crate::prelude::*;
 
 #[async_trait]
 pub trait AuthzContext {
-    async fn authz_ensure_in_macro(&self, rule: Option<AuthzRule>) -> Res<()>;
+    async fn authz_ensure_in_macro(&self, check: AuthzDirectiveEnsure) -> Res<()>;
     async fn org_header_with_cache(&self) -> Res<Arc<OrgHeaderCache>>;
     async fn org_header_without_cache(&self) -> Res<OrgHeaderCache>;
 }
 
 #[async_trait]
 impl AuthzContext for Context<'_> {
-    async fn authz_ensure_in_macro(&self, rule: Option<AuthzRule>) -> Res<()> {
-        let rule = if let Some(rule) = rule {
-            rule
-        } else {
-            return Ok(());
-        };
-
+    async fn authz_ensure_in_macro(&self, check: AuthzDirectiveEnsure) -> Res<()> {
         let tx = &*self.tx().await?;
         let operation = self.field().name();
 
@@ -26,9 +20,8 @@ impl AuthzContext for Context<'_> {
         let mut sub = Role::find()
             .exclude_deleted()
             .select_only()
-            .column(RoleColumn::Id)
-            .filter(RoleColumn::Key.eq(rule.key));
-        if rule.org {
+            .column(RoleColumn::Id);
+        if check.org {
             let org_id = &self.org_header_with_cache().await?.id;
             sub = sub.filter(RoleColumn::OrgId.eq(org_id));
         } else {
@@ -36,14 +29,14 @@ impl AuthzContext for Context<'_> {
         }
         q = q.filter(PolicyColumn::RoleId.in_subquery(sub.into_query()));
 
-        if rule.user {
+        if check.user {
             let user_id = self.auth().await?;
             let mut sub = UserInRole::find()
                 .exclude_deleted()
                 .select_only()
                 .column(UserInRoleColumn::RoleId)
                 .filter(UserInRoleColumn::UserId.eq(user_id));
-            if rule.org {
+            if check.org {
                 let org_id = &self.org_header_with_cache().await?.id;
                 sub = sub.filter(UserInRoleColumn::OrgId.eq(org_id))
             } else {

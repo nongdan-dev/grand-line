@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[mutation(auth = "unauthenticated")]
+#[mutation(auth(unauthenticated))]
 async fn register_resolve(data: AuthOtpResolve) -> LoginSessionWithSecret {
     let h = &ctx.auth_config().handlers;
     let lsd = login_session_ensure_data(ctx)?;

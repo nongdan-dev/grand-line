@@ -64,10 +64,10 @@ impl ResolverFn for ResolverTy {
     fn no_ctx(&self) -> bool {
         self.ra.no_ctx
     }
-    fn auth(&self) -> Option<String> {
+    fn auth(&self) -> Option<AuthAttr> {
         self.ra.auth.clone()
     }
-    fn authz(&self) -> Option<String> {
+    fn authz(&self) -> Option<AuthzAttr> {
         self.ra.authz.clone()
     }
 }

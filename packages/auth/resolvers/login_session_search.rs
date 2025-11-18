@@ -1,13 +1,13 @@
 use crate::prelude::*;
 
-#[search(LoginSession, no_include_deleted, auth = "authenticated")]
+#[search(LoginSession, no_include_deleted, auth)]
 fn resolver() {
     let f = get_filter(ctx).await?;
     let o = order_by!(LoginSession[UpdatedAtDesc]);
     (Some(f), Some(o))
 }
 
-#[count(LoginSession, no_include_deleted, auth = "authenticated")]
+#[count(LoginSession, no_include_deleted, auth)]
 fn resolver() {
     let f = get_filter(ctx).await?;
     Some(f)

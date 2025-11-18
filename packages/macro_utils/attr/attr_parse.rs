@@ -23,14 +23,26 @@ impl AttrParse {
     {
         Attr::from_proc_macro(macro_name, self).into_with_validate()
     }
-}
-
-impl Parse for AttrParse {
-    fn parse(s: ParseStream) -> Result<Self> {
+    pub fn from_meta_list_token_stream(ts: Ts2) -> Self {
+        let metas = if ts.to_string().trim().is_empty() {
+            vec![]
+        } else {
+            let x = &ts;
+            Punctuated::<Meta, Token![,]>::parse_terminated
+                .parse2(ts.clone())
+                .unwrap_or_else(|e| {
+                    panic!("failed to parse meta list from token stream `{x}`: {e}")
+                })
+                .into_iter()
+                .collect()
+        };
+        AttrParse::from_meta_list(metas)
+    }
+    pub fn from_meta_list(metas: Vec<Meta>) -> Self {
         let mut args = Vec::new();
         let mut first = true;
         let mut first_path = None;
-        for m in Punctuated::<Meta, Token![,]>::parse_terminated(s)? {
+        for m in metas {
             let (k, v, ty);
             match m {
                 Meta::Path(m) => {
@@ -55,6 +67,16 @@ impl Parse for AttrParse {
             args.push((k, (v, ty)));
             first = false;
         }
-        Ok(Self { args, first_path })
+        Self { args, first_path }
+    }
+}
+
+impl Parse for AttrParse {
+    fn parse(s: ParseStream) -> Result<Self> {
+        let metas = Punctuated::<Meta, Token![,]>::parse_terminated(s)?
+            .into_iter()
+            .collect();
+        let a = Self::from_meta_list(metas);
+        Ok(a)
     }
 }

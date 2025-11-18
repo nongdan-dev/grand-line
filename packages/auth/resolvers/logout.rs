@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[mutation(auth = "authenticated")]
+#[mutation(auth)]
 async fn logout() -> LoginSessionGql {
     let arc = ctx.auth_with_cache().await?;
     let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;

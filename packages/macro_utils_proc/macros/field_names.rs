@@ -64,7 +64,7 @@ pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
     quote! {
         #item
         impl #name {
-            pub const F: [&'static str; #l] = [#(#all)*];
+            pub const FIELDS: [&'static str; #l] = [#(#all)*];
             #(#impls)*
         }
     }

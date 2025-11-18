@@ -30,7 +30,7 @@ impl From<Attr> for CrudAttr {
 }
 impl AttrValidate for CrudAttr {
     fn attr_fields(a: &Attr) -> Vec<String> {
-        Self::F
+        Self::FIELDS
             .iter()
             .copied()
             .map(|f| f.to_owned())

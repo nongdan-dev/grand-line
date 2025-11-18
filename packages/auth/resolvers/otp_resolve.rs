@@ -8,7 +8,7 @@ pub struct AuthOtpResolve {
     pub otp: String,
 }
 
-#[mutation(auth = "unauthenticated")]
+#[mutation(auth(unauthenticated))]
 fn auth_otp_resolve(ty: AuthOtpTy, data: AuthOtpResolve) -> AuthOtpGql {
     otp_ensure_resolve(ctx, tx, ty, data)
         .await?

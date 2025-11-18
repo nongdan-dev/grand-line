@@ -5,8 +5,8 @@ pub struct ResolverTyAttr {
     pub no_tx: bool,
     pub no_ctx: bool,
     pub no_include_deleted: bool,
-    pub auth: Option<String>,
-    pub authz: Option<String>,
+    pub auth: Option<AuthAttr>,
+    pub authz: Option<AuthzAttr>,
     #[field_names(skip)]
     pub inner: Attr,
 }
@@ -18,21 +18,33 @@ impl From<Attr> for ResolverTyAttr {
             no_include_deleted: a
                 .bool(Self::FIELD_NO_INCLUDE_DELETED)
                 .unwrap_or(FEATURE_NO_INCLUDE_DELETED),
-            auth: a.str(Self::FIELD_AUTH),
-            authz: a.str(Self::FIELD_AUTHZ),
+            auth: a.nested_with_path_into(Self::FIELD_AUTH).map(|(_, a)| a),
+            authz: a
+                .nested_with_path_into::<AuthzAttr>(Self::FIELD_AUTHZ)
+                .map(|(path, mut a)| {
+                    if path {
+                        a.org = true;
+                        a.user = true;
+                    }
+                    a
+                }),
             inner: a,
         }
     }
 }
 impl AttrValidate for ResolverTyAttr {
     fn attr_fields(a: &Attr) -> Vec<String> {
-        let f = Self::F.iter().copied().map(|f| f.to_owned()).filter(|f| {
-            if TY_INCLUDE_DELETED.contains(&a.attr) {
-                true
-            } else {
-                f != Self::FIELD_NO_INCLUDE_DELETED
-            }
-        });
+        let f = Self::FIELDS
+            .iter()
+            .copied()
+            .map(|f| f.to_owned())
+            .filter(|f| {
+                if TY_INCLUDE_DELETED.contains(&a.attr) {
+                    true
+                } else {
+                    f != Self::FIELD_NO_INCLUDE_DELETED
+                }
+            });
         #[cfg(not(feature = "auth"))]
         let f = f.filter(|f| f != Self::FIELD_AUTH);
         #[cfg(not(feature = "authz"))]

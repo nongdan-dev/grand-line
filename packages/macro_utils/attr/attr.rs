@@ -45,11 +45,17 @@ impl Attr {
         r.first_path = a.first_path;
         r
     }
-    pub fn from_ts2(_debug: &str, _attr: &str, ts: Ts2) -> Self {
-        let _metas = Punctuated::<Meta, Token![,]>::parse_terminated
-            .parse2(ts)
-            .unwrap_or_else(|e| todo!("{e}"));
-        todo!()
+    pub fn from_ts2(debug: &str, attr: &str, ts: Ts2) -> Self {
+        let a = AttrParse::from_meta_list_token_stream(ts);
+        let mut r = Self::init(debug, attr, a.args);
+        r.first_path = a.first_path;
+        r
+    }
+    pub fn from_ts2_into<V>(debug: &str, attr: &str, ts: Ts2) -> V
+    where
+        V: From<Self> + AttrValidate,
+    {
+        Self::from_ts2(debug, attr, ts).into_with_validate()
     }
 
     pub fn from_field(model: &str, f: &Field, raw: &dyn Fn(&str) -> bool) -> Vec<Self> {
@@ -63,54 +69,23 @@ impl Attr {
         let field = f.ident.to_token_stream();
         let debug = format!("{model}.{field}");
         let field = Some((model.to_owned(), a.clone(), f.clone()));
-        if raw(&attr) {
-            let panic = || panic!("should match syntax #[{attr}(some_value)]");
-            let raw = a
-                .meta
-                .to_token_stream()
-                .to_string()
-                .trim()
-                .strip_prefix(&attr)
-                .unwrap_or_else(panic)
-                .trim()
-                .strip_prefix("(")
-                .unwrap_or_else(panic)
-                .strip_suffix(")")
-                .unwrap_or_else(panic)
-                .trim()
-                .to_owned();
+        let mut r = if raw(&attr) {
             let mut r = Self::init(&debug, &attr, vec![]);
-            r.field = field;
-            r.raw = Some(raw);
-            return r;
-        }
-        let mut args = Vec::<(String, (String, AttrParseTy))>::new();
-        let mut first = true;
-        let mut first_path = None;
-        let _ = a.parse_nested_meta(|m| {
-            let k = m.path.get_ident().to_token_stream().to_string();
-            let (v, ty);
-            if m.input.peek(Token![=]) {
-                v = m.value()?.to_string();
-                ty = AttrParseTy::NameValue;
-            } else if m.input.peek(Paren) {
-                let nested;
-                parenthesized!(nested in m.input);
-                v = nested.parse::<Ts2>()?.to_string();
-                ty = AttrParseTy::List;
-            } else {
-                v = "".to_owned();
-                ty = AttrParseTy::Path;
+            r.raw = Some(match &a.meta {
+                Meta::List(l) => l.tokens.to_string(),
+                _ => panic!("raw attr should be meta list #[{attr}(some_value)]"),
+            });
+            r
+        } else {
+            match &a.meta {
+                // #[attr(nested)]
+                Meta::List(l) => Self::from_ts2(&debug, &attr, l.tokens.clone()),
+                // Meta::Path(_) => #[attr] without any nested meta, args should be empty
+                // Meta::NameValue(_) => #[attr = some_value] we are not using, args should be empty
+                // there are case such as #[doc = "some_value"] then we should not panic
+                _ => Self::init(&debug, &attr, vec![]),
             }
-            if first && ty == AttrParseTy::Path {
-                first_path = Some(k.clone());
-            }
-            args.push((k, (v, ty)));
-            first = false;
-            Ok(())
-        });
-        let mut r = Self::init(&debug, &attr, args);
-        r.first_path = first_path;
+        };
         r.field = field;
         r
     }
@@ -156,6 +131,17 @@ impl Attr {
             None => self.panic_required(k),
         }
     }
+    pub fn bool_should_omit(&self, k: &str) -> bool {
+        match self.bool(k) {
+            Some(v) => {
+                if !v {
+                    self.panic_by_key(k, "should omit");
+                }
+                true
+            }
+            None => false,
+        }
+    }
 
     pub fn str(&self, k: &str) -> Option<String> {
         match self.args.get(k) {
@@ -187,17 +173,40 @@ impl Attr {
             None => self.panic_required(k),
         }
     }
-    pub fn nested_with_path(&self, k: &str) -> Option<String> {
+    pub fn nested_into<V>(&self, k: &str) -> Option<V>
+    where
+        V: From<Self> + AttrValidate,
+    {
+        self.nested(k)
+            .map(|v| Self::from_ts2_into(&self.attr_debug(), k, v.ts2_or_panic()))
+    }
+
+    pub fn nested_with_path(&self, k: &str) -> Option<(bool, String)> {
         match self.args.get(k) {
-            Some((v, AttrParseTy::Path)) => Some(v.to_owned()),
-            _ => self.nested(k),
+            Some((v, AttrParseTy::Path)) => Some((true, v.to_owned())),
+            _ => self.nested(k).map(|v| (false, v)),
         }
     }
-    pub fn nested_with_path_or_panic(&self, k: &str) -> String {
+    pub fn nested_with_path_or_panic(&self, k: &str) -> (bool, String) {
         match self.nested_with_path(k) {
             Some(v) => v,
             None => self.panic_required(k),
         }
+    }
+    pub fn nested_with_path_into<V>(&self, k: &str) -> Option<(bool, V)>
+    where
+        V: From<Self> + AttrValidate,
+    {
+        self.nested_with_path(k).map(|(path, v)| {
+            (
+                path,
+                if path {
+                    Self::init(&self.attr_debug(), k, vec![]).into_with_validate()
+                } else {
+                    Self::from_ts2_into(&self.attr_debug(), k, v.ts2_or_panic())
+                },
+            )
+        })
     }
 
     pub fn parse<V>(&self, k: &str) -> Option<V>

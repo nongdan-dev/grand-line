@@ -28,6 +28,6 @@ impl From<Attr> for ModelAttr {
 }
 impl AttrValidate for ModelAttr {
     fn attr_fields(_: &Attr) -> Vec<String> {
-        Self::F.iter().copied().map(|f| f.to_owned()).collect()
+        Self::FIELDS.iter().copied().map(|f| f.to_owned()).collect()
     }
 }
