@@ -18,12 +18,12 @@ fn db_uri() -> &'static str {
 // create temporary db and automatically clean up on drop
 
 pub struct TmpDb {
-    ty: TmpDbType,
+    ty: TmpDbTy,
     name: String,
     pub db: DatabaseConnection,
 }
 
-enum TmpDbType {
+enum TmpDbTy {
     Postgres,
     MySql { admin: DatabaseConnection },
     Sqlite,
@@ -54,7 +54,7 @@ impl TmpDb {
         Ok(Self {
             name,
             db,
-            ty: TmpDbType::Postgres,
+            ty: TmpDbTy::Postgres,
         })
     }
 
@@ -71,7 +71,7 @@ impl TmpDb {
         Ok(Self {
             name,
             db,
-            ty: TmpDbType::MySql { admin },
+            ty: TmpDbTy::MySql { admin },
         })
     }
 
@@ -82,13 +82,13 @@ impl TmpDb {
         Ok(Self {
             name,
             db,
-            ty: TmpDbType::Sqlite,
+            ty: TmpDbTy::Sqlite,
         })
     }
 
     pub async fn drop(&self) -> Res<()> {
         Ok(match &self.ty {
-            TmpDbType::Postgres => {
+            TmpDbTy::Postgres => {
                 let stmt = "SET search_path TO public;";
                 exec(&self.db, DbBackend::Postgres, &stmt).await?;
                 let name = &self.name;
@@ -96,13 +96,13 @@ impl TmpDb {
                 exec(&self.db, DbBackend::Postgres, &stmt).await?;
                 self.db.clone().close().await?;
             }
-            TmpDbType::MySql { admin } => {
+            TmpDbTy::MySql { admin } => {
                 self.db.clone().close().await?;
                 let name = &self.name;
                 let stmt = format!("DROP DATABASE IF EXISTS {name};");
                 exec(admin, DbBackend::MySql, &stmt).await?;
             }
-            TmpDbType::Sqlite => {
+            TmpDbTy::Sqlite => {
                 self.db.clone().close().await?;
             }
         })

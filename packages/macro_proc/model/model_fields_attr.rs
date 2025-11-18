@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-pub struct ModelDeriveAttr {
+pub struct ModelFieldsAttr {
     pub defaults: Vec<Attr>,
     pub virtuals: Vec<Vec<Attr>>,
     pub exprs: Vec<Vec<Attr>>,
@@ -9,7 +9,7 @@ pub struct ModelDeriveAttr {
 }
 
 /// Parse macro attributes, extract and validate fields.
-pub fn model_derive_attr(model: &str, fields: &Punctuated<Field, Comma>) -> ModelDeriveAttr {
+pub fn model_fields_attr(model: &str, fields: &Punctuated<Field, Token![,]>) -> ModelFieldsAttr {
     let (mut defaults, mut virtuals, mut exprs, mut gql, mut sql) =
         (vec![], vec![], vec![], vec![], vec![]);
 
@@ -39,7 +39,7 @@ pub fn model_derive_attr(model: &str, fields: &Punctuated<Field, Comma>) -> Mode
         gql.push((extracted, attrs));
     }
 
-    ModelDeriveAttr {
+    ModelFieldsAttr {
         defaults,
         virtuals,
         exprs,
@@ -107,16 +107,13 @@ fn attr_sql(attrs: &[Attr]) -> Vec<Attribute> {
 
 /// Filter to only keep related attrs for the gql model.
 fn attr_gql(attrs: &[Attr]) -> Vec<Attribute> {
-    let ne = [
+    let ne = hashset![
         // TODO: copy #[graphql...] and comments from the original field
         "",
-    ]
-    .iter()
-    .map(|a| (*a).to_owned())
-    .collect::<HashSet<_>>();
+    ];
     attrs
         .iter()
-        .filter(|a| !ne.contains(&a.attr))
+        .filter(|a| !ne.contains(&a.attr.as_ref()))
         .map(|a| a.field_attr())
         .collect()
 }

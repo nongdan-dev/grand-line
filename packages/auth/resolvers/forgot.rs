@@ -5,13 +5,13 @@ pub struct Forgot {
     pub email: Email,
 }
 
-#[create(AuthOtp, resolver_output, auth = 0)]
+#[create(AuthOtp, resolver_output, auth = "unauthenticated")]
 async fn forgot() -> AuthOtpWithSecret {
     let h = &ctx.auth_config().handlers;
     otp_ensure_re_request(ctx, tx, AuthOtpTy::Forgot, &data.email.0).await?;
 
     let u = User::find()
-        .include_deleted(None)
+        .exclude_deleted()
         .filter(UserColumn::Email.eq(&data.email.0))
         .one_or_404(tx)
         .await?;

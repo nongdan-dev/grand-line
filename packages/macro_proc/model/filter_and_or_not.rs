@@ -16,7 +16,7 @@ fn push_and_or(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str
     };
 
     struk.push(quote! {
-        #[graphql(name=#gql_op)]
+        #[graphql(name = #gql_op)]
         pub #op: Option<Vec<#f>>,
     });
     query.push(quote! {
@@ -32,7 +32,7 @@ fn push_and_or(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str
 
 fn push_not(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
     struk.push(quote! {
-        #[graphql(name="NOT")]
+        #[graphql(name = "NOT")]
         pub not: Option<Box<#f>>,
     });
     query.push(quote! {

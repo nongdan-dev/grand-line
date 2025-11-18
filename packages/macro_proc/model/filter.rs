@@ -63,7 +63,8 @@ fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
         name = format!("{name}_{gql_op}").to_snake_case().ts2_or_panic();
         let gql_op_camel = pg
             .get(op_str)
-            .map(|v| (*v).to_owned())
+            .copied()
+            .map(|v| v.to_owned())
             .unwrap_or_else(|| gql_op.to_lower_camel_case());
         gql_name = format!("{gql_name}_{gql_op_camel}");
     }
@@ -75,7 +76,7 @@ fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
         quote!(Option<#ty>)
     };
     struk.push(quote! {
-        #[graphql(name=#gql_name)]
+        #[graphql(name = #gql_name)]
         pub #name: #ty,
     });
     // push query

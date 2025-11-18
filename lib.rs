@@ -6,10 +6,10 @@ pub mod export {
 
     #[cfg(feature = "auth")]
     pub use _auth::export::*;
+    #[cfg(feature = "authz")]
+    pub use _authz::export::*;
     #[cfg(feature = "http")]
     pub use _http::export::*;
-    #[cfg(feature = "policy")]
-    pub use _policy::export::*;
     #[cfg(feature = "rand_utils")]
     pub use _rand_utils::export::*;
     #[cfg(feature = "tracing")]
@@ -21,10 +21,10 @@ pub mod reexport {
 
     #[cfg(feature = "auth")]
     pub use _auth::reexport::*;
+    #[cfg(feature = "authz")]
+    pub use _authz::reexport::*;
     #[cfg(feature = "http")]
     pub use _http::reexport::*;
-    #[cfg(feature = "policy")]
-    pub use _policy::reexport::*;
     #[cfg(feature = "rand_utils")]
     pub use _rand_utils::reexport::*;
     #[cfg(feature = "tracing")]
@@ -39,10 +39,10 @@ pub mod prelude {
     pub use crate::test_utils::prelude::*;
     #[cfg(feature = "auth")]
     pub use _auth::prelude::*;
+    #[cfg(feature = "authz")]
+    pub use _authz::prelude::*;
     #[cfg(feature = "http")]
     pub use _http::prelude::*;
-    #[cfg(feature = "policy")]
-    pub use _policy::prelude::*;
     #[cfg(feature = "rand_utils")]
     pub use _rand_utils::prelude::*;
     #[cfg(feature = "tracing")]

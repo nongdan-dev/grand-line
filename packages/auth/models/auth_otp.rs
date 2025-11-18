@@ -23,12 +23,12 @@ pub struct AuthOtp {
     #[default(0)]
     #[graphql(skip)]
     pub total_attempt: i64,
-    #[resolver(sql_dep=total_attempt)]
+    #[resolver(sql_dep = "total_attempt")]
     pub remaining_attempt: i64,
 
-    #[resolver(sql_dep=created_at)]
+    #[resolver(sql_dep = "created_at")]
     pub will_expire_at: DateTimeUtc,
-    #[resolver(sql_dep=created_at)]
+    #[resolver(sql_dep = "created_at")]
     pub can_re_request_at: DateTimeUtc,
 }
 

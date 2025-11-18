@@ -20,9 +20,9 @@ where
         s
     }
 
-    fn to_loader_key(&self, look_ahead: &[LookaheadX<E>], include_deleted: bool) -> String {
-        let include_deleted = if include_deleted {
-            "include_deleted-"
+    fn to_loader_key(&self, look_ahead: &[LookaheadX<E>], exclude_deleted: bool) -> String {
+        let exclude_deleted = if exclude_deleted {
+            "exclude_deleted-"
         } else {
             ""
         };
@@ -33,7 +33,7 @@ where
             + 1
             + col.len()
             + 1
-            + include_deleted.len()
+            + exclude_deleted.len()
             + look_ahead.iter().map(|l| l.c.len() + 1).sum::<usize>();
         let mut s = String::with_capacity(len);
 
@@ -41,7 +41,7 @@ where
         s.push('.');
         s.push_str(col);
         s.push('-');
-        s.push_str(include_deleted);
+        s.push_str(exclude_deleted);
 
         let mut first = true;
         for l in look_ahead {

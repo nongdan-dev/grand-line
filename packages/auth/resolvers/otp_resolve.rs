@@ -8,7 +8,7 @@ pub struct AuthOtpResolve {
     pub otp: String,
 }
 
-#[mutation(auth = 0)]
+#[mutation(auth = "unauthenticated")]
 fn auth_otp_resolve(ty: AuthOtpTy, data: AuthOtpResolve) -> AuthOtpGql {
     otp_ensure_resolve(ctx, tx, ty, data)
         .await?
@@ -23,6 +23,7 @@ pub(crate) async fn otp_ensure_resolve(
     data: AuthOtpResolve,
 ) -> Res<AuthOtpSql> {
     let u = AuthOtp::update_many()
+        .exclude_deleted()
         .filter_by_id(&data.id)
         .filter(AuthOtpColumn::Ty.eq(ty))
         .set(AuthOtpActiveModel::defaults_on_update())
@@ -44,7 +45,9 @@ pub(crate) async fn otp_ensure_resolve(
         if u.exec(tx).await?.rows_affected == 0 {
             Err(MyErr::OtpResolveInvalid)?;
         }
-        AuthOtp::find_by_id(&data.id)
+        AuthOtp::find()
+            .exclude_deleted()
+            .filter_by_id(&data.id)
             .one(tx)
             .await?
             .ok_or(MyErr::OtpResolveInvalid)?
@@ -76,6 +79,7 @@ pub(crate) async fn otp_ensure_re_request(
     email: &str,
 ) -> Res<()> {
     let t = AuthOtp::find()
+        .exclude_deleted()
         .filter(AuthOtpColumn::Ty.eq(ty))
         .filter(AuthOtpColumn::Email.eq(email))
         .one(tx)

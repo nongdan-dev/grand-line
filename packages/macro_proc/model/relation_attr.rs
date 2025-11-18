@@ -16,7 +16,7 @@ impl From<Attr> for RelationAttr {
     fn from(a: Attr) -> Self {
         Self {
             no_include_deleted: a
-                .bool(Self::F_NO_INCLUDE_DELETED)
+                .bool(Self::FIELD_NO_INCLUDE_DELETED)
                 .unwrap_or(FEATURE_NO_INCLUDE_DELETED),
             inner: a,
         }
@@ -24,12 +24,12 @@ impl From<Attr> for RelationAttr {
 }
 impl AttrValidate for RelationAttr {
     fn attr_fields(a: &Attr) -> Vec<String> {
-        let mut f = vec![Self::F_KEY];
+        let mut f = vec![Self::FIELD_KEY];
         if a.attr == RelationTy::ManyToMany {
-            f.push(Self::F_THROUGH);
-            f.push(Self::F_OTHER_KEY);
+            f.push(Self::FIELD_THROUGH);
+            f.push(Self::FIELD_OTHER_KEY);
         }
-        f.iter().map(|f| (*f).to_owned()).collect()
+        f.iter().copied().map(|f| f.to_owned()).collect()
     }
 }
 
@@ -45,7 +45,7 @@ impl RelationAttr {
     }
 
     pub fn key_str(&self) -> String {
-        self.inner.str(Self::F_KEY).unwrap_or_else(|| {
+        self.inner.str(Self::FIELD_KEY).unwrap_or_else(|| {
             let field = self.inner.field_name();
             let model = self.inner.field_model();
             match self.inner.attr == RelationTy::BelongsTo {
@@ -56,25 +56,25 @@ impl RelationAttr {
     }
     pub fn through(&self) -> Ts2 {
         self.inner
-            .str(Self::F_THROUGH)
+            .str(Self::FIELD_THROUGH)
             .unwrap_or_else(|| {
                 let model = self.inner.field_model();
                 let ty = self.inner.field_ty();
                 match self.inner.attr == RelationTy::ManyToMany {
                     true => format!("{model}_in_{ty}").to_pascal_case(),
-                    false => self.bug(Self::F_THROUGH),
+                    false => self.bug(Self::FIELD_THROUGH),
                 }
             })
             .ts2_or_panic()
     }
     pub fn other_key(&self) -> Ts2 {
         self.inner
-            .str(Self::F_OTHER_KEY)
+            .str(Self::FIELD_OTHER_KEY)
             .unwrap_or_else(|| {
                 let ty = self.inner.field_ty();
                 match self.inner.attr == RelationTy::ManyToMany {
                     true => format!("{ty}_id").to_snake_case(),
-                    false => self.bug(Self::F_OTHER_KEY),
+                    false => self.bug(Self::FIELD_OTHER_KEY),
                 }
             })
             .ts2_or_panic()

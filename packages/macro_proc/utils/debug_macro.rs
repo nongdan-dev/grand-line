@@ -33,27 +33,17 @@ pub fn debug_macro(name: &str, ts: Ts2) {
         let path = format!("target/grand-line/{name}.rs");
         let path = PathBuf::from(path);
 
-        let parent = path.parent().unwrap_or_else(|| {
-            panic!("path.parent: None");
-        });
-        create_dir_all(parent).unwrap_or_else(|e| {
-            panic!("create_dir_all: {e}");
-        });
+        let parent = path.parent().unwrap_or_else(|| panic!("path.parent: None"));
+        create_dir_all(parent).unwrap_or_else(|e| panic!("create_dir_all: {e}"));
 
-        let mut file = File::create(&path).unwrap_or_else(|e| {
-            panic!("File::create: {e}");
-        });
-        writeln!(file, "{}", code).unwrap_or_else(|e| {
-            panic!("writeln!: {e}");
-        });
+        let mut file = File::create(&path).unwrap_or_else(|e| panic!("File::create: {e}"));
+        writeln!(file, "{}", code).unwrap_or_else(|e| panic!("writeln!: {e}"));
 
         Command::new("rustfmt")
             .arg("--edition")
             .arg("2024")
             .arg(&path)
             .status()
-            .unwrap_or_else(|e| {
-                panic!("rustfmt: {e}");
-            });
+            .unwrap_or_else(|e| panic!("rustfmt: {e}"));
     }
 }

@@ -16,8 +16,10 @@ where
     fn no_ctx(&self) -> bool {
         false
     }
-    #[cfg(feature = "auth")]
-    fn auth(&self) -> Option<bool> {
+    fn auth(&self) -> Option<String> {
+        None
+    }
+    fn authz(&self) -> Option<String> {
         None
     }
 
@@ -30,32 +32,29 @@ where
         let no_tx = self.no_tx();
         let no_ctx = self.no_ctx();
 
-        #[cfg(not(any(feature = "auth", feature = "policy")))]
-        let (directives, directive_comments): (Vec<Ts2>, Vec<Ts2>) = (vec![], vec![]);
-        #[cfg(any(feature = "auth", feature = "policy"))]
         let (mut directives, mut directive_comments) = (vec![], vec![]);
 
-        #[cfg(feature = "auth")]
-        {
+        if let Some(auth) = self.auth() {
             if no_ctx {
                 self.panic("auth requires ctx");
             }
-            let auth = match self.auth() {
-                Some(true) => "authenticate",
-                Some(false) => "unauthenticated",
-                None => "none",
-            };
+            let valid = hashset!["authenticated", "unauthenticated"];
+            if !valid.contains(&auth.as_ref()) {
+                let valid = valid.iter().copied().collect::<Vec<_>>().join(", ");
+                let err = format!("invalid auth = {auth}, should be one of: {valid}");
+                self.panic(&err);
+            }
             let pascal = auth.to_pascal_case().ts2_or_panic();
-            let ensure = quote!(AuthEnsure::#pascal);
+            let rule = quote!(AuthDirectiveRule::#pascal);
             body = quote! {
-                ctx.ensure_auth_in_macro(#ensure).await?;
+                ctx.auth_ensure_in_macro(#rule).await?;
                 #body
             };
             directives.push(quote! {
-                directive=auth_directive::apply(#ensure),
+                directive = auth_directive::apply(#rule),
             });
             let shouty = auth.to_shouty_snake_case().ts2_or_panic();
-            directive_comments.push(format!("@auth(ensure: {shouty})"));
+            directive_comments.push(format!("@auth(rule: {shouty})"));
         }
 
         if !no_tx {
@@ -83,7 +82,7 @@ where
         quote! {
             // TODO: copy #[graphql...] and directive_comments from the original field
             #[graphql(
-                name=#gql_name,
+                name = #gql_name,
                 #(#directives)*
             )]
             #(#[doc = #directive_comments])*

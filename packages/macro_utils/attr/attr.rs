@@ -8,7 +8,7 @@ pub struct Attr {
     /// In field, this will be Model.field.
     debug: String,
     /// In proc macro, this is the macro name.
-    /// In field, this will be one of attribute from AttrTy.
+    /// In field, this will be one of AttrTy.
     pub attr: String,
     /// Raw args parsed as strings
     args: HashMap<String, (String, AttrParseTy)>,
@@ -17,7 +17,7 @@ pub struct Attr {
     first_path: Option<String>,
     /// Only in field.
     field: Option<(String, Attribute, Field)>,
-    /// Only in attribute sql_expr(...).
+    /// Only in attr such as #[default(..)], #[sql_expr(..)], etc..
     raw: Option<String>,
 }
 
@@ -40,10 +40,16 @@ impl Attr {
         a
     }
 
-    pub fn from_proc_macro(name: &str, a: AttrParse) -> Self {
-        let mut r = Self::init("", name, a.args);
+    pub fn from_proc_macro(macro_name: &str, a: AttrParse) -> Self {
+        let mut r = Self::init("", macro_name, a.args);
         r.first_path = a.first_path;
         r
+    }
+    pub fn from_ts2(_debug: &str, _attr: &str, ts: Ts2) -> Self {
+        let _metas = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(ts)
+            .unwrap_or_else(|e| todo!("{e}"));
+        todo!()
     }
 
     pub fn from_field(model: &str, f: &Field, raw: &dyn Fn(&str) -> bool) -> Vec<Self> {
@@ -58,7 +64,7 @@ impl Attr {
         let debug = format!("{model}.{field}");
         let field = Some((model.to_owned(), a.clone(), f.clone()));
         if raw(&attr) {
-            let panic = || panic!("should match syntax #[{attr}(some_thing)]");
+            let panic = || panic!("should match syntax #[{attr}(some_value)]");
             let raw = a
                 .meta
                 .to_token_stream()
@@ -73,14 +79,10 @@ impl Attr {
                 .unwrap_or_else(panic)
                 .trim()
                 .to_owned();
-            return Self {
-                debug,
-                attr,
-                args: HashMap::new(),
-                first_path: None,
-                field,
-                raw: Some(raw),
-            };
+            let mut r = Self::init(&debug, &attr, vec![]);
+            r.field = field;
+            r.raw = Some(raw);
+            return r;
         }
         let mut args = Vec::<(String, (String, AttrParseTy))>::new();
         let mut first = true;
@@ -88,7 +90,7 @@ impl Attr {
         let _ = a.parse_nested_meta(|m| {
             let k = m.path.get_ident().to_token_stream().to_string();
             let (v, ty);
-            if m.input.peek(Eq) {
+            if m.input.peek(Token![=]) {
                 v = m.value()?.to_string();
                 ty = AttrParseTy::NameValue;
             } else if m.input.peek(Paren) {
@@ -140,49 +142,61 @@ impl Attr {
     pub fn bool(&self, k: &str) -> Option<bool> {
         match self.args.get(k) {
             Some((_, AttrParseTy::Path)) => Some(true),
-            Some((v, AttrParseTy::NameValue)) => match v == "0" {
+            Some((v, AttrParseTy::NameValue)) => match v == "false" {
                 true => Some(false),
-                false => {
-                    self.panic_invalid_bool(k);
-                }
+                false => self.panic_invalid_bool(k),
             },
-            Some(_) => {
-                self.panic_invalid_bool(k);
-            }
+            Some(_) => self.panic_invalid_bool(k),
             None => None,
         }
     }
     pub fn bool_or_panic(&self, k: &str) -> bool {
         match self.bool(k) {
             Some(v) => v,
-            None => {
-                self.panic_required(k);
-            }
+            None => self.panic_required(k),
         }
     }
 
     pub fn str(&self, k: &str) -> Option<String> {
         match self.args.get(k) {
-            Some((v, AttrParseTy::NameValue)) => {
-                match !(v.starts_with('"') || v.starts_with("r#")) {
-                    true => Some(v.to_owned()),
-                    false => {
-                        self.panic_invalid_string(k);
-                    }
-                }
-            }
-            Some(_) => {
-                self.panic_invalid_string(k);
-            }
+            Some((v, AttrParseTy::NameValue)) => match parse2::<LitStr>(v.ts2_or_panic()) {
+                Ok(v) => Some(v.value()),
+                Err(_) => self.panic_invalid_string(k),
+            },
+            Some(_) => self.panic_invalid_string(k),
             None => None,
         }
     }
     pub fn str_or_panic(&self, k: &str) -> String {
         match self.str(k) {
             Some(v) => v,
-            None => {
-                self.panic_required(k);
-            }
+            None => self.panic_required(k),
+        }
+    }
+
+    pub fn nested(&self, k: &str) -> Option<String> {
+        match self.args.get(k) {
+            Some((v, AttrParseTy::List)) => Some(v.to_owned()),
+            Some(_) => self.panic_invalid_nested(k),
+            None => None,
+        }
+    }
+    pub fn nested_or_panic(&self, k: &str) -> String {
+        match self.nested(k) {
+            Some(v) => v,
+            None => self.panic_required(k),
+        }
+    }
+    pub fn nested_with_path(&self, k: &str) -> Option<String> {
+        match self.args.get(k) {
+            Some((v, AttrParseTy::Path)) => Some(v.to_owned()),
+            _ => self.nested(k),
+        }
+    }
+    pub fn nested_with_path_or_panic(&self, k: &str) -> String {
+        match self.nested_with_path(k) {
+            Some(v) => v,
+            None => self.panic_required(k),
         }
     }
 
@@ -200,7 +214,8 @@ impl Attr {
                 }
             },
             Some(_) => {
-                self.panic_invalid_string(k);
+                let err = format!("should be `{k} = some_value`");
+                self.panic_by_key(k, &err);
             }
             None => None,
         }
@@ -211,18 +226,14 @@ impl Attr {
     {
         match self.parse(k) {
             Some(v) => v,
-            None => {
-                self.panic_required(k);
-            }
+            None => self.panic_required(k),
         }
     }
 
     fn field(&self) -> (String, Attribute, Field) {
         match self.field.clone() {
             Some(v) => v,
-            None => {
-                self.panic("field: None");
-            }
+            None => self.panic("field: None"),
         }
     }
     pub fn field_model(&self) -> String {
@@ -241,9 +252,7 @@ impl Attr {
     pub fn raw(&self) -> String {
         match self.raw.clone() {
             Some(v) => v,
-            None => {
-                self.panic("raw: None");
-            }
+            None => self.panic("raw: None"),
         }
     }
 
@@ -271,11 +280,15 @@ impl Attr {
         self.panic_by_key(k, &err);
     }
     pub fn panic_invalid_bool(&self, k: &str) -> ! {
-        let err = format!("should be `{k}` for true, or `{k}=0` for false");
+        let err = format!("should be `{k}` for true, or `{k} = false` for false");
         self.panic_by_key(k, &err);
     }
     pub fn panic_invalid_string(&self, k: &str) -> ! {
-        let err = format!("should be `{k}=value` without quotes for string");
+        let err = format!(r#"should be `{k} = "some_value"` for string"#);
+        self.panic_by_key(k, &err);
+    }
+    pub fn panic_invalid_nested(&self, k: &str) -> ! {
+        let err = format!("should be `{k}(some_value)` for nested");
         self.panic_by_key(k, &err);
     }
     pub fn panic_by_key(&self, k: &str, err: &str) -> ! {

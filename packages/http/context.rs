@@ -5,24 +5,14 @@ use cookie::{
 };
 use std::{net::IpAddr, str::FromStr};
 
-const REAL_IP: &str = "x-real-ip";
-const FORWARDED_FOR: &str = "x-forwarded-for";
-const SOCKET_ADDR: &str = "x-socket-addr";
-const USER_AGENT: &str = "user-agent";
-const SEC_CH_UA: &str = "sec-ch-ua";
-const COOKIE: &str = "cookie";
-const SET_COOKIE: &str = "set-cookie";
-const AUTHORIZATION: &str = "authorization";
-const BEARER: &str = "Bearer ";
-
 pub trait HttpContext {
     fn get_ua_raw(h: Option<HashMap<String, Vec<String>>>) -> Res<HashMap<String, String>> {
         let mut m = HashMap::<String, String>::new();
-        for (k, v) in h.ok_or(MyErr::CtxReqHeaders404)?.iter() {
+        for (k, v) in h.ok_or(MyErr::CtxHeaders404)?.iter() {
             let k = k.as_str();
             if k.starts_with(SEC_CH_UA) || k == USER_AGENT {
                 if v.len() > 1 {
-                    Err(MyErr::MultipleHeaderValues { k: k.to_owned() })?;
+                    Err(MyErr::HeaderMultipleValues { k: k.to_owned() })?;
                 }
                 m.insert(k.to_owned(), v.first().cloned().unwrap_or_default());
             }
@@ -41,14 +31,14 @@ pub trait HttpContext {
 
 impl HttpContext for Context<'_> {
     fn get_header(&self, k: &str) -> Res<String> {
-        let req_headers = self.get_headers().ok_or(MyErr::CtxReqHeaders404)?;
+        let req_headers = self.get_headers().ok_or(MyErr::CtxHeaders404)?;
         let v = if let Some(v) = req_headers.get(k) {
             v
         } else {
             return Ok("".to_owned());
         };
         if v.len() > 1 {
-            Err(MyErr::MultipleHeaderValues { k: k.to_owned() })?;
+            Err(MyErr::HeaderMultipleValues { k: k.to_owned() })?;
         }
         let v = v.first().cloned().unwrap_or_default();
         Ok(v)
@@ -64,14 +54,14 @@ impl HttpContext for Context<'_> {
         }
         let ip = v.split(',').next().unwrap_or_default().trim().to_owned();
         if IpAddr::from_str(&ip).is_err() {
-            Err(MyErr::Ip404)?;
+            Err(MyErr::HeaderIp404)?;
         }
         Ok(ip)
     }
 
     fn get_ua(&self) -> Res<HashMap<String, String>> {
         if self.get_header(USER_AGENT)?.is_empty() {
-            Err(MyErr::Ua404)?;
+            Err(MyErr::HeaderUa404)?;
         }
         let h = self.get_headers();
         let ua = Self::get_ua_raw(h)?;
@@ -110,3 +100,13 @@ impl HttpContext for Context<'_> {
         self.append_http_header(SET_COOKIE, &v);
     }
 }
+
+const REAL_IP: &str = "x-real-ip";
+const FORWARDED_FOR: &str = "x-forwarded-for";
+const SOCKET_ADDR: &str = "x-socket-addr";
+const USER_AGENT: &str = "user-agent";
+const SEC_CH_UA: &str = "sec-ch-ua";
+const COOKIE: &str = "cookie";
+const SET_COOKIE: &str = "set-cookie";
+const AUTHORIZATION: &str = "authorization";
+const BEARER: &str = "Bearer ";

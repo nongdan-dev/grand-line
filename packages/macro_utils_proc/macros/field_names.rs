@@ -54,7 +54,7 @@ pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
         all.push(quote! {
             #f_str,
         });
-        let f = format!("F_{f}").to_shouty_snake_case().ts2_or_panic();
+        let f = format!("FIELD_{f}").to_shouty_snake_case().ts2_or_panic();
         impls.push(quote! {
             pub const #f: &'static str = #f_str;
         });

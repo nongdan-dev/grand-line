@@ -13,7 +13,7 @@ path = "lib.rs"
 
 [features]
 default = ["postgres", "default_without_db"]
-default_without_db = ["axum", "auth", "policy"]
+default_without_db = ["axum", "auth", "authz"]
 # db
 sqlite = ["_core/sqlite"]
 mysql = ["_core/mysql"]
@@ -40,14 +40,14 @@ tracing = ["_tracing", "_core/tracing"]
 http = ["_http"]
 axum = ["http", "_http/axum"]
 auth = ["_auth", "_core/auth", "rand_utils"]
-policy = ["_policy", "_core/policy", "_auth"]
+authz = ["_authz", "_core/authz", "_auth"]
 rand_utils = ["_rand_utils"]
 
 [dependencies]
 _auth = { path = "./packages/auth", optional = true, default-features = false, features = [] }
+_authz = { path = "./packages/authz", optional = true, default-features = false, features = [] }
 _core = { path = "./packages/core", default-features = false, features = [] }
 _http = { path = "./packages/http", optional = true, default-features = false, features = [] }
-_policy = { path = "./packages/policy", optional = true, default-features = false, features = [] }
 _rand_utils = { path = "./packages/rand_utils", optional = true, default-features = false, features = [] }
 _tracing = { path = "./packages/tracing", optional = true, default-features = false, features = [] }
 _utils = { path = "./packages/macro_utils", default-features = false, features = [] }

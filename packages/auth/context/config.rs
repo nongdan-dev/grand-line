@@ -18,7 +18,7 @@ impl Default for AuthConfig {
             otp_max_attempt: 5,
             otp_expire_ms: 10 * 60 * 1000,
             otp_re_request_ms: 60 * 1000,
-            handlers: Arc::new(DefaultAuthHandlers),
+            handlers: Arc::new(DefaultHandlers),
         }
     }
 }
@@ -51,6 +51,6 @@ where
     }
 }
 
-struct DefaultAuthHandlers;
+struct DefaultHandlers;
 #[async_trait]
-impl AuthHandlers for DefaultAuthHandlers {}
+impl AuthHandlers for DefaultHandlers {}

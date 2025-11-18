@@ -23,14 +23,9 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
         let output = ty_gql(&a.model);
         r.output = quote!(Vec<#output>);
 
-        let include_deleted = if !a.resolver_inputs && !a.ra.no_include_deleted {
-            quote!(include_deleted)
-        } else {
-            quote!(None)
-        };
-
         let body = r.body;
         let model = a.model.ts2_or_panic();
+        let include_deleted = get_include_deleted(!a.resolver_inputs && !a.ra.no_include_deleted);
         r.body = quote! {
             let (filter_extra, order_by_default): (Option<#filter>, Option<Vec<#order_by>>) = {
                 #body

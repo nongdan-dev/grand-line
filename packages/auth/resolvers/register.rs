@@ -6,7 +6,7 @@ pub struct Register {
     pub password: String,
 }
 
-#[create(AuthOtp, resolver_output, auth = 0)]
+#[create(AuthOtp, resolver_output, auth = "unauthenticated")]
 async fn register() -> AuthOtpWithSecret {
     register_ensure_email_not_exists(tx, &data.email.0).await?;
     otp_ensure_re_request(ctx, tx, AuthOtpTy::Register, &data.email.0).await?;
@@ -39,7 +39,7 @@ pub(crate) async fn register_ensure_email_not_exists(
     email: &str,
 ) -> Res<()> {
     let exists = User::find()
-        .include_deleted(None)
+        .exclude_deleted()
         .filter(UserColumn::Email.eq(email))
         .exists(tx)
         .await?;

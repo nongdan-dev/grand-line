@@ -28,7 +28,7 @@ no_include_deleted = []
 no_permanent_delete = []
 # biz
 auth = []
-policy = []
+authz = []
 
 [dependencies]
 _utils = { path = "../macro_utils", default-features = false, features = [] }

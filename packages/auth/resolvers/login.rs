@@ -6,13 +6,13 @@ pub struct Login {
     pub password: String,
 }
 
-#[create(LoginSession, resolver_output, auth = 0)]
+#[create(LoginSession, resolver_output, auth = "unauthenticated")]
 async fn login() -> LoginSessionWithSecret {
     let h = &ctx.auth_config().handlers;
     let lsd = login_session_ensure_data(ctx)?;
 
     let u = User::find()
-        .include_deleted(None)
+        .exclude_deleted()
         .filter(UserColumn::Email.eq(&data.email))
         .one(tx)
         .await?

@@ -10,9 +10,9 @@ where
     fn filter_by_id(self, id: &str) -> Self {
         self.filter(E::cond_id(id))
     }
-    /// Filter with condition deleted_at is not null, if there is deleted_at.
-    fn include_deleted(self, include_deleted: Option<bool>) -> Self {
-        match E::cond_deleted_at(include_deleted) {
+    /// Filter exclude deleted if there is deleted_at column.
+    fn exclude_deleted(self) -> Self {
+        match E::cond_exclude_deleted() {
             Some(c) => self.filter(c),
             None => self,
         }

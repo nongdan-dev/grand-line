@@ -21,7 +21,7 @@ fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, direction_str: &s
     let name = gql_name.ts2_or_panic();
     // push
     struk.push(quote! {
-        #[graphql(name=#gql_name)]
+        #[graphql(name = #gql_name)]
         #name,
     });
     query.push(quote! {

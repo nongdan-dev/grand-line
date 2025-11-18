@@ -8,7 +8,7 @@ where
     pub tx: Arc<DatabaseTransaction>,
     pub col: E::C,
     pub look_ahead: Vec<LookaheadX<E>>,
-    pub include_deleted: Option<Condition>,
+    pub exclude_deleted: Option<Condition>,
 }
 
 #[async_trait]
@@ -22,7 +22,7 @@ where
     async fn load(&self, keys: &[String]) -> Res<HashMap<String, E::G>> {
         let tx = self.tx.as_ref();
         let mut r = E::find();
-        if let Some(expr) = self.include_deleted.clone() {
+        if let Some(expr) = self.exclude_deleted.clone() {
             r = r.filter(expr)
         }
         let r = r

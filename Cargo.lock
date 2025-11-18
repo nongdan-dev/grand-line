@@ -25,6 +25,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "_authz"
+version = "0.0.0"
+dependencies = [
+ "_auth",
+ "_core",
+ "_http",
+ "serde",
+ "thiserror 2.0.17",
+]
+
+[[package]]
 name = "_core"
 version = "0.0.0"
 dependencies = [
@@ -63,15 +74,6 @@ dependencies = [
  "axum",
  "tower",
  "tower-http",
-]
-
-[[package]]
-name = "_policy"
-version = "0.0.0"
-dependencies = [
- "_core",
- "serde",
- "thiserror 2.0.17",
 ]
 
 [[package]]
@@ -1075,9 +1077,9 @@ name = "grand-line"
 version = "0.0.0"
 dependencies = [
  "_auth",
+ "_authz",
  "_core",
  "_http",
- "_policy",
  "_rand_utils",
  "_tracing",
  "_utils",

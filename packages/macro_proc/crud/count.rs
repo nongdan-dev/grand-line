@@ -19,14 +19,9 @@ pub fn gen_count(attr: TokenStream, item: TokenStream) -> TokenStream {
     if !a.resolver_output {
         r.output = quote!(u64);
 
-        let include_deleted = if !a.resolver_inputs && !a.ra.no_include_deleted {
-            quote!(include_deleted)
-        } else {
-            quote!(None)
-        };
-
         let body = r.body;
         let model = a.model.ts2_or_panic();
+        let include_deleted = get_include_deleted(!a.resolver_inputs && !a.ra.no_include_deleted);
         r.body = quote! {
             let filter_extra: Option<#filter> = {
                 #body

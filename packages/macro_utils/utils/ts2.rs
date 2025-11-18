@@ -6,9 +6,8 @@ pub trait StringToTs2OrPanic {
 
 impl StringToTs2OrPanic for String {
     fn ts2_or_panic(&self) -> Ts2 {
-        self.parse::<Ts2>().unwrap_or_else(|e| {
-            panic!("string to ts2 error: {e}");
-        })
+        self.parse::<Ts2>()
+            .unwrap_or_else(|e| panic!("string to ts2 error: {e}"))
     }
 }
 

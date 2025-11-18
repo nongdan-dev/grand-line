@@ -7,17 +7,17 @@ pub enum MyErr {
     //
     #[error("request header {k} has more than 1 value")]
     #[client]
-    MultipleHeaderValues { k: String },
-    #[error("ip address is missing from the request")]
+    HeaderMultipleValues { k: String },
+    #[error("ip address is missing in the request headers")]
     #[client]
-    Ip404,
-    #[error("user agent is missing from the request")]
+    HeaderIp404,
+    #[error("user agent is missing in the request headers")]
     #[client]
-    Ua404,
+    HeaderUa404,
 
     // ========================================================================
     // server errors
     //
     #[error("context missing request headers")]
-    CtxReqHeaders404,
+    CtxHeaders404,
 }

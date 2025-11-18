@@ -15,13 +15,13 @@ impl From<Attr> for CrudAttr {
     fn from(a: Attr) -> Self {
         Self {
             resolver_inputs: a
-                .bool(Self::F_RESOLVER_INPUTS)
+                .bool(Self::FIELD_RESOLVER_INPUTS)
                 .unwrap_or(FEATURE_RESOLVER_INPUTS),
             resolver_output: a
-                .bool(Self::F_RESOLVER_OUTPUT)
+                .bool(Self::FIELD_RESOLVER_OUTPUT)
                 .unwrap_or(FEATURE_RESOLVER_OUTPUT),
             no_permanent_delete: a
-                .bool(Self::F_NO_PERMANENT_DELETE)
+                .bool(Self::FIELD_NO_PERMANENT_DELETE)
                 .unwrap_or(FEATURE_NO_PERMANENT_DELETE),
             model: a.model_from_first_path(),
             ra: a.into(),
@@ -32,12 +32,13 @@ impl AttrValidate for CrudAttr {
     fn attr_fields(a: &Attr) -> Vec<String> {
         Self::F
             .iter()
-            .map(|f| (*f).to_owned())
+            .copied()
+            .map(|f| f.to_owned())
             .filter(|f| {
                 if a.attr == MacroTy::Delete {
                     true
                 } else {
-                    f != Self::F_NO_PERMANENT_DELETE
+                    f != Self::FIELD_NO_PERMANENT_DELETE
                 }
             })
             .chain(ResolverTyAttr::attr_fields(a))

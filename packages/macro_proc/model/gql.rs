@@ -2,6 +2,7 @@ use crate::prelude::*;
 
 pub struct GqlAttr {
     pub struk: Vec<Ts2>,
+    pub struk_fields: Vec<String>,
     pub defaults: Vec<Ts2>,
     pub resolver: Vec<Ts2>,
     pub into: Vec<Ts2>,
@@ -11,14 +12,38 @@ pub struct GqlAttr {
 }
 
 pub fn gql_attr(gql_fields: &[(Field, Vec<Attr>)]) -> GqlAttr {
-    let (mut struk, mut defaults, mut resolver, mut into, mut cols, mut select, mut get_string) =
-        (vec![], vec![], vec![], vec![], vec![], vec![], vec![]);
+    let (
+        mut struk,
+        mut struk_fields,
+        mut defaults,
+        mut resolver,
+        mut into,
+        mut cols,
+        mut select,
+        mut get_string,
+    ) = (
+        vec![],
+        vec![],
+        vec![],
+        vec![],
+        vec![],
+        vec![],
+        vec![],
+        vec![],
+    );
 
     for (f, a) in gql_fields {
         let name = f.ident.to_token_stream();
         let ty = f.ty.to_token_stream();
         let (opt, uw_str) = unwrap_option_str(&ty);
-        push_struk_resolver(&name, &ty, &mut struk, &mut resolver, attr_is_gql_skip(a));
+        push_struk_resolver(
+            &name,
+            &ty,
+            &mut struk,
+            &mut struk_fields,
+            &mut resolver,
+            attr_is_gql_skip(a),
+        );
         push_default(&mut defaults, &name);
 
         let name_str = name.to_string();
@@ -51,6 +76,7 @@ pub fn gql_attr(gql_fields: &[(Field, Vec<Attr>)]) -> GqlAttr {
 
     GqlAttr {
         struk,
+        struk_fields,
         defaults,
         resolver,
         into,
@@ -79,6 +105,7 @@ pub fn gql_attr_virtuals(virtual_resolvers: &[Box<dyn VirtualResolverFn>]) -> Gq
 
 pub struct GqlAttrExprs {
     pub struk: Vec<Ts2>,
+    pub struk_fields: Vec<String>,
     pub defaults: Vec<Ts2>,
     pub resolver: Vec<Ts2>,
     pub select: Vec<Ts2>,
@@ -86,20 +113,25 @@ pub struct GqlAttrExprs {
 }
 
 pub fn gql_exprs_ts2(exprs: &[Vec<Attr>]) -> GqlAttrExprs {
-    let (mut struk, mut defaults, mut resolver, mut select, mut gql_exprs) =
-        (vec![], vec![], vec![], vec![], vec![]);
+    let (mut struk, mut struk_fields, mut defaults, mut resolver, mut select, mut gql_exprs) =
+        (vec![], vec![], vec![], vec![], vec![], vec![]);
 
     for e in exprs {
         let a = e
             .iter()
             .find(|a| a.attr == VirtualTy::SqlExpr)
-            .unwrap_or_else(|| {
-                panic!("cannot find VirtualTy::SqlExpr to build select as");
-            });
+            .unwrap_or_else(|| panic!("cannot find VirtualTy::SqlExpr to build select as"));
         let name_str = a.field_name();
         let name = name_str.ts2_or_panic();
         let ty = a.field_ty().ts2_or_panic();
-        push_struk_resolver(&name, &ty, &mut struk, &mut resolver, false);
+        push_struk_resolver(
+            &name,
+            &ty,
+            &mut struk,
+            &mut struk_fields,
+            &mut resolver,
+            false,
+        );
         push_default(&mut defaults, &name);
 
         let gql_name = name.to_string().to_lower_camel_case();
@@ -114,6 +146,7 @@ pub fn gql_exprs_ts2(exprs: &[Vec<Attr>]) -> GqlAttrExprs {
 
     GqlAttrExprs {
         struk,
+        struk_fields,
         resolver,
         select,
         exprs: gql_exprs,
@@ -125,6 +158,7 @@ fn push_struk_resolver(
     name: &Ts2,
     ty: &Ts2,
     struk: &mut Vec<Ts2>,
+    struk_fields: &mut Vec<String>,
     resolver: &mut Vec<Ts2>,
     skip_resolver: bool,
 ) {
@@ -133,6 +167,7 @@ fn push_struk_resolver(
     struk.push(quote! {
         pub #name: Option<#uw>,
     });
+    struk_fields.push(name.to_string());
 
     if skip_resolver {
         return;
@@ -149,7 +184,7 @@ fn push_struk_resolver(
 
     resolver.push(quote! {
         // TODO: copy #[graphql...] and comments from the original field
-        #[graphql(name=#gql_name)]
+        #[graphql(name = #gql_name)]
         pub async fn #name(&self) -> Res<#ty> {
             let v = self.#name.clone()#unwrap;
             Ok(v)

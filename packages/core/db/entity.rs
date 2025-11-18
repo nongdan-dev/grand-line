@@ -80,19 +80,16 @@ where
         Condition::all().add(Self::col_id().eq(id))
     }
 
-    /// ensure deleted_at column is present.
+    /// Ensure deleted_at column is present.
     fn ensure_col_deleted_at() -> Res<Self::C> {
         let col = Self::col_deleted_at().ok_or_else(|| MyErr::DbCol404 {
             col: Self::model_name().to_owned() + ".deleted_at",
         })?;
         Ok(col)
     }
-    /// Quickly build condition include deleted.
-    fn cond_deleted_at(include_deleted: Option<bool>) -> Option<Condition> {
-        match include_deleted {
-            Some(true) => None,
-            _ => Self::col_deleted_at().map(|c| Condition::all().add(c.is_null())),
-        }
+    /// Quickly build condition exclude deleted.
+    fn cond_exclude_deleted() -> Option<Condition> {
+        Self::col_deleted_at().map(|c| Condition::all().add(c.is_null()))
     }
 
     /// Set deleted_at with filter by id.
@@ -127,8 +124,14 @@ where
         D: ConnectionTrait,
     {
         let f = filter.combine(filter_extra);
-        let r = Self::find()
-            .include_deleted(include_deleted.or_else(|| Some(f.has_deleted_at())))
+        let exclude_deleted = !include_deleted
+            .or_else(|| Some(f.has_deleted_at()))
+            .unwrap_or_default();
+        let mut r = Self::find();
+        if exclude_deleted {
+            r = r.exclude_deleted();
+        }
+        let r = r
             .filter_opt(extra_cond)
             .chain(f)
             .chain(order_by.combine(order_by_default))
@@ -150,12 +153,14 @@ where
         D: ConnectionTrait,
     {
         let f = filter.combine(filter_extra);
-        let include_deleted = include_deleted.or_else(|| Some(f.has_deleted_at()));
-        let r = Self::find()
-            .include_deleted(include_deleted)
-            .chain(f)
-            .count(db)
-            .await?;
+        let exclude_deleted = !include_deleted
+            .or_else(|| Some(f.has_deleted_at()))
+            .unwrap_or_default();
+        let mut r = Self::find();
+        if exclude_deleted {
+            r = r.exclude_deleted();
+        }
+        let r = r.chain(f).count(db).await?;
         Ok(r)
     }
 
@@ -169,12 +174,12 @@ where
     where
         D: ConnectionTrait,
     {
-        let r = Self::find()
-            .include_deleted(include_deleted)
-            .filter_by_id(id)
-            .gql_select(ctx)?
-            .one(db)
-            .await?;
+        let exclude_deleted = !include_deleted.unwrap_or_default();
+        let mut r = Self::find();
+        if exclude_deleted {
+            r = r.exclude_deleted();
+        }
+        let r = r.filter_by_id(id).gql_select(ctx)?.one(db).await?;
         Ok(r)
     }
 
@@ -199,9 +204,14 @@ where
         include_deleted: Option<bool>,
     ) -> Res<Option<Self::G>> {
         let look_ahead = Self::gql_look_ahead(ctx)?;
-        let include_deleted = Self::cond_deleted_at(include_deleted);
-        let key = col.to_loader_key(&look_ahead, include_deleted.is_some());
-        ctx.data_loader(key, col, look_ahead, include_deleted)
+        let exclude_deleted = !include_deleted.unwrap_or_default();
+        let exclude_deleted = if exclude_deleted {
+            Self::cond_exclude_deleted()
+        } else {
+            None
+        };
+        let key = col.to_loader_key(&look_ahead, exclude_deleted.is_some());
+        ctx.data_loader(key, col, look_ahead, exclude_deleted)
             .await?
             .as_ref()
             .load_one(id)

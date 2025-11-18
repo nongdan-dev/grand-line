@@ -1,13 +1,15 @@
 [package]
-name = "_policy"
+name = "_authz"
 version = "0.0.0"
 edition = "2024"
 
 [lib]
-name = "_policy"
+name = "_authz"
 path = "lib.rs"
 
 [dependencies]
+_auth = { path = "../auth", default-features = false, features = [] }
 _core = { path = "../core", default-features = false, features = [] }
+_http = { path = "../http", default-features = false, features = [] }
 serde = { version = "^1.0", default-features = false, features = ["derive", "std"] }
 thiserror = { version = "^2.0", default-features = false, features = [] }

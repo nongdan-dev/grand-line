@@ -10,7 +10,7 @@ async fn sql_dep_cols() -> Res<()> {
             pub first_name: String,
             #[graphql(skip)]
             pub last_name: String,
-            #[resolver(sql_dep=first_name+last_name)]
+            #[resolver(sql_dep = "first_name, last_name")]
             pub full_name: String,
         }
 
@@ -68,7 +68,7 @@ async fn sql_dep_exprs() -> Res<()> {
             a: i64,
             #[sql_expr(Expr::col(Column::A).add(1000))]
             b: i64,
-            #[resolver(sql_dep=a+b)]
+            #[resolver(sql_dep = "a, b")]
             c: i64,
         }
 

@@ -8,7 +8,7 @@ pub trait DataLoaderContext {
         key: String,
         col: E::C,
         look_ahead: Vec<LookaheadX<E>>,
-        include_deleted: Option<Condition>,
+        exclude_deleted: Option<Condition>,
     ) -> Res<Arc<DataLoader<LoaderX<E>>>>
     where
         E: EntityX;
@@ -21,7 +21,7 @@ impl DataLoaderContext for Context<'_> {
         key: String,
         col: E::C,
         look_ahead: Vec<LookaheadX<E>>,
-        include_deleted: Option<Condition>,
+        exclude_deleted: Option<Condition>,
     ) -> Res<Arc<DataLoader<LoaderX<E>>>>
     where
         E: EntityX,
@@ -38,7 +38,7 @@ impl DataLoaderContext for Context<'_> {
                     tx: gl.tx().await?,
                     col,
                     look_ahead,
-                    include_deleted,
+                    exclude_deleted,
                 },
                 tokio::spawn,
             ));

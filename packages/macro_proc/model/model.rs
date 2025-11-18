@@ -18,7 +18,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     fields.insert(
         0,
         quote! {
-            #[sea_orm(primary_key, column_type="String(StringLen::N(26))", auto_increment=false)]
+            #[sea_orm(primary_key, column_type = "String(StringLen::N(26))", auto_increment = false)]
             pub id: String
         }
         .field_or_panic(),
@@ -75,13 +75,13 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // ------------------------------------------------------------------------
     // parse macro attributes, extract and validate fields
     let model_str = model.to_string();
-    let ModelDeriveAttr {
+    let ModelFieldsAttr {
         defaults,
         virtuals,
         exprs,
         gql_fields,
         sql_fields,
-    } = model_derive_attr(&model_str, &fields);
+    } = model_fields_attr(&model_str, &fields);
 
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
@@ -215,8 +215,41 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
 
     // ------------------------------------------------------------------------
+    // gql
+    let GqlAttr {
+        struk: mut gql_struk,
+        struk_fields: mut gql_struk_fields,
+        defaults: mut gql_defaults,
+        resolver: mut gql_resolver,
+        into: gql_into,
+        cols: gql_cols,
+        select: mut gql_select,
+        get_string: gql_get_string,
+    } = gql_attr(&gql_fields);
+    let GqlAttrExprs {
+        struk: gql_struk2,
+        struk_fields: gql_struk_fields2,
+        defaults: gql_defaults2,
+        resolver: gql_resolver2,
+        select: gql_select2,
+        exprs: gql_exprs,
+    } = gql_exprs_ts2(&exprs);
+    gql_struk.extend(gql_struk2);
+    gql_struk_fields.extend(gql_struk_fields2);
+    gql_defaults.extend(gql_defaults2);
+    gql_resolver.extend(gql_resolver2);
+    gql_select.extend(gql_select2);
+
+    let gql_into_default = if gql_struk.len() > gql_into.len() {
+        quote!(..Default::default())
+    } else {
+        quote!()
+    };
+
+    // ------------------------------------------------------------------------
     // virtual resolvers
     let mut virtual_resolvers = Vec::<Box<dyn VirtualResolverFn>>::new();
+    let valid_sql_dep = gql_struk_fields.iter().collect::<HashSet<_>>();
     for attrs in virtuals {
         let map = attrs
             .iter()
@@ -231,51 +264,31 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                     ty: ty.clone(),
                     ra: a.clone().into_with_validate(),
                 }),
-                VirtualTy::Resolver => Box::new(GenResolver {
-                    a: a.clone().into_with_validate(),
-                }),
-                _ => {
-                    let attr = &a.attr;
-                    panic!("invalid attr={attr} dyn VirtualGen");
+                VirtualTy::Resolver => {
+                    let g = GenResolver {
+                        a: a.clone().into_with_validate(),
+                    };
+                    for d in &g.a.sql_dep {
+                        if !valid_sql_dep.contains(d) {
+                            let err = format!("can not find column or expr {d}");
+                            g.a.inner.panic_by_key("sql_dep", &err)
+                        }
+                    }
+                    Box::new(g)
                 }
+                _ => a.panic_by_key(v.as_ref(), "is invalid for virtual resolver"),
             });
         }
     }
 
-    // ------------------------------------------------------------------------
-    // gql
-    let GqlAttr {
-        struk: mut gql_struk,
-        defaults: mut gql_defaults,
-        resolver: mut gql_resolver,
-        into: gql_into,
-        cols: gql_cols,
-        select: mut gql_select,
-        get_string: gql_get_string,
-    } = gql_attr(&gql_fields);
     let GqlAttrVirtuals {
         select: gql_select2,
     } = gql_attr_virtuals(&virtual_resolvers);
     gql_select.extend(gql_select2);
-    let GqlAttrExprs {
-        struk: gql_struk2,
-        defaults: gql_defaults2,
-        resolver: gql_resolver2,
-        select: gql_select2,
-        exprs: gql_exprs,
-    } = gql_exprs_ts2(&exprs);
-    gql_struk.extend(gql_struk2);
-    gql_defaults.extend(gql_defaults2);
-    gql_resolver.extend(gql_resolver2);
-    gql_select.extend(gql_select2);
+
     for f in virtual_resolvers {
         gql_resolver.push(f.resolver_fn());
     }
-    let gql_into_default = if gql_struk.len() > gql_into.len() {
-        quote!(..Default::default())
-    } else {
-        quote!()
-    };
 
     let r = quote! {
         mod #module {
@@ -286,7 +299,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 Clone,
                 DeriveEntityModel,
             )]
-            #[sea_orm(table_name=#sql_alias)]
+            #[sea_orm(table_name = #sql_alias)]
             #item
 
             #[derive(
@@ -297,7 +310,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             pub struct #gql {
                 #(#gql_struk)*
             }
-            #[Object(name=#gql_alias)]
+            #[Object(name = #gql_alias)]
             impl #gql {
                 #(#gql_resolver)*
             }

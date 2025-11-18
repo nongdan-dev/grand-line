@@ -17,11 +17,11 @@ pub struct AttrParse {
 }
 
 impl AttrParse {
-    pub fn into_inner<A>(self, name: &str) -> A
+    pub fn into_inner<A>(self, macro_name: &str) -> A
     where
         A: From<Attr> + AttrValidate,
     {
-        Attr::from_proc_macro(name, self).into_with_validate()
+        Attr::from_proc_macro(macro_name, self).into_with_validate()
     }
 }
 
@@ -30,7 +30,7 @@ impl Parse for AttrParse {
         let mut args = Vec::new();
         let mut first = true;
         let mut first_path = None;
-        for m in Punctuated::<Meta, Comma>::parse_terminated(s)? {
+        for m in Punctuated::<Meta, Token![,]>::parse_terminated(s)? {
             let (k, v, ty);
             match m {
                 Meta::Path(m) => {
