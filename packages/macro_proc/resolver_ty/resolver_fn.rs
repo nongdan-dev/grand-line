@@ -55,12 +55,21 @@ where
             let shouty = check_str.to_shouty_snake_case().ts2_or_panic();
             directive_comments.push(format!("@auth(check: {shouty})"));
         }
-        if let Some(AuthzAttr { org, user }) = self.authz() {
+        if let Some(AuthzAttr { org, user, key }) = self.authz() {
             if no_ctx {
                 self.panic("authz requires ctx");
             }
+            let key = if let Some(key) = key {
+                quote!(Some(#key.to_owned()))
+            } else {
+                quote!(None)
+            };
             body = quote! {
-                ctx.authz_ensure_in_macro(AuthzDirectiveEnsure { org: #org, user: #user }).await?;
+                ctx.authz_ensure_in_macro(AuthzDirectiveEnsure {
+                    org: #org,
+                    user: #user,
+                    key: #key,
+                }).await?;
                 #body
             };
             let mut checks = vec![];
@@ -72,7 +81,7 @@ where
             }
             let check = quote!(vec![#(#checks)*]);
             directives.push(quote! {
-                directive = authz_directive::apply(#check),
+                directive = authz_directive::apply(#check, #key),
             });
             // TODO: directive_comments
         }

@@ -24,18 +24,16 @@ impl AttrParse {
         Attr::from_proc_macro(macro_name, self).into_with_validate()
     }
     pub fn from_meta_list_token_stream(ts: Ts2) -> Self {
-        let metas = if ts.to_string().trim().is_empty() {
-            vec![]
-        } else {
-            let x = &ts;
-            Punctuated::<Meta, Token![,]>::parse_terminated
-                .parse2(ts.clone())
-                .unwrap_or_else(|e| {
-                    panic!("failed to parse meta list from token stream `{x}`: {e}")
-                })
-                .into_iter()
-                .collect()
-        };
+        if ts.to_string().trim().is_empty() {
+            panic!("empty meta list ()");
+        }
+        let metas = Punctuated::<Meta, Token![,]>::parse_terminated
+            .parse2(ts.clone())
+            .unwrap_or_else(|e| {
+                panic!("failed to parse meta list from token stream `{ts}`: {e}");
+            })
+            .into_iter()
+            .collect();
         AttrParse::from_meta_list(metas)
     }
     pub fn from_meta_list(metas: Vec<Meta>) -> Self {

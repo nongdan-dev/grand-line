@@ -44,18 +44,11 @@ impl AuthContext for Context<'_> {
         };
 
         let lsd = login_session_ensure_data(self)?;
-        let tx = &*self.tx().await?;
 
-        let ls = LoginSession::find()
-            .exclude_deleted()
-            .filter_by_id(&t.id)
-            .select_only()
-            .column(LoginSessionColumn::Id)
-            .column(LoginSessionColumn::Secret)
-            .column(LoginSessionColumn::UserId)
-            .into_model::<LoginSessionCache>()
-            .one(tx)
-            .await?;
+        let q = LoginSession::find().exclude_deleted().filter_by_id(&t.id);
+
+        let tx = &*self.tx().await?;
+        let ls = LoginSessionCache::select(q).one(tx).await?;
         let ls = if let Some(ls) = ls {
             ls
         } else {
@@ -121,4 +114,13 @@ pub struct LoginSessionCache {
     pub id: String,
     pub secret: String,
     pub user_id: String,
+}
+impl LoginSessionCache {
+    pub fn select(q: Select<LoginSession>) -> Selector<SelectModel<Self>> {
+        q.select_only()
+            .column(LoginSessionColumn::Id)
+            .column(LoginSessionColumn::Secret)
+            .column(LoginSessionColumn::UserId)
+            .into_model::<LoginSessionCache>()
+    }
 }

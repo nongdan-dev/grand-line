@@ -1,123 +1,130 @@
 use crate::prelude::*;
 
-#[model]
-pub struct Policy {
-    pub operation: String,
-    pub inputs: JsonValue,
-    pub output: JsonValue,
-    pub role_id: String,
+#[gql_input]
+pub struct OperationPolicy {
+    pub inputs: OperationFieldPolicy,
+    pub output: OperationFieldPolicy,
 }
 
 #[gql_input]
-pub struct PolicyData {
+pub struct OperationFieldPolicy {
     pub allow: bool,
-    pub children: HashMap<String, PolicyData>,
+    pub children: HashMap<String, OperationFieldPolicy>,
 }
 
-impl PolicyData {
-    pub fn children(&self, k: &str) -> bool {
-        ALLOW_BUILT_IN.contains(k) || self.children.get(k).map(|p| p.allow).unwrap_or_default()
-    }
+impl OperationFieldPolicy {
     pub fn wildcard(&self) -> bool {
-        self.children("*")
+        self.children.get("*").map(|p| p.allow).unwrap_or_default()
     }
     pub fn wildcard_nested(&self) -> bool {
-        self.children("**")
+        self.children.get("**").map(|p| p.allow).unwrap_or_default()
     }
 }
 
-static ALLOW_BUILT_IN: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
-    let mut m = HashSet::new();
-    m.insert("__typename");
-    m
-});
-
-pub(crate) fn policy_check_inputs(ctx: &Context<'_>, root: &PolicyData) -> bool {
-    let field = ctx.field();
-    let Ok(pairs) = field.arguments() else {
+pub(crate) fn policy_check_inputs(ctx: &Context<'_>, inputs: &OperationFieldPolicy) -> bool {
+    let Ok(pairs) = ctx.field().arguments() else {
         return false;
     };
-    for (name, value) in pairs {
-        if !check_inputs_tree(root, name.as_str(), &value) {
+
+    for (k, v) in pairs {
+        if !check_inputs_tree(inputs, k.as_str(), &v) {
             return false;
         }
     }
+
     true
 }
 
-fn check_inputs_tree(node: &PolicyData, name: &str, val: &Value) -> bool {
-    let child = node.children.get(name);
-    match val {
-        Value::List(items) => match child {
-            Some(rule) => {
-                let elem_rule = rule.children.get("*").unwrap_or(rule);
-                items.iter().all(|v| check_inputs_value(elem_rule, v))
-            }
-            None => false,
-        },
-        Value::Object(obj) => match child {
-            Some(rule) => {
-                for (k, v) in obj.iter() {
-                    let key = k.as_str();
-                    if !check_inputs_tree(rule, key, v) {
-                        return false;
-                    }
-                }
-                true
-            }
-            None => false,
-        },
-        _ => match child {
-            Some(rule) => rule.allow || !rule.children.is_empty(),
-            None => false,
-        },
-    }
-}
-
-fn check_inputs_value(rule: &PolicyData, v: &Value) -> bool {
-    match v {
-        Value::List(items) => {
-            let elem = rule.children.get("*").unwrap_or(rule);
-            items.iter().all(|x| check_inputs_value(elem, x))
-        }
-        Value::Object(obj) => {
-            for (k, vv) in obj.iter() {
-                let key = k.as_str();
-                let child = rule.children.get(key).or_else(|| rule.children.get("*"));
-                match child {
-                    Some(c) => {
-                        if !check_inputs_value(c, vv) {
-                            return false;
-                        }
-                    }
-                    None => {
-                        return false;
-                    }
-                }
-            }
-            true
-        }
-        _ => rule.allow,
-    }
-}
-
-pub(crate) fn policy_check_output(ctx: &Context<'_>, output: &PolicyData) -> bool {
-    let field = ctx.field();
-    check_output(field, output)
-}
-
-fn check_output(field: SelectionField<'_>, node: &PolicyData) -> bool {
-    if node.wildcard_nested() {
+fn check_inputs_tree(parent: &OperationFieldPolicy, child_k: &str, child_v: &Value) -> bool {
+    if parent.wildcard_nested() {
         return true;
     }
+    let child = parent.children.get(child_k);
+
+    match child_v {
+        Value::List(list) => {
+            let Some(child) = child else {
+                return false;
+            };
+            for child_v in list {
+                if !check_inputs_value(child, child_v) {
+                    return false;
+                }
+            }
+        }
+        Value::Object(object) => {
+            let Some(child) = child else {
+                return false;
+            };
+            for (grand_k, grand_v) in object.iter() {
+                if !check_inputs_tree(child, grand_k.as_str(), grand_v) {
+                    return false;
+                }
+            }
+        }
+        _ => {
+            let allow = parent.wildcard() || child.map(|p| p.allow).unwrap_or_default();
+            if !allow {
+                return false;
+            }
+        }
+    }
+
+    true
+}
+
+fn check_inputs_value(child: &OperationFieldPolicy, child_v: &Value) -> bool {
+    if child.wildcard_nested() {
+        return true;
+    }
+
+    match child_v {
+        Value::List(list) => {
+            for child_v in list {
+                if !check_inputs_value(child, child_v) {
+                    return false;
+                }
+            }
+        }
+        Value::Object(object) => {
+            for (grand_k, grand_v) in object.iter() {
+                let Some(grand) = child.children.get(grand_k.as_str()) else {
+                    return false;
+                };
+                if !check_inputs_value(grand, grand_v) {
+                    return false;
+                }
+            }
+        }
+        _ => {
+            if !child.allow {
+                return false;
+            }
+        }
+    }
+
+    true
+}
+
+pub(crate) fn policy_check_output(ctx: &Context<'_>, policy: &OperationFieldPolicy) -> bool {
+    let field = ctx.field();
+    check_output(field, policy)
+}
+
+fn check_output(field: SelectionField<'_>, policy: &OperationFieldPolicy) -> bool {
+    if policy.wildcard_nested() {
+        return true;
+    }
+
     for sub in field.selection_set() {
         let name = sub.name();
+        let child = policy.children.get(name);
+
         let has_children = sub.selection_set().next().is_some();
         if has_children {
-            let child = node.children.get(name);
             match child {
-                Some(r) => {
-                    let allow = check_output(sub, r);
+                Some(child) => {
+                    let allow = check_output(sub, child);
                     if !allow {
                         return false;
                     }
@@ -127,11 +134,22 @@ fn check_output(field: SelectionField<'_>, node: &PolicyData) -> bool {
                 }
             }
         } else {
-            let allow = node.wildcard() || node.children(name);
+            let allow = policy.wildcard()
+                || ALLOW_BUILT_IN.contains(name)
+                || child.map(|p| p.allow).unwrap_or_default();
             if !allow {
                 return false;
             }
         }
     }
+
+    // if the selection set is empty which mean primitive type such as String Int
+    // it should be allowed here since we already checked in the previous rescursive
     true
 }
+
+static ALLOW_BUILT_IN: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
+    let mut m = HashSet::new();
+    m.insert("__typename");
+    m
+});

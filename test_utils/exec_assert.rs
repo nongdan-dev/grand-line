@@ -16,11 +16,31 @@ where
     M: ObjectType + Default + 'static,
     S: SubscriptionType + 'static,
 {
+    let res = exec(s, q, v).await;
+    assert!(res.errors.is_empty(), "{:#?}", res.errors);
+    res
+}
+
+pub async fn exec_assert_err<Q, M, S, E>(s: &Schema<Q, M, S>, q: &str, v: Option<&Value>, err: E)
+where
+    Q: ObjectType + Default + 'static,
+    M: ObjectType + Default + 'static,
+    S: SubscriptionType + 'static,
+    E: GrandLineErrImpl,
+{
+    let res = exec(s, q, v).await;
+    check_err(&res, err);
+}
+
+async fn exec<Q, M, S>(s: &Schema<Q, M, S>, q: &str, v: Option<&Value>) -> Response
+where
+    Q: ObjectType + Default + 'static,
+    M: ObjectType + Default + 'static,
+    S: SubscriptionType + 'static,
+{
     let mut req = Request::new(q);
     if let Some(v) = v.cloned() {
         req = req.variables(Variables::from_value(v));
     }
-    let res = s.execute(req).await;
-    assert!(res.errors.is_empty(), "{:#?}", res.errors);
-    res
+    s.execute(req).await
 }

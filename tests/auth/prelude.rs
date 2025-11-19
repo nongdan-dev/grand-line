@@ -22,7 +22,6 @@ pub async fn prepare() -> Res<Prepare> {
     h.insert("x-real-ip", h_static("127.0.0.1"));
     h.insert("user-agent", h_static(UA));
     h.insert("sec-ch-ua", h_static(UA_SEC_CH));
-    let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
 
     let u = am_create!(User {
         email: "olivia@example.com",
@@ -30,6 +29,8 @@ pub async fn prepare() -> Res<Prepare> {
     })
     .insert(&tmp.db)
     .await?;
+
+    let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
     let ls = am_create!(LoginSession {
         user_id: u.id.clone(),
         ip: "127.0.0.1",
@@ -37,6 +38,7 @@ pub async fn prepare() -> Res<Prepare> {
     })
     .insert(&tmp.db)
     .await?;
+
     let token = rand_utils::qs_token(&ls.id, &ls.secret)?;
 
     Ok(Prepare {

@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
-pub fn check_err<T>(r: &Response, err: T)
+pub fn check_err<E>(r: &Response, err: E)
 where
-    T: GrandLineErrImpl,
+    E: GrandLineErrImpl,
 {
     assert!(r.errors.len() == 1, "response should have an error");
 

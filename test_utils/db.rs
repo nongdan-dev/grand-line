@@ -6,12 +6,14 @@ pub async fn tmp_db() -> Res<TmpDb> {
     Ok(tmp)
 }
 fn db_uri() -> &'static str {
-    #[cfg(feature = "postgres")]
-    return "postgres://postgres:test_pwd@localhost:5432/test_db";
-    #[cfg(feature = "mysql")]
-    return "mysql://root:test_pwd@localhost:3306/test_db";
-    #[cfg(feature = "sqlite")]
-    return "sqlite::memory:";
+    if cfg!(feature = "postgres") {
+        return "postgres://postgres:test_pwd@localhost:5432/test_db";
+    }
+    if cfg!(feature = "mysql") {
+        return "mysql://root:test_pwd@localhost:3306/test_db";
+    }
+    "sqlite::memory:"
+    // already compile_error! in lib.rs to check postgres, mysql, sqlite
 }
 
 // ============================================================================
