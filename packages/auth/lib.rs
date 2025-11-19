@@ -1,3 +1,4 @@
+pub mod consts;
 mod context;
 mod models;
 mod resolvers;
@@ -16,7 +17,9 @@ pub mod reexport {
 pub mod prelude {
     pub use crate::{export::*, reexport::*};
     pub(crate) use {
-        crate::export::AuthErr as MyErr, _core::prelude::*, _http::prelude::*,
+        crate::{consts::*, export::AuthErr as MyErr},
+        _core::prelude::*,
+        _http::prelude::*,
         _rand_utils::prelude::*,
     };
 }

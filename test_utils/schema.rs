@@ -35,5 +35,5 @@ where
 
 #[derive(Default, SimpleObject)]
 pub struct EmptyQuery {
-    pub ok: bool,
+    pub v: bool,
 }

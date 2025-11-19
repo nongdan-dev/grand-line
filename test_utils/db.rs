@@ -37,9 +37,7 @@ impl TmpDb {
             "postgres" => Self::new_postgres(uri).await,
             "mysql" => Self::new_mysql(uri).await,
             "sqlite" => Self::new_sqlite(uri).await,
-            scheme => {
-                panic!("TmpDb::new expect postgres or mysql or sqlite, found {scheme}");
-            }
+            scheme => panic!("TmpDb::new expect postgres or mysql or sqlite, found {scheme}"),
         }
     }
 

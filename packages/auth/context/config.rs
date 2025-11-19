@@ -13,11 +13,11 @@ pub struct AuthConfig {
 impl Default for AuthConfig {
     fn default() -> Self {
         Self {
-            cookie_login_session_key: "login_session",
-            cookie_login_session_expires: 7 * 24 * 60 * 60 * 1000,
-            otp_max_attempt: 5,
-            otp_expire_ms: 10 * 60 * 1000,
-            otp_re_request_ms: 60 * 1000,
+            cookie_login_session_key: COOKIE_LOGIN_SESSION_KEY,
+            cookie_login_session_expires: COOKIE_LOGIN_SESSION_EXPIRES,
+            otp_max_attempt: OTP_MAX_ATTEMPT,
+            otp_expire_ms: OTP_EXPIRE_MS,
+            otp_re_request_ms: OTP_RE_REQUEST_MS,
             handlers: Arc::new(DefaultHandlers),
         }
     }

@@ -33,7 +33,7 @@ pub mod reexport {
 
 #[allow(ambiguous_glob_reexports, dead_code, unused_imports)]
 pub mod prelude {
-    pub use _core::prelude::*;
+    pub use {_core::prelude::*, maplit::*};
 
     #[cfg(feature = "test_utils")]
     pub use crate::test_utils::prelude::*;

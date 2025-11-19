@@ -9,7 +9,7 @@ pub struct AuthzConfig {
 impl Default for AuthzConfig {
     fn default() -> Self {
         Self {
-            org_id_header_key: "x-org-id",
+            org_id_header_key: H_ORG_ID,
             handlers: Arc::new(DefaultHandlers),
         }
     }

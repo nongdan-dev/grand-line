@@ -1,3 +1,4 @@
+pub mod consts;
 mod context;
 mod err;
 
@@ -18,7 +19,10 @@ pub mod reexport {
 #[allow(ambiguous_glob_reexports, dead_code, unused_imports)]
 pub mod prelude {
     pub use crate::{export::*, reexport::*};
-    pub(crate) use {crate::err::MyErr, _core::prelude::*};
+    pub(crate) use {
+        crate::{consts::*, err::MyErr},
+        _core::prelude::*,
+    };
 
     #[cfg(feature = "axum")]
     pub use _http_axum::prelude::*;

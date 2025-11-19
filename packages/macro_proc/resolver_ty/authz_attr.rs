@@ -3,16 +3,16 @@ use crate::prelude::*;
 #[field_names]
 #[derive(Clone)]
 pub struct AuthzAttr {
+    pub key: String,
     pub org: bool,
     pub user: bool,
-    pub key: Option<String>,
 }
 impl From<Attr> for AuthzAttr {
     fn from(a: Attr) -> Self {
         Self {
+            key: a.str_or_panic(Self::FIELD_KEY),
             org: a.bool_should_omit(Self::FIELD_ORG),
             user: a.bool_should_omit(Self::FIELD_USER),
-            key: a.str(Self::FIELD_KEY),
         }
     }
 }

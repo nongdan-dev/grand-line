@@ -7,10 +7,8 @@ async fn ok() -> Res<()> {
     let d = prepare().await?;
 
     let mut h = d.h;
-    h.append("x-org-id", h_str(&d.org_id1));
-    let token = d.token1;
-    let token = format!("Bearer {token}");
-    h.insert("authorization", h_str(&token));
+    h.append(H_ORG_ID, h_str(&d.org_id1));
+    h.insert(H_AUTHORIZATION, h_bearer(&d.token1));
 
     let s = d.s.data(h).finish();
 
@@ -67,10 +65,8 @@ async fn err() -> Res<()> {
     let d = prepare().await?;
 
     let mut h = d.h;
-    h.append("x-org-id", h_str(&d.org_id1));
-    let token = d.token2;
-    let token = format!("Bearer {token}");
-    h.insert("authorization", h_str(&token));
+    h.append(H_ORG_ID, h_str(&d.org_id1));
+    h.insert(H_AUTHORIZATION, h_bearer(&d.token2));
 
     let s = d.s.data(h).finish();
 

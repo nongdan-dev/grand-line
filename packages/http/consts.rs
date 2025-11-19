@@ -1,0 +1,9 @@
+pub const H_REAL_IP: &str = "x-real-ip";
+pub const H_FORWARDED_FOR: &str = "x-forwarded-for";
+pub const H_SOCKET_ADDR: &str = "x-socket-addr";
+pub const H_UA: &str = "user-agent";
+pub const H_UA_SEC_CH: &str = "sec-ch-ua";
+pub const H_COOKIE: &str = "cookie";
+pub const H_SET_COOKIE: &str = "set-cookie";
+pub const H_AUTHORIZATION: &str = "authorization";
+pub const BEARER: &str = "Bearer ";

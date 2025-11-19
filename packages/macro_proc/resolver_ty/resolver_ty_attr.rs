@@ -19,15 +19,15 @@ impl From<Attr> for ResolverTyAttr {
                 .bool(Self::FIELD_NO_INCLUDE_DELETED)
                 .unwrap_or(FEATURE_NO_INCLUDE_DELETED),
             auth: a.nested_with_path_into(Self::FIELD_AUTH).map(|(_, a)| a),
-            authz: a
-                .nested_with_path_into::<AuthzAttr>(Self::FIELD_AUTHZ)
-                .map(|(path, mut a)| {
-                    if path {
-                        a.org = true;
-                        a.user = true;
-                    }
-                    a
-                }),
+            authz: a.nested_into(Self::FIELD_AUTHZ),
+            // .nested_with_path_into::<AuthzAttr>(Self::FIELD_AUTHZ)
+            // .map(|(path, mut a)| {
+            //     if path {
+            //         a.org = true;
+            //         a.user = true;
+            //     }
+            //     a
+            // }),
             inner: a,
         }
     }

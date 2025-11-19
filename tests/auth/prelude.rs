@@ -1,11 +1,16 @@
 #![allow(ambiguous_glob_reexports, dead_code, unused_imports)]
 
-use axum::http::{HeaderMap, HeaderValue};
+use axum::http::HeaderMap;
 pub use grand_line::prelude::*;
+
+#[derive(Default, MergedObject)]
+pub struct Query(AuthMergedQuery);
+#[derive(Default, MergedObject)]
+pub struct Mutation(AuthMergedMutation);
 
 pub struct Prepare {
     pub tmp: TmpDb,
-    pub s: SchemaBuilder<AuthMergedQuery, AuthMergedMutation, EmptySubscription>,
+    pub s: SchemaBuilder<Query, Mutation, EmptySubscription>,
     pub h: HeaderMap,
     pub user_id: String,
     pub token: String,
@@ -13,15 +18,12 @@ pub struct Prepare {
 
 pub async fn prepare() -> Res<Prepare> {
     let tmp = tmp_db!(User, AuthOtp, LoginSession);
-    let s = schema_qm::<AuthMergedQuery, AuthMergedMutation>(&tmp.db).data(AuthConfig {
+    let c = AuthConfig {
         handlers: Arc::new(MockAuthHandlers),
         ..Default::default()
-    });
-
-    let mut h = HeaderMap::default();
-    h.insert("x-real-ip", h_static("127.0.0.1"));
-    h.insert("user-agent", h_static(UA));
-    h.insert("sec-ch-ua", h_static(UA_SEC_CH));
+    };
+    let s = schema_qm::<Query, Mutation>(&tmp.db).data(c);
+    let h = init_common_headers();
 
     let u = am_create!(User {
         email: "olivia@example.com",
@@ -50,13 +52,6 @@ pub async fn prepare() -> Res<Prepare> {
     })
 }
 
-pub fn h_static(v: &'static str) -> HeaderValue {
-    HeaderValue::from_static(v)
-}
-pub fn h_str(v: &str) -> HeaderValue {
-    HeaderValue::from_str(v).unwrap_or_else(|_| h_static(""))
-}
-
 pub struct MockAuthHandlers;
 #[async_trait]
 impl AuthHandlers for MockAuthHandlers {
@@ -64,6 +59,3 @@ impl AuthHandlers for MockAuthHandlers {
         Ok("999999".to_owned())
     }
 }
-
-const UA: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36";
-const UA_SEC_CH: &str = r#""Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99""#;

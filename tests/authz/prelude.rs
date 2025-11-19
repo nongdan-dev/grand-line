@@ -1,14 +1,14 @@
 #![allow(ambiguous_glob_reexports, dead_code, unused_imports)]
 
-use axum::http::{HeaderMap, HeaderValue};
+use axum::http::HeaderMap;
 pub use grand_line::prelude::*;
 
-#[query(authz)]
+#[query(authz(key = "admin"))]
 fn org_primitive() -> i64 {
     0
 }
 
-#[query(authz)]
+#[query(authz(key = "admin"))]
 fn org() -> OrgGql {
     let org_id = ctx.authz().await?;
     Org::find()
@@ -19,12 +19,12 @@ fn org() -> OrgGql {
         .await?
 }
 
-#[query(authz(user, key = "system"))]
+#[query(authz(key = "system", user))]
 fn system_primitive() -> i64 {
     0
 }
 
-#[query(authz(user, key = "system"))]
+#[query(authz(key = "system", user))]
 fn system(org_id: String) -> OrgGql {
     Org::find()
         .exclude_deleted()
@@ -57,11 +57,7 @@ pub struct Prepare {
 pub async fn prepare() -> Res<Prepare> {
     let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole);
     let s = schema_q::<Query>(&tmp.db);
-
-    let mut h = HeaderMap::default();
-    h.insert("x-real-ip", h_static("127.0.0.1"));
-    h.insert("user-agent", h_static(UA));
-    h.insert("sec-ch-ua", h_static(UA_SEC_CH));
+    let h = init_common_headers();
 
     let u1 = am_create!(User {
         email: "olivia@example.com",
@@ -70,7 +66,7 @@ pub async fn prepare() -> Res<Prepare> {
     .insert(&tmp.db)
     .await?;
     let u2 = am_create!(User {
-        email: "olivia@example.com",
+        email: "peter@example.com",
         password_hashed: rand_utils::password_hash("123123")?,
     })
     .insert(&tmp.db)
@@ -97,33 +93,10 @@ pub async fn prepare() -> Res<Prepare> {
     let o1 = am_create!(Org { name: "Fringe" }).insert(&tmp.db).await?;
     let o2 = am_create!(Org { name: "FBI" }).insert(&tmp.db).await?;
 
-    let mut allow_all_fields = HashMap::<String, OperationFieldPolicy>::new();
-    allow_all_fields.insert(
-        "**".to_owned(),
-        OperationFieldPolicy {
-            allow: true,
-            ..Default::default()
-        },
-    );
-
-    let mut allow_all_operations = HashMap::<String, OperationPolicy>::new();
-    allow_all_operations.insert(
-        "*".to_owned(),
-        OperationPolicy {
-            inputs: OperationFieldPolicy {
-                allow: true,
-                children: allow_all_fields.clone(),
-            },
-            output: OperationFieldPolicy {
-                allow: true,
-                children: allow_all_fields,
-            },
-        },
-    );
-
     let r1 = am_create!(Role {
         name: "Org Admin",
-        operations: allow_all_operations.to_json()?,
+        key: "admin",
+        operations: operations_wildcard().to_json()?,
         org_id: Some(o1.id.clone()),
     })
     .insert(&tmp.db)
@@ -138,7 +111,8 @@ pub async fn prepare() -> Res<Prepare> {
 
     let r2 = am_create!(Role {
         name: "Org Admin",
-        operations: allow_all_operations.to_json()?,
+        key: "admin",
+        operations: operations_wildcard().to_json()?,
         org_id: Some(o2.id.clone()),
     })
     .insert(&tmp.db)
@@ -153,8 +127,8 @@ pub async fn prepare() -> Res<Prepare> {
 
     let r3 = am_create!(Role {
         name: "System Admin",
-        key: Some("system".to_owned()),
-        operations: allow_all_operations.to_json()?,
+        key: "system",
+        operations: operations_wildcard().to_json()?,
     })
     .insert(&tmp.db)
     .await?;
@@ -178,20 +152,45 @@ pub async fn prepare() -> Res<Prepare> {
     })
 }
 
-pub fn h_static(v: &'static str) -> HeaderValue {
-    HeaderValue::from_static(v)
-}
-pub fn h_str(v: &str) -> HeaderValue {
-    HeaderValue::from_str(v).unwrap_or_else(|_| h_static(""))
-}
-
-pub struct MockAuthHandlers;
-#[async_trait]
-impl AuthHandlers for MockAuthHandlers {
-    async fn otp(&self, _ctx: &Context<'_>) -> Res<String> {
-        Ok("999999".to_owned())
+pub fn field(children: PolicyFields) -> PolicyField {
+    PolicyField {
+        allow: true,
+        children: Some(children),
     }
 }
+pub fn field_no_children() -> PolicyField {
+    PolicyField {
+        allow: true,
+        children: None,
+    }
+}
+pub fn fields(k: String, children: PolicyFields) -> PolicyFields {
+    hashmap! {
+        k => field(children),
+    }
+}
+pub fn fields_no_children(k: String) -> PolicyFields {
+    hashmap! {
+        k => field_no_children(),
+    }
+}
+pub fn fields_wildcard() -> PolicyFields {
+    fields_no_children("*".to_owned())
+}
+pub fn fields_wildcard_nested() -> PolicyFields {
+    fields_no_children("**".to_owned())
+}
 
-const UA: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36";
-const UA_SEC_CH: &str = r#""Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99""#;
+pub fn operation(inputs: PolicyField, output: PolicyField) -> PolicyOperation {
+    PolicyOperation { inputs, output }
+}
+pub fn operations(k: String, inputs: PolicyField, output: PolicyField) -> PolicyOperations {
+    hashmap! {
+        k => operation(inputs, output),
+    }
+}
+pub fn operations_wildcard() -> PolicyOperations {
+    let children = fields_wildcard_nested();
+    let field = field(children);
+    operations("*".to_owned(), field.clone(), field)
+}

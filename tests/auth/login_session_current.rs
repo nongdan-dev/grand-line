@@ -7,9 +7,7 @@ async fn t() -> Res<()> {
     let d = prepare().await?;
 
     let mut h = d.h;
-    let token = &d.token;
-    let token = format!("Bearer {token}");
-    h.insert("Authorization", h_str(&token));
+    h.insert(H_AUTHORIZATION, h_bearer(&d.token));
 
     let s = d.s.data(h).finish();
 
