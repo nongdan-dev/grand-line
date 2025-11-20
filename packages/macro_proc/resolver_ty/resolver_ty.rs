@@ -58,6 +58,22 @@ impl ResolverFn for ResolverTy {
     fn body(&self) -> Ts2 {
         self.item.body.clone()
     }
+
+    fn root_operation_ty(&self) -> Option<String> {
+        let ty = self.ty.to_string();
+        let operations = ["Query", "Mutation", "Subscription"];
+        let operation = operations
+            .iter()
+            .find(|o| ty.ends_with(*o))
+            .copied()
+            .map(|o| o.to_owned());
+        if operation.is_none() {
+            let valid = operations.join(", ");
+            panic!("root resolver {ty} should be one of: {valid}");
+        }
+        operation
+    }
+
     fn no_tx(&self) -> bool {
         self.ra.no_tx
     }

@@ -10,6 +10,10 @@ where
     fn output(&self) -> Ts2;
     fn body(&self) -> Ts2;
 
+    fn root_operation_ty(&self) -> Option<String> {
+        None
+    }
+
     fn no_tx(&self) -> bool {
         false
     }
@@ -55,17 +59,34 @@ where
             let shouty = check_str.to_shouty_snake_case().ts2_or_panic();
             directive_comments.push(format!("@auth(check: {shouty})"));
         }
-        if let Some(AuthzAttr { key, org, user }) = self.authz() {
+
+        if let Some(AuthzAttr {
+            key: key_str,
+            no_org,
+            no_user,
+        }) = self.authz()
+        {
             if no_ctx {
                 self.panic("authz requires ctx");
             }
-            let key = quote!(#key.to_owned());
+            let org = !no_org;
+            let user = !no_user;
+            let operation_ty = self
+                .root_operation_ty()
+                .unwrap_or_else(|| self.panic("authz only available in root resolvers"))
+                .ts2_or_panic();
+            let key = quote!(#key_str.to_owned());
             body = quote! {
+                ctx.cache(async || {
+                    Ok(AuthzCacheOperationTy::#operation_ty)
+                })
+                .await?;
                 ctx.authz_ensure_in_macro(AuthzDirectiveEnsure {
                     key: #key,
                     org: #org,
                     user: #user,
-                }).await?;
+                })
+                .await?;
                 #body
             };
             let mut checks = vec![];
@@ -79,7 +100,16 @@ where
             directives.push(quote! {
                 directive = authz_directive::apply(#key, #check),
             });
-            // TODO: directive_comments
+            let mut checks = vec![];
+            if org {
+                checks.push("ORG");
+            }
+            if user {
+                checks.push("USER");
+            }
+            let checks = checks.join(", ");
+            let key = key_str.to_token_stream().to_string();
+            directive_comments.push(format!("@authz(key: {key}, check: [{checks}])"));
         }
 
         if !no_tx {

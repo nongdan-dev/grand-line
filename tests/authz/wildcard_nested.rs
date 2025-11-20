@@ -57,7 +57,7 @@ async fn ok() -> Res<()> {
     });
     exec_assert(&s, q, Some(v), &expected).await;
 
-    Ok(())
+    d.tmp.drop().await
 }
 
 #[tokio::test]
@@ -79,5 +79,5 @@ async fn err() -> Res<()> {
     "#;
     exec_assert_err(&s, q, None, AuthzErr::Unauthorized).await;
 
-    Ok(())
+    d.tmp.drop().await
 }

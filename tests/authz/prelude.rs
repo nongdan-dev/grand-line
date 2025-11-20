@@ -3,12 +3,12 @@
 use axum::http::HeaderMap;
 pub use grand_line::prelude::*;
 
-#[query(authz(key = "admin", org, user))]
+#[query(authz(key = "admin"))]
 fn org_primitive() -> i64 {
     0
 }
 
-#[query(authz(key = "admin", org, user))]
+#[query(authz(key = "admin"))]
 fn org() -> OrgGql {
     let org_id = ctx.authz().await?;
     Org::find()
@@ -19,12 +19,12 @@ fn org() -> OrgGql {
         .await?
 }
 
-#[query(authz(key = "system", user))]
+#[query(authz(key = "system", no_org))]
 fn system_primitive() -> i64 {
     0
 }
 
-#[query(authz(key = "system", user))]
+#[query(authz(key = "system", no_org))]
 fn system(org_id: String) -> OrgGql {
     Org::find()
         .exclude_deleted()

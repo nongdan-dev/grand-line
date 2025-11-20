@@ -7,7 +7,7 @@ pub struct GrandLineContextData {
     pub(crate) db: Arc<DatabaseConnection>,
     pub(crate) tx: Mutex<Option<Arc<DatabaseTransaction>>>,
     pub(crate) loaders: Mutex<HashMap<String, ArcAny>>,
-    pub(crate) cache_others: Mutex<HashMap<TypeId, Arc<OnceCell<ArcAny>>>>,
+    pub(crate) cache: Mutex<HashMap<TypeId, Arc<OnceCell<ArcAny>>>>,
 }
 
 impl GrandLineContextData {
@@ -16,7 +16,7 @@ impl GrandLineContextData {
             db,
             tx: Mutex::new(None),
             loaders: Mutex::new(HashMap::new()),
-            cache_others: Mutex::new(HashMap::new()),
+            cache: Mutex::new(HashMap::new()),
         }
     }
 

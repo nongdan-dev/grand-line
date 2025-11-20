@@ -14,4 +14,6 @@ pub enum MyErr {
     // ========================================================================
     // server errors
     //
+    #[error("authz requires macro call in the resolver definition")]
+    MissingMacro,
 }

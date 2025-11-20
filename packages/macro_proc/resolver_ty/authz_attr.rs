@@ -4,15 +4,15 @@ use crate::prelude::*;
 #[derive(Clone)]
 pub struct AuthzAttr {
     pub key: String,
-    pub org: bool,
-    pub user: bool,
+    pub no_org: bool,
+    pub no_user: bool,
 }
 impl From<Attr> for AuthzAttr {
     fn from(a: Attr) -> Self {
         Self {
             key: a.str_or_panic(Self::FIELD_KEY),
-            org: a.bool_should_omit(Self::FIELD_ORG),
-            user: a.bool_should_omit(Self::FIELD_USER),
+            no_org: a.bool_should_omit(Self::FIELD_NO_ORG),
+            no_user: a.bool_should_omit(Self::FIELD_NO_USER),
         }
     }
 }
