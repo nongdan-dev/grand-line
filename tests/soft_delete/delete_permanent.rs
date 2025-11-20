@@ -21,7 +21,7 @@ async fn t() -> Res<()> {
             "id": d.id1,
         },
     });
-    exec_assert(&d.s, q, Some(&v), &expected).await;
+    exec_assert(&d.s, q, Some(v), &expected).await;
 
     match User::find_by_id(&d.id1).count(&d.tmp.db).await? {
         count => assert!(

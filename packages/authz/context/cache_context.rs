@@ -13,7 +13,7 @@ impl AuthzCacheContext for Context<'_> {
 
         let mut q = Role::find()
             .exclude_deleted()
-            .filter(RoleColumn::Key.eq(check.key));
+            .filter(RoleColumn::Key.eq(&check.key));
         if check.org {
             let org_id = &self.org_unauthorized().await?.id;
             q = q.filter(RoleColumn::OrgId.eq(org_id));
@@ -40,12 +40,13 @@ impl AuthzCacheContext for Context<'_> {
         let roles = q.all(tx).await?;
 
         for r in roles {
-            let map = HashMap::<String, PolicyOperation>::from_json(r.operations)?;
+            let map = PolicyOperations::from_json(r.operations)?;
             if let Some(p) = map.get("*").or_else(|| map.get(operation))
                 && policy_check_inputs(self, &p.inputs)
                 && policy_check_output(self, &p.output)
             {
                 return Ok(());
+            } else {
             }
         }
 

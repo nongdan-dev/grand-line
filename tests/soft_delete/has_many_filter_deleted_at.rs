@@ -25,7 +25,7 @@ async fn t() -> Res<()> {
             }],
         },
     });
-    exec_assert(&d.s, q, Some(&v), &expected).await;
+    exec_assert(&d.s, q, Some(v), &expected).await;
 
     let q = r#"
     query test($id: ID!) {
@@ -56,7 +56,7 @@ async fn t() -> Res<()> {
             }],
         },
     });
-    exec_assert(&d.s, q, Some(&v), &expected).await;
+    exec_assert(&d.s, q, Some(v), &expected).await;
 
     d.tmp.drop().await
 }

@@ -20,7 +20,7 @@ async fn t() -> Res<()> {
             "password": "Str0ngP@ssw0rd?",
         },
     });
-    exec_assert_ok(&s, q, Some(&v)).await;
+    exec_assert_ok(&s, q, Some(v)).await;
 
     let t = AuthOtp::find().one_or_404(&d.tmp.db).await?;
     let q = r#"
@@ -39,7 +39,7 @@ async fn t() -> Res<()> {
             "otp": "999999",
         },
     });
-    exec_assert_ok(&s, q, Some(&v)).await;
+    exec_assert_ok(&s, q, Some(v)).await;
 
     let u = User::find()
         .filter(UserColumn::Email.eq("peter@example.com"))

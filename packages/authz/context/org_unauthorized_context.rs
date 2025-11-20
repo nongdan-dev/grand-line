@@ -1,13 +1,13 @@
 use crate::prelude::*;
 
 #[async_trait]
-pub trait AuthzOrgInHeaderContext {
+pub trait OrgUnauthorizedContext {
     async fn org_unauthorized(&self) -> Res<Arc<OrgMinimal>>;
     async fn org_unauthorized_without_cache(&self) -> Res<OrgMinimal>;
 }
 
 #[async_trait]
-impl AuthzOrgInHeaderContext for Context<'_> {
+impl OrgUnauthorizedContext for Context<'_> {
     async fn org_unauthorized(&self) -> Res<Arc<OrgMinimal>> {
         let arc = self.cache(|| self.org_unauthorized_without_cache()).await?;
         Ok(arc)

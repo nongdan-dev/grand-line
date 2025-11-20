@@ -54,7 +54,7 @@ async fn sql_dep_cols() -> Res<()> {
         },
     });
 
-    exec_assert(&s, q, Some(&v), &expected).await;
+    exec_assert(&s, q, Some(v), &expected).await;
     tmp.drop().await
 }
 
@@ -104,6 +104,6 @@ async fn sql_dep_exprs() -> Res<()> {
         },
     });
 
-    exec_assert(&s, q, Some(&v), &expected).await;
+    exec_assert(&s, q, Some(v), &expected).await;
     tmp.drop().await
 }

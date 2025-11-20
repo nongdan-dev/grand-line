@@ -127,19 +127,19 @@ fn check_inputs_value(child: &PolicyField, child_v: &Value) -> bool {
     true
 }
 
-pub(crate) fn policy_check_output(ctx: &Context<'_>, policy: &PolicyField) -> bool {
+pub(crate) fn policy_check_output(ctx: &Context<'_>, output: &PolicyField) -> bool {
     let field = ctx.field();
-    check_output(field, policy)
+    check_output(field, output)
 }
 
-fn check_output(field: SelectionField<'_>, policy: &PolicyField) -> bool {
-    if policy.wildcard_nested() {
+fn check_output(field: SelectionField<'_>, parent: &PolicyField) -> bool {
+    if parent.wildcard_nested() {
         return true;
     }
 
     for sub in field.selection_set() {
         let child_k = sub.name();
-        let child = policy
+        let child = parent
             .children
             .as_ref()
             .map(|m| m.get(child_k))
@@ -147,19 +147,15 @@ fn check_output(field: SelectionField<'_>, policy: &PolicyField) -> bool {
 
         let has_children = sub.selection_set().next().is_some();
         if has_children {
-            match child {
-                Some(child) => {
-                    let allow = check_output(sub, child);
-                    if !allow {
-                        return false;
-                    }
-                }
-                None => {
-                    return false;
-                }
+            let Some(child) = child else {
+                return false;
+            };
+            let allow = check_output(sub, child);
+            if !allow {
+                return false;
             }
         } else {
-            let allow = policy.wildcard()
+            let allow = parent.wildcard()
                 || ALLOW_BUILT_IN.contains(child_k)
                 || child.map(|p| p.allow).unwrap_or_default();
             if !allow {

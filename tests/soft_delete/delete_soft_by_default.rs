@@ -21,7 +21,7 @@ async fn t() -> Res<()> {
             "id": d.id1,
         },
     });
-    exec_assert(&d.s, q, Some(&v), &expected).await;
+    exec_assert(&d.s, q, Some(v), &expected).await;
 
     match User::find_by_id(&d.id1).one(&d.tmp.db).await? {
         Some(u) => assert!(

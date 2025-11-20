@@ -12,7 +12,7 @@ impl AuthzContext for Context<'_> {
         self.authz_ensure_in_macro(AuthzDirectiveEnsure {
             org: true,
             user: true,
-            key: "TODO:".to_owned(),
+            key: "admin".to_owned(),
         })
         .await?;
         let org_id = self.org_unauthorized().await?.as_ref().id.to_owned();

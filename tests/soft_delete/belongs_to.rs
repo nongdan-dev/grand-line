@@ -23,7 +23,7 @@ async fn t() -> Res<()> {
             "user": null,
         },
     });
-    exec_assert(&d.s, q, Some(&v), &expected).await;
+    exec_assert(&d.s, q, Some(v), &expected).await;
 
     d.tmp.drop().await
 }

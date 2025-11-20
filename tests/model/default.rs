@@ -49,6 +49,6 @@ async fn insert_defaults() -> Res<()> {
         },
     });
 
-    exec_assert(&s, q, Some(&v), &expected).await;
+    exec_assert(&s, q, Some(v), &expected).await;
     tmp.drop().await
 }

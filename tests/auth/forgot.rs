@@ -19,7 +19,7 @@ async fn t() -> Res<()> {
             "email": "olivia@example.com",
         },
     });
-    exec_assert_ok(&s, q, Some(&v)).await;
+    exec_assert_ok(&s, q, Some(v)).await;
 
     let t = AuthOtp::find().one_or_404(&d.tmp.db).await?;
     let q = r#"
@@ -46,7 +46,7 @@ async fn t() -> Res<()> {
             },
         },
     });
-    exec_assert(&s, q, Some(&v), &expected).await;
+    exec_assert(&s, q, Some(v), &expected).await;
 
     let u = User::find()
         .filter(UserColumn::Email.eq("olivia@example.com"))

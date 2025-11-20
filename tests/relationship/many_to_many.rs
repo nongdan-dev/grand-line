@@ -57,6 +57,6 @@ async fn t() -> Res<()> {
         },
     });
 
-    exec_assert(&s, q, Some(&v), &expected).await;
+    exec_assert(&s, q, Some(v), &expected).await;
     tmp.drop().await
 }

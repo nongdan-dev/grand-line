@@ -55,7 +55,7 @@ async fn ok() -> Res<()> {
             "name": "FBI",
         },
     });
-    exec_assert(&s, q, Some(&v), &expected).await;
+    exec_assert(&s, q, Some(v), &expected).await;
 
     Ok(())
 }

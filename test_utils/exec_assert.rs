@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-pub async fn exec_assert<Q, M, S>(s: &Schema<Q, M, S>, q: &str, v: Option<&Value>, expected: &Value)
+pub async fn exec_assert<Q, M, S>(s: &Schema<Q, M, S>, q: &str, v: Option<Value>, expected: &Value)
 where
     Q: ObjectType + Default + 'static,
     M: ObjectType + Default + 'static,
@@ -10,7 +10,7 @@ where
     pretty_eq!(res.data, expected.clone());
 }
 
-pub async fn exec_assert_ok<Q, M, S>(s: &Schema<Q, M, S>, q: &str, v: Option<&Value>) -> Response
+pub async fn exec_assert_ok<Q, M, S>(s: &Schema<Q, M, S>, q: &str, v: Option<Value>) -> Response
 where
     Q: ObjectType + Default + 'static,
     M: ObjectType + Default + 'static,
@@ -21,7 +21,7 @@ where
     res
 }
 
-pub async fn exec_assert_err<Q, M, S, E>(s: &Schema<Q, M, S>, q: &str, v: Option<&Value>, err: E)
+pub async fn exec_assert_err<Q, M, S, E>(s: &Schema<Q, M, S>, q: &str, v: Option<Value>, err: E)
 where
     Q: ObjectType + Default + 'static,
     M: ObjectType + Default + 'static,
@@ -32,14 +32,14 @@ where
     check_err(&res, err);
 }
 
-async fn exec<Q, M, S>(s: &Schema<Q, M, S>, q: &str, v: Option<&Value>) -> Response
+async fn exec<Q, M, S>(s: &Schema<Q, M, S>, q: &str, v: Option<Value>) -> Response
 where
     Q: ObjectType + Default + 'static,
     M: ObjectType + Default + 'static,
     S: SubscriptionType + 'static,
 {
     let mut req = Request::new(q);
-    if let Some(v) = v.cloned() {
+    if let Some(v) = v {
         req = req.variables(Variables::from_value(v));
     }
     s.execute(req).await
