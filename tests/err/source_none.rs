@@ -4,10 +4,10 @@ pub use grand_line::prelude::*;
 struct Query;
 #[Object]
 impl Query {
-    async fn one(&self) -> i32 {
+    async fn one(&self) -> i64 {
         0
     }
-    async fn add(&self, a: i32, b: i32) -> i32 {
+    async fn add(&self, a: i64, b: i64) -> i64 {
         a + b
     }
 }
