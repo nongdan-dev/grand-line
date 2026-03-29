@@ -5,21 +5,15 @@ pub enum MyErr {
     // ========================================================================
     // client errors
     //
-
+    #[error("unauthorized")]
+    #[client]
+    Unauthorized,
+    #[error("org id is missing in the request headers")]
+    #[client]
+    HeaderOrgId404,
     // ========================================================================
     // server errors
     //
-    #[error("json error: {inner}")]
-    Json {
-        #[from]
-        inner: JsonErr,
-    },
-    #[error("not implemented")]
-    NotImpl,
-}
-
-impl From<JsonErr> for GrandLineErr {
-    fn from(v: JsonErr) -> Self {
-        MyErr::from(v).into()
-    }
+    #[error("authz requires macro call in the resolver definition")]
+    MissingMacro,
 }

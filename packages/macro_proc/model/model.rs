@@ -316,12 +316,14 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             impl ActiveModelBehavior for ActiveModel {
-                // no support for ActiveModelBehavior
-                // instead use the following macros: default, am_create, am_update, am_soft_delete
+                // intentionally empty.
+                // use the following macros: #[default], am_create!, am_update!, am_soft_delete!
             }
             #[derive(Debug, EnumIter, DeriveRelation)]
             pub enum Relation {
-                // TODO:
+                // intentionally empty.
+                // relationships are handled via: #[has_one], #[has_many], #[belongs_to], #[many_to_many]
+                // and resolved through the dataloader system, not sea-orm's native relation API.
             }
 
             static GQL_COLS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {

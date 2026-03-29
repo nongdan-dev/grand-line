@@ -1,0 +1,19 @@
+[package]
+name = "_auth"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+name = "_auth"
+path = "lib.rs"
+
+[features]
+postgres = []
+
+[dependencies]
+_core = { path = "../core", default-features = false, features = [] }
+_http = { path = "../http", default-features = false, features = [] }
+_rand_utils = { path = "../rand_utils", default-features = false, features = [] }
+serde = { version = "^1.0", default-features = false, features = ["derive", "std"] }
+thiserror = { version = "^2.0", default-features = false, features = [] }
+validator = { version = "^0.20", default-features = false, features = [] }

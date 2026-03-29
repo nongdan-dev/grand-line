@@ -4,8 +4,14 @@ mod test_utils;
 pub mod export {
     pub use _core::export::*;
 
+    #[cfg(feature = "auth")]
+    pub use _auth::export::*;
+    #[cfg(feature = "authz")]
+    pub use _authz::export::*;
     #[cfg(feature = "http")]
     pub use _http::export::*;
+    #[cfg(feature = "rand_utils")]
+    pub use _rand_utils::export::*;
     #[cfg(feature = "tracing")]
     pub use _tracing::export::*;
 }
@@ -13,8 +19,14 @@ pub mod export {
 pub mod reexport {
     pub use _core::reexport::*;
 
+    #[cfg(feature = "auth")]
+    pub use _auth::reexport::*;
+    // #[cfg(feature = "authz")]
+    // pub use _authz::reexport::*;
     #[cfg(feature = "http")]
     pub use _http::reexport::*;
+    #[cfg(feature = "rand_utils")]
+    pub use _rand_utils::reexport::*;
     #[cfg(feature = "tracing")]
     pub use _tracing::reexport::*;
 }
@@ -25,8 +37,14 @@ pub mod prelude {
 
     #[cfg(feature = "test_utils")]
     pub use crate::test_utils::prelude::*;
+    #[cfg(feature = "auth")]
+    pub use _auth::prelude::*;
+    #[cfg(feature = "authz")]
+    pub use _authz::prelude::*;
     #[cfg(feature = "http")]
     pub use _http::prelude::*;
+    #[cfg(feature = "rand_utils")]
+    pub use _rand_utils::prelude::*;
     #[cfg(feature = "tracing")]
     pub use _tracing::prelude::*;
 }

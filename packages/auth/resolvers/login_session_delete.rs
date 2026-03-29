@@ -1,0 +1,36 @@
+use crate::prelude::*;
+
+#[mutation(auth)]
+fn login_session_delete(id: String) -> LoginSessionGql {
+    let arc = ctx.auth_with_cache().await?;
+    let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;
+
+    LoginSession::delete_by_id(&id)
+        .filter(LoginSessionColumn::UserId.eq(&ls.user_id))
+        .exec(tx)
+        .await?;
+
+    LoginSessionGql::from_id(&ls.id)
+}
+
+#[mutation(auth)]
+fn login_session_delete_all() -> Vec<LoginSessionGql> {
+    let arc = ctx.auth_with_cache().await?;
+    let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;
+
+    let r = LoginSession::find()
+        .exclude_deleted()
+        .filter(LoginSessionColumn::Id.ne(&ls.id))
+        .filter(LoginSessionColumn::UserId.eq(&ls.user_id))
+        .gql_select_id()
+        .all(tx)
+        .await?;
+
+    LoginSession::delete_many()
+        .filter(LoginSessionColumn::Id.ne(&ls.id))
+        .filter(LoginSessionColumn::UserId.eq(&ls.user_id))
+        .exec(tx)
+        .await?;
+
+    r
+}
