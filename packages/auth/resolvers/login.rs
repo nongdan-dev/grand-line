@@ -9,7 +9,7 @@ pub struct Login {
 #[create(LoginSession, resolver_output, auth(unauthenticated))]
 async fn login() -> LoginSessionWithSecret {
     let h = &ctx.auth_config().handlers;
-    let lsd = login_session_ensure_data(ctx)?;
+    let lsd = login_session_data(ctx)?;
 
     let u = User::find()
         .exclude_deleted()
@@ -24,18 +24,18 @@ async fn login() -> LoginSessionWithSecret {
 
     let ls = login_session_create(ctx, tx, &u.id, &lsd).await?;
 
-    h.on_login_resolve(ctx, &u).await?;
+    h.on_login_resolve(ctx, &u, &ls.inner).await?;
 
-    LoginSessionWithSecret { inner: ls }
+    ls
 }
 
-pub(crate) struct LoginSessionEnsureData {
+pub(crate) struct LoginSessionData {
     pub ip: String,
     pub ua: HashMap<String, String>,
 }
-/// Prepare first to ensure the request context headers are valid before calling other logic.
-pub(crate) fn login_session_ensure_data(ctx: &Context<'_>) -> Res<LoginSessionEnsureData> {
-    Ok(LoginSessionEnsureData {
+/// Get the login session data from the request context before calling other logic.
+pub(crate) fn login_session_data(ctx: &Context<'_>) -> Res<LoginSessionData> {
+    Ok(LoginSessionData {
         ip: ctx.get_ip()?,
         ua: ctx.get_ua()?,
     })
@@ -45,15 +45,22 @@ pub(crate) async fn login_session_create(
     ctx: &Context<'_>,
     tx: &DatabaseTransaction,
     user_id: &str,
-    data: &LoginSessionEnsureData,
-) -> Res<LoginSessionSql> {
+    data: &LoginSessionData,
+) -> Res<LoginSessionWithSecret> {
+    let secret = rand_utils::secret();
     let ls = am_create!(LoginSession {
         user_id: user_id.to_owned(),
+        secret_hashed: rand_utils::secret_hash(&secret),
         ip: data.ip.clone(),
         ua: data.ua.to_json()?,
     })
     .insert(tx)
     .await?;
-    ctx.set_cookie_login_session(&ls)?;
-    Ok(ls)
+
+    let lsws = LoginSessionWithSecret {
+        inner: ls.clone(),
+        secret: secret.clone(),
+    };
+    ctx.set_cookie_login_session(&lsws)?;
+    Ok(lsws)
 }

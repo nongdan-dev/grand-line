@@ -61,28 +61,28 @@ where
         }
 
         if let Some(AuthzAttr {
-            key: key_str,
-            no_org,
-            no_user,
+            scope,
+            skip_org,
+            skip_user,
         }) = self.authz()
         {
             if no_ctx {
                 self.panic("authz requires ctx");
             }
-            let org = !no_org;
-            let user = !no_user;
+            let org = !skip_org;
+            let user = !skip_user;
             let operation_ty = self
                 .root_operation_ty()
                 .unwrap_or_else(|| self.panic("authz only available in root resolvers"))
                 .ts2_or_panic();
-            let key = quote!(#key_str.to_owned());
+            let scope = quote!(#scope.to_owned());
             body = quote! {
                 ctx.cache(async || {
                     Ok(AuthzCacheOperationTy::#operation_ty)
                 })
                 .await?;
                 ctx.authz_ensure_in_macro(AuthzDirectiveEnsure {
-                    key: #key,
+                    scope: #scope,
                     org: #org,
                     user: #user,
                 })
@@ -98,7 +98,7 @@ where
             }
             let check = quote!(vec![#(#checks)*]);
             directives.push(quote! {
-                directive = authz_directive::apply(#key, #check),
+                directive = authz_directive::apply(#scope, #check),
             });
             let mut checks = vec![];
             if org {
@@ -108,8 +108,8 @@ where
                 checks.push("USER");
             }
             let checks = checks.join(", ");
-            let key = key_str.to_token_stream().to_string();
-            directive_comments.push(format!("@authz(key: {key}, check: [{checks}])"));
+            let scope = scope.to_token_stream().to_string();
+            directive_comments.push(format!("@authz(scope: {scope}, check: [{checks}])"));
         }
 
         if !no_tx {

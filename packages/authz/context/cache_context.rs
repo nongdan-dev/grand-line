@@ -38,7 +38,7 @@ impl AuthzCacheContext for Context<'_> {
     ) -> Res<Option<AuthzCacheItem>> {
         let mut q = Role::find()
             .exclude_deleted()
-            .filter(RoleColumn::Key.eq(&check.key));
+            .filter(RoleColumn::Scope.eq(&check.scope));
 
         let mut org = None;
 

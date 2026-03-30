@@ -7,10 +7,10 @@ pub enum AuthzDirectiveCheck {
 }
 
 pub struct AuthzDirectiveEnsure {
-    pub key: String,
+    pub scope: String,
     pub org: bool,
     pub user: bool,
 }
 
 #[TypeDirective(name = "authz", location = "FieldDefinition")]
-pub fn authz_directive(key: String, check: Vec<AuthzDirectiveCheck>) {}
+pub fn authz_directive(scope: String, check: Vec<AuthzDirectiveCheck>) {}

@@ -1,6 +1,6 @@
 # GrandLine
 
-Rust macro framework for building GraphQL APIs on top of `sea-orm` and `async-graphql` — with automatic CRUD resolvers, nested filtering, sorting, pagination, relationships, and soft-delete.
+Rust macro framework for building GraphQL APIs on top of `sea-orm` and `async-graphql` — automatic CRUD resolvers, nested filtering, sorting, pagination, relationships, and soft-delete.
 
 <p align="center">
   <img src="https://github.com/nongdan-dev/grand-line/blob/master/.md/banner.jpg?raw=true" alt="Grand Line One Piece"/>
@@ -9,6 +9,47 @@ Rust macro framework for building GraphQL APIs on top of `sea-orm` and `async-gr
 - [Simple Todo example](https://github.com/nongdan-dev/grand-line/blob/master/examples/simple_todo/src/main.rs)
 - [All examples](https://github.com/nongdan-dev/grand-line/blob/master/examples)
 - [Tests](https://github.com/nongdan-dev/grand-line/blob/master/tests)
+
+---
+
+### Contents
+
+- [Quick start](#quick-start)
+- [Core concepts](#core-concepts)
+- [Model](#model)
+  - [Auto-generated types](#auto-generated-types)
+  - [Auto-added fields](#auto-added-fields)
+  - [Field attributes](#field-attributes)
+  - [Input types](#input-types)
+  - [Model options](#model-options)
+  - [Enums](#enums)
+- [CRUD resolvers](#crud-resolvers)
+  - [Naming convention](#naming-convention)
+  - [#\[search\]](#search)
+  - [#\[count\]](#count)
+  - [#\[detail\]](#detail)
+  - [#\[create\]](#create)
+  - [#\[update\]](#update)
+  - [#\[delete\]](#delete)
+- [Custom resolvers](#custom-resolvers)
+- [Context](#context)
+- [Transactions](#transactions)
+- [Relationships](#relationships)
+- [Filtering and sorting](#filtering-and-sorting)
+- [Active model helpers](#active-model-helpers)
+- [Error handling](#error-handling)
+- [Authentication](#authentication)
+  - [Setup](#setup)
+  - [Register](#register)
+  - [Login](#login)
+  - [Forgot password](#forgot-password)
+  - [Session management](#session-management)
+  - [auth attribute](#auth-attribute)
+  - [Customizing behavior](#customizing-behavior)
+- [Authorization](#authorization)
+  - [Setup](#setup-1)
+  - [authz attribute](#authz-attribute)
+  - [Policy structure](#policy-structure)
 
 ---
 
@@ -46,32 +87,6 @@ That produces a `todoSearch` query with filter/sort/pagination, and a `todoCreat
 
 ---
 
-### Contents
-
-- [Core concepts](#core-concepts)
-- [Model](#model)
-  - [Auto-generated types](#auto-generated-types)
-  - [Auto-added fields](#auto-added-fields)
-  - [Field attributes](#field-attributes)
-  - [Model options](#model-options)
-  - [Enums](#enums)
-- [CRUD resolvers](#crud-resolvers)
-  - [Naming convention](#naming-convention)
-  - [#\[search\]](#search)
-  - [#\[count\]](#count)
-  - [#\[detail\]](#detail)
-  - [#\[create\]](#create)
-  - [#\[update\]](#update)
-  - [#\[delete\]](#delete)
-- [Custom resolvers](#custom-resolvers)
-- [Relationships](#relationships)
-- [Filtering and sorting](#filtering-and-sorting)
-- [Active model helpers](#active-model-helpers)
-- [Error handling](#error-handling)
-- [Transactions](#transactions)
-
----
-
 ### Core concepts
 
 **Resolver bodies are blocks, not functions.** Every macro body is copied into a generated `let r = { ... }` expression. `return` does not work — use `?` to exit early:
@@ -86,10 +101,10 @@ fn my_query() -> String {
 }
 ```
 
-**`tx` and `ctx` are injected automatically.** Every resolver receives:
+**`ctx` and `tx` are injected automatically.** Every resolver receives:
 
+- `ctx` — a `&Context<'_>` async-graphql context with enhanced traits included through imported prelude (see [Context](#context))
 - `tx` — a `&DatabaseTransaction` shared across the entire request (see [Transactions](#transactions))
-- `ctx` — a `&Context<'_>` for look-ahead field selection and dataloader access
 
 ---
 
@@ -144,9 +159,9 @@ let u = am_create!(User { score: 42 }).insert(tx).await?;
 ```rs
 #[model]
 pub struct User {
-    pub first_name: String,
+    pub email: String,
     #[graphql(skip)]
-    pub last_name: String,
+    pub password_hashed: String,
 }
 ```
 
@@ -198,6 +213,20 @@ async fn resolve_c(u: &UserGql, _: &Context<'_>) -> Res<i64> {
 // a=1 → b=1001 → c=1002
 ```
 
+#### Input types
+
+**`#[gql_input]`** — defines a GraphQL input object. Use this for any mutation input, not just CRUD inputs:
+
+```rs
+#[gql_input]
+pub struct TodoCreate {
+    pub content: String,
+    pub done: bool,
+}
+```
+
+Derives: `Debug`, `Clone`, `InputObject`.
+
 #### Model options
 
 Pass as comma-separated arguments to skip auto-added fields:
@@ -211,19 +240,17 @@ Pass as comma-separated arguments to skip auto-added fields:
 
 #### Enums
 
-**`#[gql_enum]`** — GraphQL-only enum, not stored in the database:
+**`#[gql_enum]`** — shortcut to create a GraphQL-only enum, not stored in the database:
 
 ```rs
 #[gql_enum]
 pub enum Direction { Asc, Desc }
 ```
 
-Derives: `Debug`, `Clone`, `Copy`, `Eq`, `PartialEq`, `Deserialize`, `Serialize`, `Enum`.
-
-**`#[enunn]`** — enum stored in the database as `VARCHAR(255)` in snake_case, and also exposed as a GraphQL type:
+**`#[sql_enum]`** — shortcut to combine of SeaORM enum and async-graphql enum. It will be stored in the database as `VARCHAR(255)` in snake_case, and also exposed as a GraphQL type:
 
 ```rs
-#[enunn]
+#[sql_enum]
 pub enum Status {
     Active,    // stored as "active"
     Inactive,  // stored as "inactive"
@@ -231,11 +258,10 @@ pub enum Status {
 
 #[model]
 pub struct Todo {
+    // now this enum can also be used as a db model column
     pub status: Status,
 }
 ```
-
-Adds `EnumIter` and `DeriveActiveEnum` on top of `#[gql_enum]`.
 
 ---
 
@@ -277,8 +303,8 @@ fn resolver() {
 // With server-side defaults:
 #[search(Todo)]
 fn todo_search_2024() {
-    let extra  = filter!(Todo { content_starts_with: "2024" });
-    let sort   = order_by!(Todo [DoneAsc, ContentAsc]);
+    let extra = filter!(Todo { content_starts_with: "2024" });
+    let sort  = order_by!(Todo [DoneAsc, ContentAsc]);
     (Some(extra), Some(sort))
 }
 ```
@@ -326,7 +352,7 @@ Auto-injected locals: `filter: Option<TodoFilter>`, `include_deleted: Option<boo
 
 #### `#[detail]`
 
-Returns a single record by ID. The body runs before the fetch — use it for logging or pre-checks. No return value is needed; the framework fetches and returns the record.
+Returns a single record by ID. The body runs before the fetch — use it for logging or pre-checks. No return value needed.
 
 ```rs
 #[detail(Todo)]
@@ -357,7 +383,7 @@ fn resolver() {
 }
 ```
 
-Auto-injected locals: `data: TodoCreate` (type name = PascalCase of GraphQL field name)
+Auto-injected locals: `data: TodoCreate` (type name = PascalCase of the GraphQL field name)
 
 **Output**: `TodoGql`
 
@@ -452,6 +478,58 @@ These generate `TodoCountDoneQuery` / `TodoDeleteDoneMutation` structs for use i
 
 ---
 
+### Context
+
+`ctx` is a `&Context<'_>` injected into every resolver. Several helper traits extend it with framework-specific methods.
+
+#### Core
+
+```rs
+ctx.tx().await?           // Arc<DatabaseTransaction> — the request transaction (also available as injected `tx`)
+ctx.cache(|| async { ... }).await?  // Arc<T> — per-request cache keyed by type T; closure runs only on first call
+```
+
+#### Auth (`grand_line_auth`)
+
+| Method                                       | Returns                            | Description                                                            |
+| -------------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| `ctx.auth().await?`                          | `String`                           | Current user's `id`; errors with `Unauthenticated` if no valid session |
+| `ctx.auth_with_cache().await?`               | `Arc<Option<LoginSessionMinimal>>` | Current session, or `None` if unauthenticated; cached per request      |
+| `ctx.auth_ensure_authenticated().await?`     | `()`                               | Errors if the request has no valid session                             |
+| `ctx.auth_ensure_not_authenticated().await?` | `()`                               | Errors if the request already has a valid session                      |
+
+The `auth_ensure_*` methods are called automatically by the `#[query(auth)]` / `#[mutation(auth(unauthenticated))]` attributes. Call them manually only when you need conditional logic.
+
+#### Authz (`grand_line_authz`)
+
+| Method                          | Returns           | Description                                                                                             |
+| ------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------- |
+| `ctx.authz().await?`            | `String`          | Verified `org_id` from `X-Org-Id` header; only valid inside org-scoped `authz(scope = "...")` resolvers |
+| `ctx.authz_role().await?`       | `RoleSql`         | The matched `Role` row; valid inside any `authz(...)` resolver                                          |
+| `ctx.org_unauthorized().await?` | `Arc<OrgMinimal>` | Resolves the org from `X-Org-Id` header without checking user auth; cached per request                  |
+
+---
+
+### Transactions
+
+`GrandLineExtension` manages a single lazy database transaction per GraphQL request:
+
+- **Commit** — if the request finishes with no errors.
+- **Rollback** — if any resolver returns an error; all DB writes in the request are undone.
+
+Register it when building the schema:
+
+```rs
+Schema::build(Query::default(), Mutation::default(), EmptySubscription)
+    .extension(GrandLineExtension)
+    .data(Arc::new(db.clone()))
+    .finish()
+```
+
+Both `.extension(GrandLineExtension)` and `.data(Arc::new(db))` are required.
+
+---
+
 ### Relationships
 
 Declare relationships as field attributes on `#[model]`. The framework resolves them with look-ahead — only the fields the client requests are fetched.
@@ -518,13 +596,9 @@ Related records with `deleted_at` set are excluded by default. Per-field `includ
 ```graphql
 query {
     userDetail(id: "...") {
-        # has_one: soft-deleted person is null by default
+        # has_one / belongs_to: soft-deleted record is null by default
         person { gender }
         person(includeDeleted: true) { gender }
-
-        # belongs_to: same
-        user { name }
-        user(includeDeleted: true) { name }
 
         # has_many / many_to_many: can also use filter directly
         orgs(filter: { deletedAt_ne: null }) { name }
@@ -662,20 +736,315 @@ let code = error.source
 
 ---
 
-### Transactions
+### Authentication
 
-`GrandLineExtension` manages a single lazy database transaction per GraphQL request:
+The `grand_line_auth` package provides email + password authentication with OTP (one-time password) verification for register and forgot-password flows.
 
-- **Commit** — if the request finishes with no errors.
-- **Rollback** — if any resolver returns an error; all DB writes in the request are undone.
+#### Setup
 
-Register it when building the schema:
+Register the built-in queries and mutations by merging `AuthMergedQuery` and `AuthMergedMutation` into your schema, and provide an `AuthConfig`:
 
 ```rs
-Schema::build(Query::default(), Mutation::default(), EmptySubscription)
+use grand_line::prelude::*;
+
+#[derive(Default, MergedObject)]
+pub struct Query(AuthMergedQuery, /* your own queries */);
+
+#[derive(Default, MergedObject)]
+pub struct Mutation(AuthMergedMutation, /* your own mutations */);
+
+let schema = Schema::build(Query::default(), Mutation::default(), EmptySubscription)
     .extension(GrandLineExtension)
     .data(Arc::new(db.clone()))
-    .finish()
+    .data(AuthConfig::default())
+    .finish();
 ```
 
-Both `.extension(GrandLineExtension)` and `.data(Arc::new(db))` are required.
+The following tables must be created in the database:
+
+```rs
+tmp_db!(User, AuthOtp, LoginSession)
+```
+
+**Note**: `User` only has basic fields (`email`, `password_hashed`). It is not extendable — add a second table (e.g. `UserProfile`) with a `user_id` foreign key to store extra fields.
+
+#### Register
+
+Registration is a two-step OTP flow:
+
+**Step 1** — call `register`, which creates a pending OTP record and triggers `on_otp_create` (where you send the OTP code by email):
+
+```graphql
+mutation {
+    register(data: { email: "user@example.com", password: "Str0ngP@ssw0rd?" }) {
+        secret   # save this — needed in step 2
+    }
+}
+```
+
+**Step 2** — call `registerResolve` with the OTP code the user received, plus the `id` and `secret` from step 1:
+
+```graphql
+mutation {
+    registerResolve(data: { id: "...", secret: "...", otp: "123456" }) {
+        secret   # session token — pass as Authorization: Bearer {secret}
+        inner { userId }
+    }
+}
+```
+
+On success: the `User` is created, a `LoginSession` is opened, and the session token is returned.
+
+#### Login
+
+Single-step: verify email + password and open a session:
+
+```graphql
+mutation {
+    login(data: { email: "user@example.com", password: "123123" }) {
+        secret   # session token
+        inner { userId }
+    }
+}
+```
+
+The session token must be sent on subsequent requests:
+
+```
+Authorization: Bearer {secret}
+```
+
+#### Forgot password
+
+Same two-step OTP flow as register:
+
+**Step 1**:
+
+```graphql
+mutation {
+    forgot(data: { email: "user@example.com" }) {
+        secret
+    }
+}
+```
+
+**Step 2** — provide the OTP + new password:
+
+```graphql
+mutation {
+    forgotResolve(data: { id: "...", secret: "...", otp: "123456" }, password: "NewP@ssw0rd!") {
+        secret
+        inner { userId }
+    }
+}
+```
+
+On success: the password is updated and a new `LoginSession` is opened.
+
+#### Session management
+
+```graphql
+# current session (requires auth)
+query { loginSessionCurrent { userId ip } }
+
+# all sessions for current user (requires auth)
+query { loginSessionSearch { userId ip ua } }
+query { loginSessionCount }
+
+# delete a specific session by id (requires auth)
+mutation { loginSessionDelete(id: "...") { id } }
+
+# delete all sessions for current user (requires auth)
+mutation { loginSessionDeleteAll }
+
+# delete current session (requires auth)
+mutation { logout { id } }
+```
+
+#### `auth` attribute
+
+Add to any resolver macro to enforce authentication. Use `ctx.auth().await?` (see [Context](#context)) to read the current user's ID inside the resolver:
+
+```rs
+// Requires a valid session token
+#[query(auth)]
+fn my_profile() -> UserGql {
+    let user_id = ctx.auth().await?;
+    User::find_by_id(&user_id).gql_select(ctx)?.one_or_404(tx).await?
+}
+
+// Requires the user to NOT be authenticated (for login/register endpoints)
+#[mutation(auth(unauthenticated))]
+fn register() -> AuthOtpWithSecret { ... }
+
+// Works on all CRUD macros too
+#[search(Todo, auth)]
+fn resolver() { (None, None) }
+
+#[create(Todo, auth)]
+fn resolver() { am_create!(Todo { ... }) }
+```
+
+#### Customizing behavior
+
+Implement `AuthHandlers` to hook into the auth lifecycle:
+
+```rs
+struct MyHandlers;
+
+#[async_trait]
+impl AuthHandlers for MyHandlers {
+    // See AuthHandlers for reference
+}
+
+let config = AuthConfig {
+    handlers: Arc::new(MyHandlers),
+    ..Default::default()
+    // See AuthConfig for reference
+};
+```
+
+---
+
+### Authorization
+
+The `grand_line_authz` package provides role-based access control with organization scoping and fine-grained policy checks on GraphQL inputs and outputs.
+
+#### Setup
+
+Add the required tables and provide `AuthzConfig`:
+
+```rs
+tmp_db!(Org, Role, UserInRole)
+
+let schema = Schema::build(Query::default(), Mutation::default(), EmptySubscription)
+    .extension(GrandLineExtension)
+    .data(Arc::new(db.clone()))
+    .data(AuthConfig::default())   // auth is required alongside authz
+    .data(AuthzConfig::default())
+    .finish();
+```
+
+**Note**: `Org` only has basic fields (`name`). It is not extendable — add a second table (e.g. `OrgProfile`) with an `org_id` foreign key to store extra fields.
+
+Roles are stored in the `Role` table. The `scope` field groups roles into named categories:
+
+```rs
+// Org-scoped role: belongs to a specific org
+am_create!(Role {
+    name: "Org Admin",
+    scope: "admin",
+    org_id: Some(org_id.clone()),
+    operations: operations.to_json()?,
+}).insert(tx).await?;
+
+// System-wide role: no org
+am_create!(Role {
+    name: "System Admin",
+    scope: "system",
+    operations: operations.to_json()?,
+}).insert(tx).await?;
+
+// Assign to a user
+am_create!(UserInRole {
+    user_id: user_id.clone(),
+    role_id: role_id.clone(),
+    org_id: Some(org_id.clone()),  // must match the role's org_id
+}).insert(tx).await?;
+```
+
+#### `authz` attribute
+
+Add to any resolver macro. Two modes:
+
+**Org-scoped** — checks that the current user has a role with the given `scope` inside the org from the `X-Org-Id` request header. Use `ctx.authz().await?` to get the verified org ID:
+
+```rs
+// Request must include: Authorization: Bearer {token}  and  X-Org-Id: {org_id}
+#[query(authz(scope = "admin"))]
+fn org_dashboard() -> OrgGql {
+    let org_id = ctx.authz().await?;
+    Org::find_by_id(&org_id).gql_select(ctx)?.one_or_404(tx).await?
+}
+```
+
+**System-wide** — checks that the current user has a role with the given `scope` globally (no org required):
+
+```rs
+// Request must include: Authorization: Bearer {token}
+#[query(authz(scope = "system", skip_org))]
+fn system_dashboard() -> String {
+    "ok".to_string()
+}
+```
+
+Use `ctx.authz_role().await?` inside any `authz`-guarded resolver to get the matched `Role` record (see [Context](#context)).
+
+Works on all resolver macros:
+
+```rs
+#[search(Todo, authz(scope = "admin"))]
+fn resolver() { (None, None) }
+
+#[create(Todo, authz(scope = "admin"))]
+fn resolver() { am_create!(Todo { ... }) }
+```
+
+#### Policy structure
+
+Each `Role` has an `operations` field — a JSON-encoded `PolicyOperations` map that controls what the role is allowed to do:
+
+```rs
+pub type PolicyOperations = HashMap<String, PolicyOperation>;
+
+pub struct PolicyOperation {
+    pub inputs: PolicyField,   // which GraphQL arguments are allowed
+    pub output: PolicyField,   // which GraphQL response fields are allowed
+}
+
+pub struct PolicyField {
+    pub allow: bool,
+    pub children: Option<PolicyFields>,  // HashMap<String, PolicyField>
+}
+```
+
+The key in `PolicyOperations` is the GraphQL operation name, or `"*"` to match all operations.
+
+**Wildcards in `PolicyFields`**:
+
+| Key    | Meaning                            |
+| ------ | ---------------------------------- |
+| `"*"`  | Allow any direct child field       |
+| `"**"` | Allow any nested field recursively |
+
+**Example — wildcard policy (allow everything)**:
+
+```rs
+let all = PolicyField { allow: true, children: Some(hashmap! {
+    "**".to_owned() => PolicyField { allow: true, children: None },
+}) };
+let operations: PolicyOperations = hashmap! {
+    "*".to_owned() => PolicyOperation { inputs: all.clone(), output: all },
+};
+role.operations = operations.to_json()?;
+```
+
+**Example — restricted policy (only allow specific fields)**:
+
+```rs
+let operations: PolicyOperations = hashmap! {
+    "todoSearch".to_owned() => PolicyOperation {
+        inputs: PolicyField { allow: true, children: Some(hashmap! {
+            "filter".to_owned() => PolicyField { allow: true, children: Some(hashmap! {
+                "**".to_owned() => PolicyField { allow: true, children: None },
+            }) },
+        }) },
+        output: PolicyField { allow: true, children: Some(hashmap! {
+            "id".to_owned()      => PolicyField { allow: true, children: None },
+            "content".to_owned() => PolicyField { allow: true, children: None },
+        }) },
+    },
+};
+```
+
+The policy check runs automatically before the resolver body executes. If the inputs or requested output fields are not allowed, the framework returns an `unauthorized` error.

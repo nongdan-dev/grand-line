@@ -4,7 +4,7 @@ use crate::prelude::*;
 async fn forgot_resolve(data: AuthOtpResolve, password: String) -> LoginSessionWithSecret {
     let h = &ctx.auth_config().handlers;
     h.password_validate(ctx, &password).await?;
-    let lsd = login_session_ensure_data(ctx)?;
+    let lsd = login_session_data(ctx)?;
     let t = otp_ensure_resolve(ctx, tx, AuthOtpTy::Forgot, data).await?;
 
     let d = AuthOtpDataForgot::from_json(t.data)?;
@@ -20,7 +20,7 @@ async fn forgot_resolve(data: AuthOtpResolve, password: String) -> LoginSessionW
     let ls = login_session_create(ctx, tx, &u.id, &lsd).await?;
     AuthOtp::delete_by_id(t.id).exec(tx).await?;
 
-    h.on_forgot_resolve(ctx, &u).await?;
+    h.on_forgot_resolve(ctx, &u, &ls.inner).await?;
 
-    LoginSessionWithSecret { inner: ls }
+    ls
 }

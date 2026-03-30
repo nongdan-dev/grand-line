@@ -75,8 +75,8 @@ pub fn delete(attr: TokenStream, item: TokenStream) -> TokenStream {
 // utils
 
 #[proc_macro_attribute]
-pub fn enunn(attr: TokenStream, item: TokenStream) -> TokenStream {
-    gen_enunn(attr, item)
+pub fn sql_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
+    gen_sql_enum(attr, item)
 }
 
 #[proc_macro_attribute]

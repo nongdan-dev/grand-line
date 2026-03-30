@@ -16,7 +16,7 @@ impl ScalarType for Email {
                     Err(InputValueError::custom("Invalid email"))
                 }
             }
-            v => Err(InputValueError::expected_type(v)),
+            _ => Err(InputValueError::custom("Invalid email")),
         }
     }
     fn to_value(&self) -> Value {

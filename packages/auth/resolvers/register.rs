@@ -16,9 +16,12 @@ async fn register() -> AuthOtpWithSecret {
 
     let otp = h.otp(ctx).await?;
     let (otp_salt, otp_hashed) = rand_utils::otp_hash(&otp)?;
+    let secret = rand_utils::secret();
+
     let t = am_create!(AuthOtp {
         ty: AuthOtpTy::Register,
         email: data.email.0,
+        secret_hashed: rand_utils::secret_hash(&secret),
         data: AuthOtpDataRegister {
             password_hashed: rand_utils::password_hash(&data.password)?,
         }
@@ -31,7 +34,7 @@ async fn register() -> AuthOtpWithSecret {
 
     h.on_otp_create(ctx, &t, &otp).await?;
 
-    AuthOtpWithSecret { inner: t }
+    AuthOtpWithSecret { inner: t, secret }
 }
 
 pub(crate) async fn register_ensure_email_not_exists(

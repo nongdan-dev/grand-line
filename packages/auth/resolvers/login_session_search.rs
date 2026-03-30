@@ -20,6 +20,7 @@ async fn get_filter(ctx: &Context<'_>) -> Res<LoginSessionFilter> {
     let f = filter!(LoginSession {
         id_ne: ls.id.clone(),
         user_id: ls.user_id.clone(),
+        created_at_gte: now() - duration_ms(ctx.auth_config().cookie_login_session_expires_ms),
     });
     Ok(f)
 }

@@ -15,11 +15,14 @@ async fn forgot() -> AuthOtpWithSecret {
         .filter(UserColumn::Email.eq(&data.email.0))
         .one_or_404(tx)
         .await?;
+
     let otp = h.otp(ctx).await?;
+    let secret = rand_utils::secret();
     let (otp_salt, otp_hashed) = rand_utils::otp_hash(&otp)?;
     let t = am_create!(AuthOtp {
         ty: AuthOtpTy::Forgot,
         email: data.email.0,
+        secret_hashed: rand_utils::secret_hash(&secret),
         data: AuthOtpDataForgot {
             user_id: u.id.to_owned()
         }
@@ -32,5 +35,5 @@ async fn forgot() -> AuthOtpWithSecret {
 
     h.on_otp_create(ctx, &t, &otp).await?;
 
-    AuthOtpWithSecret { inner: t }
+    AuthOtpWithSecret { inner: t, secret }
 }

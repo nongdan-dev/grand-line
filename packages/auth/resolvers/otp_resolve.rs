@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use chrono::Duration;
 
 #[gql_input]
 pub struct AuthOtpResolve {
@@ -55,9 +54,9 @@ pub(crate) async fn otp_ensure_resolve(
 
     let c = &ctx.auth_config();
     if !rand_utils::otp_eq(&t.otp_salt, &t.otp_hashed, &data.otp)?
-        || !rand_utils::constant_time_eq(&t.secret, &data.secret)
+        || !rand_utils::secret_eq(&t.secret_hashed, &data.secret)
         || t.total_attempt > c.otp_max_attempt
-        || t.created_at + Duration::milliseconds(c.otp_expire_ms) < now()
+        || t.created_at + duration_ms(c.otp_expires_ms) < now()
     {
         Err(MyErr::OtpResolveInvalid)?;
     }
@@ -91,7 +90,7 @@ pub(crate) async fn otp_ensure_re_request(
     };
 
     let c = &ctx.auth_config();
-    if t.created_at + Duration::milliseconds(c.otp_re_request_ms) > now() {
+    if t.created_at + duration_ms(c.otp_re_request_ms) > now() {
         Err(MyErr::OtpReRequestTooSoon)?;
     }
 

@@ -1,12 +1,15 @@
+mod b64;
+mod eq;
 mod err;
+mod otp;
 mod password;
 mod qs;
-mod rand;
+mod secret;
 
 pub mod export {
     pub use crate::err::MyErr as AuthUtilsErr;
     pub mod rand_utils {
-        pub use crate::{password::*, qs::*, rand::*};
+        pub use crate::{b64::*, eq::*, otp::*, password::*, qs::*, secret::*};
     }
 }
 

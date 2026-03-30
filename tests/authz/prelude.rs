@@ -3,12 +3,12 @@
 use axum::http::HeaderMap;
 pub use grand_line::prelude::*;
 
-#[query(authz(key = "admin"))]
+#[query(authz(scope = "admin"))]
 fn org_primitive() -> i64 {
     0
 }
 
-#[query(authz(key = "admin"))]
+#[query(authz(scope = "admin"))]
 fn org() -> OrgGql {
     let org_id = ctx.authz().await?;
     Org::find()
@@ -19,12 +19,12 @@ fn org() -> OrgGql {
         .await?
 }
 
-#[query(authz(key = "system", no_org))]
+#[query(authz(scope = "system", skip_org))]
 fn system_primitive() -> i64 {
     0
 }
 
-#[query(authz(key = "system", no_org))]
+#[query(authz(scope = "system", skip_org))]
 fn system(org_id: String) -> OrgGql {
     Org::find()
         .exclude_deleted()
@@ -73,29 +73,35 @@ pub async fn prepare() -> Res<Prepare> {
     .await?;
 
     let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
+
+    let secret1 = rand_utils::secret();
     let ls1 = am_create!(LoginSession {
         user_id: u1.id.clone(),
+        secret_hashed: rand_utils::secret_hash(&secret1),
         ip: "127.0.0.1",
         ua: ua.to_json()?,
     })
     .insert(&tmp.db)
     .await?;
-    let token1 = rand_utils::qs_token(&ls1.id, &ls1.secret)?;
+    let token1 = rand_utils::qs_token(&ls1.id, &secret1)?;
+
+    let secret2 = rand_utils::secret();
     let ls2 = am_create!(LoginSession {
         user_id: u2.id.clone(),
+        secret_hashed: rand_utils::secret_hash(&secret2),
         ip: "127.0.0.1",
         ua: ua.to_json()?,
     })
     .insert(&tmp.db)
     .await?;
-    let token2 = rand_utils::qs_token(&ls2.id, &ls2.secret)?;
+    let token2 = rand_utils::qs_token(&ls2.id, &secret2)?;
 
     let o1 = am_create!(Org { name: "Fringe" }).insert(&tmp.db).await?;
     let o2 = am_create!(Org { name: "FBI" }).insert(&tmp.db).await?;
 
     let r1 = am_create!(Role {
         name: "Org Admin",
-        key: "admin",
+        scope: "admin",
         operations: operations_wildcard().to_json()?,
         org_id: Some(o1.id.clone()),
     })
@@ -111,7 +117,7 @@ pub async fn prepare() -> Res<Prepare> {
 
     let r2 = am_create!(Role {
         name: "Org Admin",
-        key: "admin",
+        scope: "admin",
         operations: operations_wildcard().to_json()?,
         org_id: Some(o2.id.clone()),
     })
@@ -127,7 +133,7 @@ pub async fn prepare() -> Res<Prepare> {
 
     let r3 = am_create!(Role {
         name: "System Admin",
-        key: "system",
+        scope: "system",
         operations: operations_wildcard().to_json()?,
     })
     .insert(&tmp.db)

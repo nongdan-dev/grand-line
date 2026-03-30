@@ -33,15 +33,17 @@ pub async fn prepare() -> Res<Prepare> {
     .await?;
 
     let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
+    let secret = rand_utils::secret();
     let ls = am_create!(LoginSession {
         user_id: u.id.clone(),
+        secret_hashed: rand_utils::secret_hash(&secret),
         ip: "127.0.0.1",
         ua: ua.to_json()?,
     })
     .insert(&tmp.db)
     .await?;
 
-    let token = rand_utils::qs_token(&ls.id, &ls.secret)?;
+    let token = rand_utils::qs_token(&ls.id, &secret)?;
 
     Ok(Prepare {
         tmp,

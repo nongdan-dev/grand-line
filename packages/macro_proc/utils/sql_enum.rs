@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-pub fn gen_enunn(_: TokenStream, item: TokenStream) -> TokenStream {
+pub fn gen_sql_enum(_: TokenStream, item: TokenStream) -> TokenStream {
     let item = Into::<Ts2>::into(item);
 
     quote! {

@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use chrono::Duration;
 
 #[model(no_updated_at, no_deleted_at, no_by_id)]
 pub struct AuthOtp {
@@ -8,9 +7,8 @@ pub struct AuthOtp {
     #[graphql(skip)]
     pub ty: AuthOtpTy,
 
-    #[default(rand_utils::secret())]
     #[graphql(skip)]
-    pub secret: String,
+    pub secret_hashed: String,
 
     #[graphql(skip)]
     pub otp_salt: String,
@@ -32,7 +30,7 @@ pub struct AuthOtp {
     pub can_re_request_at: DateTimeUtc,
 }
 
-#[enunn]
+#[sql_enum]
 pub enum AuthOtpTy {
     Register,
     Forgot,
@@ -55,23 +53,24 @@ async fn resolve_remaining_attempt(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<i64
 }
 async fn resolve_will_expire_at(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<DateTimeUtc> {
     let c = o.created_at.ok_or(CoreDbErr::GqlResolverNone)?;
-    let d = Duration::milliseconds(ctx.auth_config().otp_expire_ms);
+    let d = duration_ms(ctx.auth_config().otp_expires_ms);
     Ok(c + d)
 }
 async fn resolve_can_re_request_at(o: &AuthOtpGql, ctx: &Context<'_>) -> Res<DateTimeUtc> {
     let c = o.created_at.ok_or(CoreDbErr::GqlResolverNone)?;
-    let d = Duration::milliseconds(ctx.auth_config().otp_re_request_ms);
+    let d = duration_ms(ctx.auth_config().otp_re_request_ms);
     Ok(c + d)
 }
 
 /// To only expose secret in some operations, not the others.
 pub struct AuthOtpWithSecret {
     pub inner: AuthOtpSql,
+    pub secret: String,
 }
 #[Object]
 impl AuthOtpWithSecret {
     pub async fn secret(&self) -> String {
-        self.inner.secret.clone()
+        self.secret.clone()
     }
     pub async fn inner(&self, ctx: &Context<'_>) -> Res<AuthOtpGql> {
         let r = self.inner.clone().into_gql(ctx).await?;
