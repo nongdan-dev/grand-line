@@ -1,5 +1,6 @@
 fmt:
 	cargo fmt \
+	&& doctoc README.md --github \
 	&& dprint fmt;
 
 check:

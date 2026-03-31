@@ -14,29 +14,40 @@ Rust macro framework for building GraphQL APIs on top of `sea-orm` and `async-gr
 
 ### Contents
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 - [Quick start](#quick-start)
-- [Core concepts](#core-concepts)
 - [Model](#model)
   - [Auto-generated types](#auto-generated-types)
   - [Auto-added fields](#auto-added-fields)
-  - [Field attributes](#field-attributes)
+  - [Field macro attributes](#field-macro-attributes)
   - [Input types](#input-types)
-  - [Model options](#model-options)
   - [Enums](#enums)
 - [CRUD resolvers](#crud-resolvers)
   - [Naming convention](#naming-convention)
-  - [#\[search\]](#search)
-  - [#\[count\]](#count)
-  - [#\[detail\]](#detail)
-  - [#\[create\]](#create)
-  - [#\[update\]](#update)
-  - [#\[delete\]](#delete)
+  - [`#[search]`](#search)
+  - [`#[count]`](#count)
+  - [`#[detail]`](#detail)
+  - [`#[create]`](#create)
+  - [`#[update]`](#update)
+  - [`#[delete]`](#delete)
 - [Custom resolvers](#custom-resolvers)
+- [Resolver bodies](#resolver-bodies)
 - [Context](#context)
+  - [Core](#core)
+  - [Auth (`grand_line_auth`)](#auth-grand_line_auth)
+  - [Authz (`grand_line_authz`)](#authz-grand_line_authz)
 - [Transactions](#transactions)
 - [Relationships](#relationships)
+  - [Soft-delete and relationships](#soft-delete-and-relationships)
 - [Filtering and sorting](#filtering-and-sorting)
+  - [`filter!`](#filter)
+  - [`order_by!`](#order_by)
 - [Active model helpers](#active-model-helpers)
+  - [`am_create!` / `am_update!` / `am_soft_delete!`](#am_create--am_update--am_soft_delete)
+  - [Soft-delete queries](#soft-delete-queries)
+  - [Select helpers](#select-helpers)
 - [Error handling](#error-handling)
 - [Authentication](#authentication)
   - [Setup](#setup)
@@ -44,12 +55,14 @@ Rust macro framework for building GraphQL APIs on top of `sea-orm` and `async-gr
   - [Login](#login)
   - [Forgot password](#forgot-password)
   - [Session management](#session-management)
-  - [auth attribute](#auth-attribute)
+  - [`auth` attribute](#auth-attribute)
   - [Customizing behavior](#customizing-behavior)
 - [Authorization](#authorization)
   - [Setup](#setup-1)
-  - [authz attribute](#authz-attribute)
+  - [`authz` attribute](#authz-attribute)
   - [Policy structure](#policy-structure)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ---
 
@@ -87,71 +100,64 @@ That produces a `todoSearch` query with filter/sort/pagination, and a `todoCreat
 
 ---
 
-### Core concepts
-
-**Resolver bodies are blocks, not functions.** Every macro body is copied into a generated `let r = { ... }` expression. `return` does not work — use `?` to exit early:
-
-```rs
-#[query]
-fn my_query() -> String {
-    if some_condition {
-        Err(MyErr::NotFound)?;  // early exit — NOT return
-    }
-    "ok".to_string()
-}
-```
-
-**`ctx` and `tx` are injected automatically.** Every resolver receives:
-
-- `ctx` — a `&Context<'_>` async-graphql context with enhanced traits included through imported prelude (see [Context](#context))
-- `tx` — a `&DatabaseTransaction` shared across the entire request (see [Transactions](#transactions))
-
----
-
 ### Model
 
 #### Auto-generated types
 
-`#[model]` turns a plain struct into a complete sea-orm entity with a paired GraphQL type. For `struct Todo`:
+`#[model]` turns a plain struct into a complete sea-orm entity with a paired GraphQL type. For `struct Todo` it will generate:
 
-| Type              | Description                                                                 |
-| ----------------- | --------------------------------------------------------------------------- |
-| `Todo`            | sea-orm `Entity` — use for queries: `Todo::find()`, `Todo::find_by_id(...)` |
-| `TodoSql`         | Raw database row (`sea_orm::Model`)                                         |
-| `TodoActiveModel` | Active model for inserts/updates                                            |
-| `TodoGql`         | GraphQL output object (exposed as `"Todo"` in schema)                       |
-| `TodoFilter`      | GraphQL filter input (see [Filtering and sorting](#filtering-and-sorting))  |
-| `TodoOrderBy`     | GraphQL order-by enum (`ContentAsc`, `DoneDesc`, ...)                       |
-| `TodoColumn`      | sea-orm column enum                                                         |
+| Type              | Description                                                     |
+| ----------------- | --------------------------------------------------------------- |
+| `Todo`            | sea-orm `Entity`                                                |
+| `TodoSql`         | sea-orm `Model`                                                 |
+| `TodoColumn`      | sea-orm `Column`                                                |
+| `TodoActiveModel` | sea-orm `ActiveModel`                                           |
+| `TodoGql`         | async-graphql output object, will be named `Todo` in the schema |
+| `TodoFilter`      | async-graphql filter input                                      |
+| `TodoOrderBy`     | async-graphql order by enum                                     |
 
 #### Auto-added fields
 
 These fields are added to every model automatically:
 
-| Field        | Type                    | Set on       |
-| ------------ | ----------------------- | ------------ |
-| `id`         | `String` (26-char ULID) | insert       |
-| `created_at` | `DateTimeUtc`           | insert       |
-| `updated_at` | `DateTimeUtc`           | every update |
-| `deleted_at` | `Option<DateTimeUtc>`   | soft-delete  |
+| Field           | Type                    | Set on       |
+| --------------- | ----------------------- | ------------ |
+| `id`            | `String` (26-char ULID) | insert       |
+| `created_at`    | `DateTimeUtc`           | insert       |
+| `updated_at`    | `DateTimeUtc`           | every update |
+| `deleted_at`    | `Option<DateTimeUtc>`   | soft-delete  |
+| `created_by_id` | `Option<String>`        | manually     |
+| `updated_by_id` | `Option<String>`        | manually     |
+| `deleted_by_id` | `Option<String>`        | manually     |
 
-#### Field attributes
+They can be configured through model macro attributes as follows:
 
-Attributes that go on individual fields inside `#[model]`:
+```rs
+#[model(no_created_at)]   // no created_at / created_by_id
+#[model(no_updated_at)]   // no updated_at / updated_by_id
+#[model(no_deleted_at)]   // no deleted_at / deleted_by_id (also disable soft-delete on this model)
+#[model(no_by_id)]        // no *_by_id
+```
 
-**`#[default(...)]`** — value applied at insert when the field is omitted from `am_create!`:
+#### Field macro attributes
+
+**`#[default(...)]`** — value applied at insert when the field is omitted from `am_create!`, can be a valid rust expression:
 
 ```rs
 #[model]
 pub struct User {
     #[default("anonymous")]
     pub name: String,
-    #[default(0)]
+    #[default(generate_score())]
     pub score: i64,
 }
 
-let u = am_create!(User { score: 42 }).insert(tx).await?;
-// u.name == "anonymous", u.score == 42
+fn generate_score() -> i64 {
+  37
+}
+
+let u = am_create!(User).insert(tx).await?;
+// u.name == "anonymous", u.score == 37
 ```
 
 **`#[graphql(skip)]`** — hides a field from the GraphQL schema. Still stored in the database, accessible on `UserSql`, but invisible to clients:
@@ -165,7 +171,7 @@ pub struct User {
 }
 ```
 
-**`#[sql_expr(...)]`** — replaces the column with a custom sea-query expression computed by the database:
+**`#[sql_expr(...)]`** — mark this field as GraphQL-only field without actual column. It will be resolved as a computed column from sea-query expression:
 
 ```rs
 #[model]
@@ -177,7 +183,7 @@ pub struct User {
 // insert a=1 → query b returns 1001
 ```
 
-**`#[resolver(sql_dep = "col1, col2")]`** — virtual field resolved in Rust. `sql_dep` lists the columns that must be fetched from the DB to compute it. Pair with a free function named `resolve_{field_name}`:
+**`#[resolver(sql_dep = "col1, col2")]`** — mark this field as GraphQL-only field without actual column. It requires a free function in the same scope named `resolve_{field_name}`. `sql_dep` contains the columns that must be fetched from the DB to compute it:
 
 ```rs
 #[model]
@@ -225,19 +231,6 @@ pub struct TodoCreate {
 }
 ```
 
-Derives: `Debug`, `Clone`, `InputObject`.
-
-#### Model options
-
-Pass as comma-separated arguments to skip auto-added fields:
-
-```rs
-#[model(no_deleted_at)]   // no soft-delete support
-#[model(no_created_at)]   // no created_at / created_by_id
-#[model(no_updated_at)]   // no updated_at / updated_by_id
-#[model(no_by_id)]        // no *_by_id audit fields
-```
-
 #### Enums
 
 **`#[gql_enum]`** — shortcut to create a GraphQL-only enum, not stored in the database:
@@ -247,7 +240,7 @@ Pass as comma-separated arguments to skip auto-added fields:
 pub enum Direction { Asc, Desc }
 ```
 
-**`#[sql_enum]`** — shortcut to combine of SeaORM enum and async-graphql enum. It will be stored in the database as `VARCHAR(255)` in snake_case, and also exposed as a GraphQL type:
+**`#[sql_enum]`** — shortcut to combine of sea-orm enum and async-graphql enum. It will be stored in the database as `VARCHAR(255)` in snake_case, and also exposed as a GraphQL enum:
 
 ```rs
 #[sql_enum]
@@ -281,12 +274,12 @@ fn todo_search_2024() { ... }   // → todoSearch2024
 
 The input type for `#[create]` and `#[update]` is the PascalCase of the GraphQL field name:
 
-| Function                               | GraphQL field | Input type   |
-| -------------------------------------- | ------------- | ------------ |
-| `fn resolver()` + `#[create(Todo)]`    | `todoCreate`  | `TodoCreate` |
-| `fn todo_upsert()` + `#[create(Todo)]` | `todoUpsert`  | `TodoUpsert` |
+| Function                           | GraphQL field | Input type   |
+| ---------------------------------- | ------------- | ------------ |
+| `#[create(Todo)] fn resolver()`    | `todoCreate`  | `TodoCreate` |
+| `#[create(Todo)] fn todo_upsert()` | `todoUpsert`  | `TodoUpsert` |
 
-The generated `MergedObject` struct follows the same pattern: `todoCreate` → `TodoCreateMutation`.
+It will generate an async-graphql object follows the same pattern: `todoCreate` → `TodoCreateMutation`.
 
 ---
 
@@ -318,12 +311,12 @@ Auto-injected locals:
 | `page`            | `Option<Pagination>`       |
 | `include_deleted` | `Option<bool>`             |
 
-`Pagination`:
+`page`:
 
 ```rs
 pub struct Pagination {
-    pub offset: Option<u64>,  // default 0
-    pub limit:  Option<u64>,  // default 10, max 100
+    pub offset: Option<u64>,
+    pub limit: Option<u64>,
 }
 ```
 
@@ -344,7 +337,12 @@ fn resolver() {
 }
 ```
 
-Auto-injected locals: `filter: Option<TodoFilter>`, `include_deleted: Option<bool>`
+Auto-injected locals:
+
+| Variable          | Type                 |
+| ----------------- | -------------------- |
+| `filter`          | `Option<TodoFilter>` |
+| `include_deleted` | `Option<bool>`       |
 
 **Output**: `u64`
 
@@ -361,7 +359,12 @@ fn resolver() {
 }
 ```
 
-Auto-injected locals: `id: String`, `include_deleted: Option<bool>`
+Auto-injected locals:
+
+| Variable          | Type           |
+| ----------------- | -------------- |
+| `id`              | `String`       |
+| `include_deleted` | `Option<bool>` |
 
 **Output**: `Option<TodoGql>`
 
@@ -383,7 +386,11 @@ fn resolver() {
 }
 ```
 
-Auto-injected locals: `data: TodoCreate` (type name = PascalCase of the GraphQL field name)
+Auto-injected locals:
+
+| Variable | Type                                 |
+| -------- | ------------------------------------ |
+| `data`   | PascalCase of the GraphQL field name |
 
 **Output**: `TodoGql`
 
@@ -409,20 +416,12 @@ fn resolver() {
 }
 ```
 
-Auto-injected locals: `id: String`, `data: TodoUpdate`
+Auto-injected locals:
 
-Use `resolver_inputs` to define fully custom inputs:
-
-```rs
-#[update(Todo, resolver_inputs)]
-fn todo_toggle_done(id: String) {
-    let todo = Todo::find_by_id(&id).one_or_404(tx).await?;
-    am_update!(Todo {
-        id: id.clone(),
-        done: !todo.done,
-    })
-}
-```
+| Variable | Type                                 |
+| -------- | ------------------------------------ |
+| `id`     | `String`                             |
+| `data`   | PascalCase of the GraphQL field name |
 
 **Output**: `TodoGql`
 
@@ -439,12 +438,19 @@ fn resolver() {
 }
 ```
 
-Auto-injected locals: `id: String`, `permanent: Option<bool>`
+Auto-injected locals:
+
+| Variable    | Type           |
+| ----------- | -------------- |
+| `id`        | `String`       |
+| `permanent` | `Option<bool>` |
 
 - `permanent: false` (default) — soft-delete: sets `deleted_at`, row stays in DB
 - `permanent: true` — hard-delete: row is removed from DB
 
 **Output**: `TodoGql` with only `id` populated.
+
+**Configuration** through macro attributes:
 
 ```rs
 #[delete(Todo, no_permanent_delete)]  // remove the permanent option entirely
@@ -474,7 +480,41 @@ fn todo_delete_done() -> Vec<TodoGql> {
 }
 ```
 
-These generate `TodoCountDoneQuery` / `TodoDeleteDoneMutation` structs for use in `MergedObject`.
+These generate `TodoCountDoneQuery` / `TodoDeleteDoneMutation` structs later use in async-graphql `MergedObject`.
+
+---
+
+### Resolver bodies
+
+**Resolver bodies are blocks, not functions.** Every macro body is copied into a generated `let r = { ... }` expression. `return` does not work — use `?` to exit early:
+
+```rs
+#[query]
+fn my_query() -> String {
+    if some_condition {
+        Err(MyErr::NotFound)?;  // early exit — NOT return
+    }
+    "ok".to_string()
+}
+```
+
+**`ctx` and `tx` are injected automatically.** Every resolver receives:
+
+- `ctx` — a `&Context<'_>` async-graphql context with enhanced traits included through imported prelude (see [Context](#context))
+- `tx` — a `&DatabaseTransaction` shared across the entire request (see [Transactions](#transactions))
+
+Use **`resolver_inputs`** to define fully custom inputs:
+
+```rs
+#[update(Todo, resolver_inputs)]
+fn todo_toggle_done(id: String) {
+    let todo = Todo::find_by_id(&id).one_or_404(tx).await?;
+    am_update!(Todo {
+        id: id.clone(),
+        done: !todo.done,
+    })
+}
+```
 
 ---
 
@@ -581,7 +621,9 @@ pub struct User {
     pub orgs: Org,
 }
 #[model]
-pub struct Org { pub name: String }
+pub struct Org {
+    pub name: String
+}
 #[model]
 pub struct UserInOrg {
     pub user_id: String,
