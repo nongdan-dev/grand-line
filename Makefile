@@ -1,6 +1,6 @@
 fmt:
 	cargo fmt \
-	&& doctoc README.md --github \
+	&& doctoc --loglevel warn --github README.md \
 	&& dprint fmt;
 
 check:

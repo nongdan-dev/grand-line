@@ -87,10 +87,9 @@ fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
             quote!(is_not_null)
         };
         quote! {
-            if matches!(this.#name, Undefined::Null) {
+            if let Undefined::Null = this.#name {
                 c = c.add(Column::#col.#op_null());
-            }
-            if let Undefined::Value(v) = this.#name {
+            } else if let Undefined::Value(v) = this.#name {
                 c = c.add(Column::#col.#op(v));
             }
         }

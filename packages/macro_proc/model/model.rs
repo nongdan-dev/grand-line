@@ -315,15 +315,18 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 #(#gql_resolver)*
             }
 
+            /// ActiveModelBehavior is intentionally empty.
+            /// Use the following macros instead to set default values on active models:
+            /// #[default], am_create!, am_update!, am_soft_delete!
+            /// Other lifecycle related logic should be handled in the service layer
+            /// to keep the model clean and focused on data representation.
             impl ActiveModelBehavior for ActiveModel {
-                // intentionally empty.
-                // use the following macros: #[default], am_create!, am_update!, am_soft_delete!
             }
             #[derive(Debug, EnumIter, DeriveRelation)]
+            /// Relation is intentionally empty.
+            /// Relationships are handled via: #[has_one], #[has_many], #[belongs_to], #[many_to_many]
+            /// and resolved through the dataloader system, not sea-orm's native relation API.
             pub enum Relation {
-                // intentionally empty.
-                // relationships are handled via: #[has_one], #[has_many], #[belongs_to], #[many_to_many]
-                // and resolved through the dataloader system, not sea-orm's native relation API.
             }
 
             static GQL_COLS: LazyLock<HashMap<&'static str, Column>> = LazyLock::new(|| {

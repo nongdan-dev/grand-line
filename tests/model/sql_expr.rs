@@ -10,6 +10,12 @@ async fn t() -> Res<()> {
             pub a: i64,
             #[sql_expr(Expr::col(Column::A).add(1000))]
             pub b: i64,
+            #[sql_expr(expr_c())]
+            pub c: i64,
+        }
+
+        fn expr_c() -> SimpleExpr {
+            Expr::col(UserColumn::A).add(2000)
         }
 
         #[detail(User)]
@@ -26,6 +32,7 @@ async fn t() -> Res<()> {
     query test($id: ID!) {
         userDetail(id: $id) {
             b
+            c
         }
     }
     "#;
@@ -35,6 +42,7 @@ async fn t() -> Res<()> {
     let expected = value!({
         "userDetail": {
             "b": 1001,
+            "c": 2001,
         },
     });
 
