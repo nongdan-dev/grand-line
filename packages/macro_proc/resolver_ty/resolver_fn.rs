@@ -61,7 +61,7 @@ where
         }
 
         if let Some(AuthzAttr {
-            scope,
+            realm,
             skip_org,
             skip_user,
         }) = self.authz()
@@ -75,14 +75,14 @@ where
                 .root_operation_ty()
                 .unwrap_or_else(|| self.panic("authz only available in root resolvers"))
                 .ts2_or_panic();
-            let scope = quote!(#scope.to_owned());
+            let realm = quote!(#realm.to_owned());
             body = quote! {
                 ctx.cache(async || {
                     Ok(AuthzCacheOperationTy::#operation_ty)
                 })
                 .await?;
                 ctx.authz_ensure_in_macro(AuthzDirectiveEnsure {
-                    scope: #scope,
+                    realm: #realm,
                     org: #org,
                     user: #user,
                 })
@@ -98,7 +98,7 @@ where
             }
             let check = quote!(vec![#(#checks)*]);
             directives.push(quote! {
-                directive = authz_directive::apply(#scope, #check),
+                directive = authz_directive::apply(#realm, #check),
             });
             let mut checks = vec![];
             if org {
@@ -108,8 +108,8 @@ where
                 checks.push("USER");
             }
             let checks = checks.join(", ");
-            let scope = scope.to_token_stream().to_string();
-            directive_comments.push(format!("@authz(scope: {scope}, check: [{checks}])"));
+            let realm = realm.to_token_stream().to_string();
+            directive_comments.push(format!("@authz(realm: {realm}, check: [{checks}])"));
         }
 
         if !no_tx {

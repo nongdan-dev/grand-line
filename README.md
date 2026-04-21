@@ -569,7 +569,7 @@ The `auth_ensure_*` methods are called automatically by the `#[query(auth)]` / `
 
 | Method                          | Returns           | Description                                                                                             |
 | ------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------- |
-| `ctx.authz().await?`            | `String`          | Verified `org_id` from `X-Org-Id` header; only valid inside org-scoped `authz(scope = "...")` resolvers |
+| `ctx.authz().await?`            | `String`          | Verified `org_id` from `X-Org-Id` header; only valid inside org-scoped `authz(realm = "...")` resolvers |
 | `ctx.authz_role().await?`       | `RoleSql`         | The matched `Role` row; valid inside any `authz(...)` resolver                                          |
 | `ctx.org_unauthorized().await?` | `Arc<OrgMinimal>` | Resolves the org from `X-Org-Id` header without checking user auth; cached per request                  |
 
@@ -982,8 +982,6 @@ The `grand_line_authz` package provides role-based access control with organizat
 Add the required tables and provide `AuthzConfig`:
 
 ```rs
-tmp_db!(Org, Role, UserInRole)
-
 let schema = Schema::build(Query::default(), Mutation::default(), EmptySubscription)
     .extension(GrandLineExtension)
     .data(Arc::new(db.clone()))
@@ -994,13 +992,24 @@ let schema = Schema::build(Query::default(), Mutation::default(), EmptySubscript
 
 **Note**: `Org` only has basic fields (`name`). It is not extendable — add a second table (e.g. `OrgProfile`) with an `org_id` foreign key to store extra fields.
 
-Roles are stored in the `Role` table. The `scope` field groups roles into named categories:
+Roles are stored in the `Role` table. The `realm` field categorizes roles by the scope of access they govern. Access is enforced via the `UserInRole` table, which links users to roles using a `user_id` and an optional `org_id`. The `skip_user` and `skip_org` attributes control which of these fields are checked at query time:
+
+- `skip_user` — `user_id` is not checked (anonymous access allowed)
+- `skip_org` — `org_id` is not checked (not org-scoped)
+
+The three most common realms are:
+
+- `system` — requires a valid user, not org-scoped: `#[authz(realm="system", skip_org)]`
+- `org` — requires a valid user and org membership: `#[authz(realm="org")]`
+- `public` — no user or org required (e.g. a store front in an e-commerce app): `#[authz(realm="public", skip_user, skip_org)]`
+
+`realm` is plain string data — you can define any name and enforce any logic. The above are just example of common realms.
 
 ```rs
 // Org-scoped role: belongs to a specific org
 am_create!(Role {
     name: "Org Admin",
-    scope: "admin",
+    realm: "org",
     org_id: Some(org_id.clone()),
     operations: operations.to_json()?,
 }).insert(tx).await?;
@@ -1008,7 +1017,7 @@ am_create!(Role {
 // System-wide role: no org
 am_create!(Role {
     name: "System Admin",
-    scope: "system",
+    realm: "system",
     operations: operations.to_json()?,
 }).insert(tx).await?;
 
@@ -1024,22 +1033,22 @@ am_create!(UserInRole {
 
 Add to any resolver macro. Two modes:
 
-**Org-scoped** — checks that the current user has a role with the given `scope` inside the org from the `X-Org-Id` request header. Use `ctx.authz().await?` to get the verified org ID:
+**Org-realm** — checks that the current user has a role with the given `realm` inside the org from the `X-Org-Id` request header. Use `ctx.authz().await?` to get the verified org ID:
 
 ```rs
 // Request must include: Authorization: Bearer {token}  and  X-Org-Id: {org_id}
-#[query(authz(scope = "admin"))]
+#[query(authz(realm = "org"))]
 fn org_dashboard() -> OrgGql {
     let org_id = ctx.authz().await?;
     Org::find_by_id(&org_id).gql_select(ctx)?.one_or_404(tx).await?
 }
 ```
 
-**System-wide** — checks that the current user has a role with the given `scope` globally (no org required):
+**System-wide** — checks that the current user has a role with the given `realm` globally (no org required):
 
 ```rs
 // Request must include: Authorization: Bearer {token}
-#[query(authz(scope = "system", skip_org))]
+#[query(authz(realm = "system", skip_org))]
 fn system_dashboard() -> String {
     "ok".to_string()
 }
@@ -1050,10 +1059,10 @@ Use `ctx.authz_role().await?` inside any `authz`-guarded resolver to get the mat
 Works on all resolver macros:
 
 ```rs
-#[search(Todo, authz(scope = "admin"))]
+#[search(Todo, authz(realm = "org"))]
 fn resolver() { (None, None) }
 
-#[create(Todo, authz(scope = "admin"))]
+#[create(Todo, authz(realm = "org"))]
 fn resolver() { am_create!(Todo { ... }) }
 ```
 

@@ -4,7 +4,7 @@ use prelude::*;
 
 #[tokio::test]
 async fn ok() -> Res<()> {
-    let d = prepare().await?;
+    let d = prepare_with_ops(operations_col_level_org_name()).await?;
 
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));
@@ -12,13 +12,7 @@ async fn ok() -> Res<()> {
 
     let s = d.s.data(h).finish();
 
-    let q = r#"
-    query test {
-        orgPrimitive
-    }
-    "#;
-    exec_assert_ok(&s, q, None).await;
-
+    // name is in the allowed field map -> ok.
     let q = r#"
     query test {
         org {
@@ -33,48 +27,44 @@ async fn ok() -> Res<()> {
     });
     exec_assert(&s, q, None, &expected).await;
 
-    let q = r#"
-    query test {
-        systemPrimitive
-    }
-    "#;
-    exec_assert_ok(&s, q, None).await;
-
-    let q = r#"
-    query test($orgId: String!) {
-        system(orgId: $orgId) {
-            name
-        }
-    }
-    "#;
-    let v = value!({
-        "orgId": d.org_id2,
-    });
-    let expected = value!({
-        "system": {
-            "name": "FBI",
-        },
-    });
-    exec_assert(&s, q, Some(v), &expected).await;
-
     d.tmp.drop().await
 }
 
 #[tokio::test]
-async fn err() -> Res<()> {
-    let d = prepare().await?;
+async fn err_output_field() -> Res<()> {
+    let d = prepare_with_ops(operations_col_level_org_name()).await?;
 
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));
-    h.insert(H_AUTHORIZATION, h_bearer(&d.token2));
+    h.insert(H_AUTHORIZATION, h_bearer(&d.token1));
 
     let s = d.s.data(h).finish();
 
+    // id is not in the allowed field map -> unauthorized.
     let q = r#"
     query test {
         org {
+            id
+        }
+    }
+    "#;
+    exec_assert_err(&s, q, None, AuthzErr::Unauthorized).await;
+
+    // Selecting both an allowed (name) and a denied (id) field -> unauthorized.
+    let q = r#"
+    query test {
+        org {
+            id
             name
         }
+    }
+    "#;
+    exec_assert_err(&s, q, None, AuthzErr::Unauthorized).await;
+
+    // orgPrimitive is not in the allowed operation map -> unauthorized.
+    let q = r#"
+    query test {
+        orgPrimitive
     }
     "#;
     exec_assert_err(&s, q, None, AuthzErr::Unauthorized).await;

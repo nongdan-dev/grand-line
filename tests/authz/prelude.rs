@@ -3,12 +3,12 @@
 use axum::http::HeaderMap;
 pub use grand_line::prelude::*;
 
-#[query(authz(scope = "admin"))]
+#[query(authz(realm = "org"))]
 fn org_primitive() -> i64 {
     0
 }
 
-#[query(authz(scope = "admin"))]
+#[query(authz(realm = "org"))]
 fn org() -> OrgGql {
     let org_id = ctx.authz().await?;
     Org::find()
@@ -19,12 +19,12 @@ fn org() -> OrgGql {
         .await?
 }
 
-#[query(authz(scope = "system", skip_org))]
+#[query(authz(realm = "system", skip_org))]
 fn system_primitive() -> i64 {
     0
 }
 
-#[query(authz(scope = "system", skip_org))]
+#[query(authz(realm = "system", skip_org))]
 fn system(org_id: String) -> OrgGql {
     Org::find()
         .exclude_deleted()
@@ -54,7 +54,11 @@ pub struct Prepare {
     pub org_id2: String,
 }
 
-pub async fn prepare() -> Res<Prepare> {
+pub async fn prepare_wildcard() -> Res<Prepare> {
+    prepare_with_ops(operations_wildcard()).await
+}
+
+pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> {
     let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole);
     let s = schema_q::<Query>(&tmp.db);
     let h = init_common_headers();
@@ -101,8 +105,8 @@ pub async fn prepare() -> Res<Prepare> {
 
     let r1 = am_create!(Role {
         name: "Org Admin",
-        scope: "admin",
-        operations: operations_wildcard().to_json()?,
+        realm: "org",
+        operations: org1_admin_ops.to_json()?,
         org_id: Some(o1.id.clone()),
     })
     .insert(&tmp.db)
@@ -117,7 +121,7 @@ pub async fn prepare() -> Res<Prepare> {
 
     let r2 = am_create!(Role {
         name: "Org Admin",
-        scope: "admin",
+        realm: "org",
         operations: operations_wildcard().to_json()?,
         org_id: Some(o2.id.clone()),
     })
@@ -133,7 +137,7 @@ pub async fn prepare() -> Res<Prepare> {
 
     let r3 = am_create!(Role {
         name: "System Admin",
-        scope: "system",
+        realm: "system",
         operations: operations_wildcard().to_json()?,
     })
     .insert(&tmp.db)
@@ -170,6 +174,7 @@ pub fn field_no_children() -> PolicyField {
         children: None,
     }
 }
+
 pub fn fields(k: String, children: PolicyFields) -> PolicyFields {
     hashmap! {
         k => field(children),
@@ -180,6 +185,7 @@ pub fn fields_no_children(k: String) -> PolicyFields {
         k => field_no_children(),
     }
 }
+
 pub fn fields_wildcard() -> PolicyFields {
     fields_no_children("*".to_owned())
 }
@@ -195,8 +201,15 @@ pub fn operations(k: String, inputs: PolicyField, output: PolicyField) -> Policy
         k => operation(inputs, output),
     }
 }
+
 pub fn operations_wildcard() -> PolicyOperations {
     let children = fields_wildcard_nested();
     let field = field(children);
     operations("*".to_owned(), field.clone(), field)
+}
+
+pub fn operations_col_level_org_name() -> PolicyOperations {
+    let inputs = field(fields_wildcard_nested());
+    let output = field(fields_no_children("name".to_owned()));
+    operations("org".to_owned(), inputs, output)
 }
