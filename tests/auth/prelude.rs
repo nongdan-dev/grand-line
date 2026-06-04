@@ -3,10 +3,14 @@
 use axum::http::HeaderMap;
 pub use grand_line::prelude::*;
 
+#[path = "../fixture_user.rs"]
+mod fixture_user;
+pub use fixture_user::*;
+
 #[derive(Default, MergedObject)]
 pub struct Query(AuthMergedQuery);
 #[derive(Default, MergedObject)]
-pub struct Mutation(AuthMergedMutation);
+pub struct Mutation(AuthMergedMutation<User>);
 
 pub struct Prepare {
     pub tmp: TmpDb,
@@ -22,12 +26,15 @@ pub async fn prepare() -> Res<Prepare> {
         handlers: Arc::new(MockAuthHandlers),
         ..Default::default()
     };
-    let s = schema_qm::<Query, Mutation>(&tmp.db).data(c);
+    let s = schema_qm::<Query, Mutation>(&tmp.db)
+        .data(c)
+        .data(AuthUserConfig::<User>::default());
     let h = init_common_headers();
 
     let u = am_create!(User {
         email: "olivia@example.com",
         password_hashed: rand_utils::password_hash("123123")?,
+        display_name: "Olivia",
     })
     .insert(&tmp.db)
     .await?;

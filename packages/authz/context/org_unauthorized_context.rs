@@ -20,14 +20,14 @@ impl OrgUnauthorizedContext for Context<'_> {
             Err(MyErr::HeaderOrgId404)?;
         }
 
-        let q = Org::find().exclude_deleted().filter_by_id(&v);
+        let lookup = self
+            .data_opt::<Arc<dyn AuthzOrgLookup>>()
+            .ok_or(MyErr::OrgLookupNotFound)?;
 
         let tx = &*self.tx().await?;
-        let org = OrgMinimal::select(q)
-            .one(tx)
+        lookup
+            .find_by_id(&v, tx)
             .await?
-            .ok_or(MyErr::Unauthorized)?;
-
-        Ok(org)
+            .ok_or(MyErr::Unauthorized.into())
     }
 }

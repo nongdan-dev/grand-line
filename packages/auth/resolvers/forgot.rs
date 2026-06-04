@@ -5,26 +5,31 @@ pub struct Forgot {
     pub email: Email,
 }
 
-#[create(AuthOtp, resolver_output, auth(unauthenticated))]
-async fn forgot() -> AuthOtpWithSecret {
+pub(crate) async fn forgot_impl<U: AuthUser>(
+    ctx: &Context<'_>,
+    data: Forgot,
+) -> Res<AuthOtpWithSecret> {
+    let tx = &*ctx.tx().await?;
     let h = &ctx.auth_config().handlers;
+
     otp_ensure_re_request(ctx, tx, AuthOtpTy::Forgot, &data.email.0).await?;
 
-    let u = User::find()
+    let u = U::find()
         .exclude_deleted()
-        .filter(UserColumn::Email.eq(&data.email.0))
+        .filter(U::email_col().eq(&data.email.0))
         .one_or_404(tx)
         .await?;
 
     let otp = h.otp(ctx).await?;
     let secret = rand_utils::secret();
     let (otp_salt, otp_hashed) = rand_utils::otp_hash(&otp)?;
+
     let t = am_create!(AuthOtp {
         ty: AuthOtpTy::Forgot,
         email: data.email.0,
         secret_hashed: rand_utils::secret_hash(&secret),
         data: AuthOtpDataForgot {
-            user_id: u.id.to_owned()
+            user_id: u.get_id().to_owned(),
         }
         .to_json()?,
         otp_salt,
@@ -35,5 +40,5 @@ async fn forgot() -> AuthOtpWithSecret {
 
     h.on_otp_create(ctx, &t, &otp).await?;
 
-    AuthOtpWithSecret { inner: t, secret }
+    Ok(AuthOtpWithSecret { inner: t, secret })
 }

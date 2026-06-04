@@ -16,4 +16,6 @@ pub enum MyErr {
     //
     #[error("authz requires macro call in the resolver definition")]
     MissingMacro,
+    #[error("authz_org() not found")]
+    OrgLookupNotFound,
 }

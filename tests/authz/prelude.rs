@@ -3,6 +3,14 @@
 use axum::http::HeaderMap;
 pub use grand_line::prelude::*;
 
+#[path = "../fixture_user.rs"]
+mod fixture_user;
+pub use fixture_user::*;
+
+#[path = "../fixture_org.rs"]
+mod fixture_org;
+pub use fixture_org::*;
+
 #[query(authz(realm = "org"))]
 fn org_primitive() -> i64 {
     0
@@ -60,7 +68,7 @@ pub async fn prepare_wildcard() -> Res<Prepare> {
 
 pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> {
     let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole);
-    let s = schema_q::<Query>(&tmp.db);
+    let s = schema_q::<Query>(&tmp.db).data(authz_org::<Org>());
     let h = init_common_headers();
 
     let u1 = am_create!(User {

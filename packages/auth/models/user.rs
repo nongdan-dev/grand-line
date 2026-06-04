@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
-#[model(no_by_id)]
-pub struct User {
-    pub email: String,
-    #[graphql(skip)]
-    pub password_hashed: String,
+pub trait AuthUser: EntityX + Send + Sync + 'static {
+    fn email_col() -> Self::C;
+    fn password_col() -> Self::C;
+    fn get_email(m: &Self::M) -> &str;
+    fn get_password_hashed(m: &Self::M) -> &str;
 }

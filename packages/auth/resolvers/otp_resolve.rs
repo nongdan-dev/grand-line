@@ -7,12 +7,16 @@ pub struct AuthOtpResolve {
     pub otp: String,
 }
 
-#[mutation(auth(unauthenticated))]
-fn auth_otp_resolve(ty: AuthOtpTy, data: AuthOtpResolve) -> AuthOtpGql {
+pub(crate) async fn auth_otp_resolve_impl(
+    ctx: &Context<'_>,
+    ty: AuthOtpTy,
+    data: AuthOtpResolve,
+) -> Res<AuthOtpGql> {
+    let tx = &*ctx.tx().await?;
     otp_ensure_resolve(ctx, tx, ty, data)
         .await?
         .into_gql(ctx)
-        .await?
+        .await
 }
 
 pub(crate) async fn otp_ensure_resolve(
