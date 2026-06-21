@@ -2,8 +2,12 @@ use crate::prelude::*;
 
 pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as AttrParse);
-    let mut item = parse_macro_input!(item as ItemStruct);
-    let a = attr.into_inner::<ModelAttr>("model");
+    let item = parse_macro_input!(item as ItemStruct);
+    try_gen_model(attr, item).unwrap_or_else(|e| e.to_compile_error().into())
+}
+
+fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
+    let a = attr.into_inner::<ModelAttr>("model")?;
 
     // ------------------------------------------------------------------------
     // insert built-in fields: id, created_at, updated_at...
@@ -12,7 +16,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         Fields::Named(f) => f.named,
         _ => {
             let err = format!("{model} struct should be named fields");
-            a.inner.panic(&err);
+            return Err(a.inner.syn_err(&err));
         }
     };
     fields.insert(
@@ -21,21 +25,21 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             #[sea_orm(primary_key, column_type = "String(StringLen::N(26))", auto_increment = false)]
             pub id: String
         }
-        .field_or_panic(),
+        .field_or_err()?,
     );
     if !a.no_created_at {
         fields.push(
             quote! {
                 pub created_at: DateTimeUtc
             }
-            .field_or_panic(),
+            .field_or_err()?,
         );
         if !a.no_by_id {
             fields.push(
                 quote! {
                     pub created_by_id: Option<String>
                 }
-                .field_or_panic(),
+                .field_or_err()?,
             );
         }
     }
@@ -44,14 +48,14 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             quote! {
                 pub updated_at: Option<DateTimeUtc>
             }
-            .field_or_panic(),
+            .field_or_err()?,
         );
         if !a.no_by_id {
             fields.push(
                 quote! {
                     pub updated_by_id: Option<String>
                 }
-                .field_or_panic(),
+                .field_or_err()?,
             );
         }
     }
@@ -60,14 +64,14 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             quote! {
                 pub deleted_at: Option<DateTimeUtc>
             }
-            .field_or_panic(),
+            .field_or_err()?,
         );
         if !a.no_by_id {
             fields.push(
                 quote! {
                     pub deleted_by_id: Option<String>
                 }
-                .field_or_panic(),
+                .field_or_err()?,
             );
         }
     }
@@ -81,53 +85,51 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         exprs,
         gql_fields,
         sql_fields,
-    } = model_fields_attr(&model_str, &fields);
+    } = model_fields_attr(&model_str, &fields)?;
 
     // ------------------------------------------------------------------------
     // get the original model name, and set the new name that sea_orm requires
     // get the original model name in snake case for sql table, non-plural
     item.ident = format_ident!("Model");
     item.fields = Fields::Named(sql_fields);
-    let module = model.to_string().to_snake_case().ts2_or_panic();
-    let sql = ty_sql(&model);
-    let gql = ty_gql(&model);
-    let column = ty_column(&model);
-    let active_model = ty_active_model(&model);
+    let module = model.to_string().to_snake_case().ts2_or_err()?;
+    let sql = ty_sql(&model)?;
+    let gql = ty_gql(&model)?;
+    let column = ty_column(&model)?;
+    let active_model = ty_active_model(&model)?;
     let gql_alias = model.to_string();
     let sql_alias = model.to_string().to_snake_case();
 
     // ------------------------------------------------------------------------
     // model built in cols
     let col_id = quote!(Column::Id);
-    let col_created_at = if a.no_created_at {
-        quote!(None)
-    } else {
-        quote!(Some(Column::CreatedAt))
+    let col_opt = |skip: bool, col: Ts2| -> Ts2 {
+        if skip {
+            quote!(None)
+        } else {
+            quote!(Some(#col))
+        }
     };
-    let col_updated_at = if a.no_updated_at {
-        quote!(None)
-    } else {
-        quote!(Some(Column::UpdatedAt))
-    };
-    let col_deleted_at = if a.no_deleted_at {
-        quote!(None)
-    } else {
-        quote!(Some(Column::DeletedAt))
-    };
+    let col_created_at = col_opt(a.no_created_at, quote!(Column::CreatedAt));
+    let col_updated_at = col_opt(a.no_updated_at, quote!(Column::UpdatedAt));
+    let col_deleted_at = col_opt(a.no_deleted_at, quote!(Column::DeletedAt));
+    let col_created_by_id = col_opt(a.no_created_at || a.no_by_id, quote!(Column::CreatedById));
+    let col_updated_by_id = col_opt(a.no_updated_at || a.no_by_id, quote!(Column::UpdatedById));
+    let col_deleted_by_id = col_opt(a.no_deleted_at || a.no_by_id, quote!(Column::DeletedById));
 
     // ------------------------------------------------------------------------
     // active model default
     let mut am_defaults = vec![];
     let mut self_am_defaults = vec![];
     for a in defaults {
-        let mut raw_str = a.raw();
+        let mut raw_str = a.raw()?;
         if (raw_str.starts_with('"') && raw_str.ends_with('"'))
             || (raw_str.starts_with("r#") && raw_str.ends_with('#'))
         {
             raw_str += ".to_owned()"
         }
-        let raw = raw_str.ts2_or_panic();
-        let name = a.field_name().ts2_or_panic();
+        let raw = raw_str.ts2_or_err()?;
+        let name = a.field_name()?.ts2_or_err()?;
         am_defaults.push(quote! {
             if !matches!(am.#name, Set(_)) {
                 am.#name = Set(#raw);
@@ -142,45 +144,24 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // ------------------------------------------------------------------------
     // active model get/set
-    let am_get_created_at = if a.no_created_at {
-        quote!(NotSet)
-    } else {
-        quote!(self.created_at.clone())
-    };
-    let am_set_created_at = if a.no_created_at {
-        quote!(self)
-    } else {
-        quote! {
-            self.created_at = Set(v);
-            self
+    let am_field = |skip: bool, field: &str| -> SynRes<(Ts2, Ts2)> {
+        if skip {
+            let r = (quote!(NotSet), quote!(self));
+            return Ok(r);
         }
+        let f = field.ts2_or_err()?;
+        let r = (quote!(self.#f.clone()), quote! { self.#f = Set(v); self });
+        Ok(r)
     };
-    let am_get_updated_at = if a.no_updated_at {
-        quote!(NotSet)
-    } else {
-        quote!(self.updated_at.clone())
-    };
-    let am_set_updated_at = if a.no_updated_at {
-        quote!(self)
-    } else {
-        quote! {
-            self.updated_at = Set(Some(v));
-            self
-        }
-    };
-    let am_get_deleted_at = if a.no_deleted_at {
-        quote!(NotSet)
-    } else {
-        quote!(self.deleted_at.clone())
-    };
-    let am_set_deleted_at = if a.no_deleted_at {
-        quote!(self)
-    } else {
-        quote! {
-            self.deleted_at = Set(Some(v));
-            self
-        }
-    };
+    let (am_get_created_at, am_set_created_at) = am_field(a.no_created_at, "created_at")?;
+    let (am_get_updated_at, am_set_updated_at) = am_field(a.no_updated_at, "updated_at")?;
+    let (am_get_deleted_at, am_set_deleted_at) = am_field(a.no_deleted_at, "deleted_at")?;
+    let (am_get_created_by_id, am_set_created_by_id) =
+        am_field(a.no_created_at || a.no_by_id, "created_by_id")?;
+    let (am_get_updated_by_id, am_set_updated_by_id) =
+        am_field(a.no_updated_at || a.no_by_id, "updated_by_id")?;
+    let (am_get_deleted_by_id, am_set_deleted_by_id) =
+        am_field(a.no_deleted_at || a.no_by_id, "deleted_by_id")?;
 
     // ------------------------------------------------------------------------
     // filter / order_by
@@ -190,12 +171,12 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         if attr_is_gql_skip(a) {
             continue;
         }
-        filter(f, &mut filter_struk, &mut filter_query);
-        order_by(f, &mut order_by_struk, &mut order_by_query);
+        filter(f, &mut filter_struk, &mut filter_query)?;
+        order_by(f, &mut order_by_struk, &mut order_by_query)?;
     }
-    let filter = ty_filter(&model);
-    let order_by = ty_order_by(&model);
-    filter_and_or_not(&filter, &mut filter_struk, &mut filter_query);
+    let filter = ty_filter(&model)?;
+    let order_by = ty_order_by(&model)?;
+    filter_and_or_not(&filter, &mut filter_struk, &mut filter_query)?;
 
     // ------------------------------------------------------------------------
     // filter has_deleted_at
@@ -225,7 +206,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         cols: gql_cols,
         select: mut gql_select,
         get_string: gql_get_string,
-    } = gql_attr(&gql_fields);
+    } = gql_attr(&gql_fields)?;
     let GqlAttrExprs {
         struk: gql_struk2,
         struk_fields: gql_struk_fields2,
@@ -233,7 +214,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
         resolver: gql_resolver2,
         select: gql_select2,
         exprs: gql_exprs,
-    } = gql_exprs_ts2(&exprs);
+    } = gql_exprs_ts2(&exprs)?;
     gql_struk.extend(gql_struk2);
     gql_struk_fields.extend(gql_struk_fields2);
     gql_defaults.extend(gql_defaults2);
@@ -250,7 +231,7 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     // virtual resolvers
     let mut virtual_resolvers = Vec::<Box<dyn VirtualResolverFn>>::new();
     let valid_sql_dep = gql_struk_fields.iter().collect::<HashSet<_>>();
-    for attrs in virtuals {
+    for (f, attrs) in &virtuals {
         let map = attrs
             .iter()
             .map(|a| (a.attr.clone(), a.clone()))
@@ -262,32 +243,34 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
             virtual_resolvers.push(match v {
                 VirtualTy::Relation(ty) => Box::new(GenRelation {
                     ty: ty.clone(),
-                    a: a.clone().into_with_validate(),
+                    a: a.clone().try_into_with_validate()?,
+                    field_attrs: f.attrs.clone(),
                 }),
                 VirtualTy::Resolver => {
                     let g = GenResolver {
-                        a: a.clone().into_with_validate(),
+                        a: a.clone().try_into_with_validate()?,
+                        field_attrs: f.attrs.clone(),
                     };
                     for d in &g.a.sql_dep {
                         if !valid_sql_dep.contains(d) {
                             let err = format!("can not find column or expr {d}");
-                            g.a.inner.panic_by_key("sql_dep", &err)
+                            return Err(g.a.inner.err_by_key("sql_dep", &err));
                         }
                     }
                     Box::new(g)
                 }
-                _ => a.panic_by_key(v.as_ref(), "is invalid for virtual resolver"),
+                _ => return Err(a.err_by_key(v.as_ref(), "is invalid for virtual resolver")),
             });
         }
     }
 
     let GqlAttrVirtuals {
         select: gql_select2,
-    } = gql_attr_virtuals(&virtual_resolvers);
+    } = gql_attr_virtuals(&virtual_resolvers)?;
     gql_select.extend(gql_select2);
 
     for f in virtual_resolvers {
-        gql_resolver.push(f.resolver_fn());
+        gql_resolver.push(f.resolver_fn()?);
     }
 
     let r = quote! {
@@ -367,6 +350,15 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn col_deleted_at() -> Option<Self::C> {
                     #col_deleted_at
                 }
+                fn col_created_by_id() -> Option<Self::C> {
+                    #col_created_by_id
+                }
+                fn col_updated_by_id() -> Option<Self::C> {
+                    #col_updated_by_id
+                }
+                fn col_deleted_by_id() -> Option<Self::C> {
+                    #col_deleted_by_id
+                }
                 fn gql_cols() -> &'static LazyLock<HashMap<&'static str, Self::C>> {
                     &GQL_COLS
                 }
@@ -411,14 +403,32 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
                 fn get_updated_at(&self) -> ActiveValue<Option<DateTimeUtc>> {
                     #am_get_updated_at
                 }
-                fn set_updated_at(mut self, v: DateTimeUtc) -> Self {
+                fn set_updated_at(mut self, v: Option<DateTimeUtc>) -> Self {
                     #am_set_updated_at
                 }
                 fn get_deleted_at(&self) -> ActiveValue<Option<DateTimeUtc>> {
                     #am_get_deleted_at
                 }
-                fn set_deleted_at(mut self, v: DateTimeUtc) -> Self {
+                fn set_deleted_at(mut self, v: Option<DateTimeUtc>) -> Self {
                     #am_set_deleted_at
+                }
+                fn get_created_by_id(&self) -> ActiveValue<Option<String>> {
+                    #am_get_created_by_id
+                }
+                fn set_created_by_id(mut self, v: Option<String>) -> Self {
+                    #am_set_created_by_id
+                }
+                fn get_updated_by_id(&self) -> ActiveValue<Option<String>> {
+                    #am_get_updated_by_id
+                }
+                fn set_updated_by_id(mut self, v: Option<String>) -> Self {
+                    #am_set_updated_by_id
+                }
+                fn get_deleted_by_id(&self) -> ActiveValue<Option<String>> {
+                    #am_get_deleted_by_id
+                }
+                fn set_deleted_by_id(mut self, v: Option<String>) -> Self {
+                    #am_set_deleted_by_id
                 }
             }
 
@@ -514,5 +524,5 @@ pub fn gen_model(attr: TokenStream, item: TokenStream) -> TokenStream {
     #[cfg(feature = "debug_macro")]
     debug_macro(&model_str, r.clone());
 
-    r.into()
+    Ok(r.into())
 }

@@ -1,17 +1,16 @@
 use crate::prelude::*;
-use std::fmt::{Formatter, Result as FmtResult};
 
 #[derive(Clone)]
 pub struct GrandLineErr(pub Arc<dyn GrandLineErrImpl>);
 pub type Res<T> = Result<T, GrandLineErr>;
 
 impl Display for GrandLineErr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtRes {
         Display::fmt(&self.0, f)
     }
 }
 impl Debug for GrandLineErr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtRes {
         Debug::fmt(&self.0, f)
     }
 }

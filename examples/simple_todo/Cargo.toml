@@ -3,6 +3,10 @@ name = "grand-line-examples-simple-todo"
 version = "0.0.0"
 edition = "2024"
 
+[build-dependencies]
+grand_line_build = { path = "../../packages/grand_line_build" }
+
 [dependencies]
+async-graphql = { version = "^7.2", default-features = false }
 grand-line = { path = "../..", default-features = false, features = ["axum", "sqlite", "debug_macro_file"] }
-serde = "^1.0"
+serde = { version = "^1.0", default-features = false }

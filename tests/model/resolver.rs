@@ -35,7 +35,7 @@ async fn sql_dep_cols() -> Res<()> {
         first_name: "Olivia",
         last_name: "Dunham",
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
 
     let q = r#"
@@ -86,7 +86,7 @@ async fn sql_dep_exprs() -> Res<()> {
     let tmp = tmp_db!(User);
     let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
-    let u = am_create!(User { a: 1 }).insert(&tmp.db).await?;
+    let u = am_create!(User { a: 1 }).exec_without_ctx(&tmp.db).await?;
 
     let q = r#"
     query test($id: ID!) {

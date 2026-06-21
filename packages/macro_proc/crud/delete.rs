@@ -3,9 +3,13 @@ use crate::prelude::*;
 pub fn gen_delete(attr: TokenStream, item: TokenStream) -> TokenStream {
     let a = parse_macro_input!(attr as AttrParse);
     let r = parse_macro_input!(item as ResolverTyItem);
-    let a = a.into_inner::<CrudAttr>("delete");
-    let (mut r, ty, name) = r.init("mutation", "delete", &a.model);
-    a.validate(&r);
+    try_gen_delete(a, r).unwrap_or_else(|e| e.to_compile_error().into())
+}
+
+fn try_gen_delete(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
+    let a = attr.into_inner::<CrudAttr>("delete")?;
+    let (mut r, ty, name) = r.init("mutation", "delete", &a.model)?;
+    a.validate(&r)?;
 
     if !a.resolver_inputs {
         r.inputs = quote! {
@@ -21,7 +25,7 @@ pub fn gen_delete(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     if !a.resolver_output {
-        let output = ty_gql(&a.model);
+        let output = ty_gql(&a.model)?;
         r.output = quote!(#output);
 
         let permanent = if !a.resolver_inputs && !a.no_permanent_delete {
@@ -31,7 +35,7 @@ pub fn gen_delete(attr: TokenStream, item: TokenStream) -> TokenStream {
         };
 
         let body = r.body;
-        let model = a.model.ts2_or_panic();
+        let model = a.model.ts2_or_err()?;
         r.body = quote! {
             #body
             #model::gql_delete(tx, &id, #permanent).await?

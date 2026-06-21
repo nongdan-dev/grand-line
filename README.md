@@ -26,6 +26,7 @@ Rust macro framework for building GraphQL APIs on top of `sea-orm` and `async-gr
   - [Input types and enums](#input-types-and-enums)
 - [CRUD resolvers](#crud-resolvers)
 - [Custom resolvers](#custom-resolvers)
+- [Schema collector](#schema-collector)
 - [Resolver bodies](#resolver-bodies)
 - [Context](#context)
 - [Transactions](#transactions)
@@ -151,9 +152,7 @@ pub password_hashed: String,
 **`#[sql_expr(...)]`** - GraphQL-only computed column, evaluated by the database:
 
 ```rs
-#[sql_expr(Expr::col(Column::Price).mul(
-    Expr::val(1.0).sub(Expr::col(Column::DiscountPercentage).div(100.0))
-))]
+#[sql_expr(Expr::col(Column::Price).mul(Expr::val(1.0).sub(Expr::col(Column::DiscountPercentage).div(100.0))))]
 pub discounted_price: f64,
 ```
 
@@ -245,6 +244,66 @@ fn todo_delete_done() -> Vec<TodoGql> {
 ```
 
 These generate `TodoCountDoneQuery` / `TodoDeleteDoneMutation` structs for use in `MergedObject`.
+
+---
+
+### Schema collector
+
+Each resolver macro generates a named struct (`TodoSearchQuery`, `TodoCreateMutation`, etc.). Normally you must list all of them manually in a `MergedObject`:
+
+```rs
+// Manual - must add each resolver type by hand
+#[derive(Default, MergedObject)]
+struct Query(TodoSearchQuery, TodoCountQuery, TodoDetailQuery, TodoCountDoneQuery);
+
+#[derive(Default, MergedObject)]
+struct Mutation(TodoCreateMutation, TodoUpdateMutation, TodoDeleteMutation, TodoDeleteDoneMutation);
+```
+
+`grand_line_build` eliminates this by scanning source files at build time and auto-generating `Query` and `Mutation`. It works across crates - any source directory can be included.
+
+Add it as a build dependency:
+
+```toml
+[build-dependencies]
+grand_line_build = { path = "../packages/grand_line_build" }
+```
+
+Create or edit `build.rs` at the crate root:
+
+```rs
+fn main() {
+    grand_line_build::generate_schema();
+}
+```
+
+This scans `src/` of the current crate. Then include the generated file in your crate root:
+
+```rs
+grand_line::include_generated_schema! {}
+
+fn schema(db: &DatabaseConnection) -> Schema<Query, Mutation, EmptySubscription> {
+    Schema::build(Query::default(), Mutation::default(), EmptySubscription)
+        .extension(GrandLineExtension)
+        .data(Arc::new(db.clone()))
+        .finish()
+}
+```
+
+For more control - multiple source directories and external merged types (e.g. from auth):
+
+```rs
+fn main() {
+    grand_line_build::SchemaBuilder::new()
+        .scan("src")
+        .scan("../other_crate/src")   // scan resolvers from another crate
+        .extra_query("AuthMergedQuery")
+        .extra_mutation("AuthMergedMutation<User>")
+        .generate();
+}
+```
+
+The generated `Query` and `Mutation` match the names produced by the resolver macros exactly (same naming convention). `rerun-if-changed` directives are emitted automatically for each scanned directory.
 
 ---
 
@@ -374,12 +433,21 @@ content_like  content_starts_with  content_ends_with
 ### Active model helpers
 
 ```rs
-am_create!(Todo { content: "hello", done: false })         // auto id, created_at, updated_at
-am_update!(Todo { id: id.clone(), content: "new" })        // auto updated_at
-am_soft_delete!(Todo { id: id.clone() })                   // auto deleted_at, updated_at
+// auto id, created_at, updated_at
+am_create!(Todo { content: "hello", done: false })
+// auto updated_at
+am_update!(Todo { id: id.clone(), content: "new" })
+// auto deleted_at, updated_at
+am_soft_delete!(Todo { id: id.clone() })
+// auto *_by_id
+am.exec(ctx)
+// without *_by_id
+am.exec_without_ctx(tx)
+// into sea orm active model
+am.into_active_model()
 
-Todo::soft_delete_by_id(&id)?.exec(tx).await?;
-Todo::soft_delete_many()?.filter(condition).exec(tx).await?;
+Todo::soft_delete_by_id(&id)?.exec(ctx).await?;
+Todo::soft_delete_many()?.filter(condition).exec(ctx).await?;
 
 let todo: TodoSql = Todo::find_by_id(&id).one_or_404(tx).await?;
 Todo::find_by_id(&id).exists_or_404(tx).await?;
@@ -566,7 +634,7 @@ impl AuthUserHandlers<User> for MyUserHandlers {
     async fn on_register_resolve(&self, ctx: &Context<'_>, user: &UserSql, _: &LoginSessionSql) -> Res<()> {
         let tx = &*ctx.tx().await?;
         // user.id, user.display_name, etc. are all available
-        am_create!(UserProfile { user_id: user.id.clone(), bio: "" }).insert(tx).await?;
+        am_create!(UserProfile { user_id: user.id.clone(), bio: "" }).exec(ctx).await?;
         Ok(())
     }
 }
@@ -610,12 +678,12 @@ am_create!(Role {
     name: "Org Admin", realm: "org",
     org_id: Some(org_id.clone()),
     operations: operations.to_json()?,
-}).insert(tx).await?;
+}).exec(ctx).await?;
 
 am_create!(UserInRole {
     user_id: user_id.clone(), role_id: role_id.clone(),
     org_id: Some(org_id.clone()),  // must match role's org_id
-}).insert(tx).await?;
+}).exec(ctx).await?;
 ```
 
 #### Defining your Org model

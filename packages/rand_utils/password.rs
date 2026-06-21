@@ -3,7 +3,7 @@ use argon2::{
     Argon2, PasswordHasher, PasswordVerifier,
     password_hash::{PasswordHash, SaltString},
 };
-use rand::{RngCore, rng};
+use rand::{Rng, rng};
 use zxcvbn::{Score, zxcvbn};
 
 pub fn password_validate(password: &str) -> Res<()> {

@@ -3,26 +3,38 @@ use crate::prelude::*;
 pub fn gen_create(attr: TokenStream, item: TokenStream) -> TokenStream {
     let a = parse_macro_input!(attr as AttrParse);
     let r = parse_macro_input!(item as ResolverTyItem);
-    let a = a.into_inner::<CrudAttr>("create");
-    let (mut r, ty, name) = r.init("mutation", "create", &a.model);
-    a.validate(&r);
+    try_gen_create(a, r).unwrap_or_else(|e| e.to_compile_error().into())
+}
+
+fn try_gen_create(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
+    let a = attr.into_inner::<CrudAttr>("create")?;
+    let (mut r, ty, name) = r.init("mutation", "create", &a.model)?;
+    a.validate(&r)?;
 
     if !a.resolver_inputs {
-        let data = name.to_string().to_pascal_case().ts2_or_panic();
+        let data = name.to_string().to_pascal_case().ts2_or_err()?;
         r.inputs = quote!(data: #data);
     }
 
     if !a.resolver_output {
-        let output = ty_gql(&a.model);
+        let output = ty_gql(&a.model)?;
         r.output = quote!(#output);
 
         let body = r.body;
-        let am = ty_active_model(&a.model);
+        let model = a.model.ts2_or_err()?;
+        let am = ty_active_model(&a.model)?;
+
+        let exec = if a.ra.has_auth() {
+            quote!(exec(ctx))
+        } else {
+            quote!(exec_without_ctx(tx))
+        };
+
         r.body = quote! {
-            let am: #am = {
+            let am: ActiveModelWrapper<AmCreate, #model, #am> = {
                 #body
             };
-            am.insert(tx).await?.into_gql(ctx).await?
+            am.#exec.await?.into_gql(ctx).await?
         }
     }
 

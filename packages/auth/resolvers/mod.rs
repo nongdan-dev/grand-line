@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 mod forgot;
 mod forgot_resolve;
 mod login;
@@ -9,12 +11,12 @@ mod otp_resolve;
 mod register;
 mod register_resolve;
 pub use forgot::*;
-pub(crate) use forgot_resolve::*;
+pub use forgot_resolve::*;
 pub use login::*;
-pub(crate) use login_session_current::*;
-pub(crate) use login_session_delete::*;
-pub(crate) use login_session_search::*;
-pub(crate) use logout::*;
+pub use login_session_current::*;
+pub use login_session_delete::*;
+pub use login_session_search::*;
+pub use logout::*;
 pub use otp_resolve::*;
 pub use register::*;
-pub(crate) use register_resolve::*;
+pub use register_resolve::*;

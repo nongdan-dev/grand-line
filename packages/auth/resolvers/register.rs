@@ -47,7 +47,7 @@ pub(crate) async fn register_impl<U: AuthUser>(
         otp_salt,
         otp_hashed,
     })
-    .insert(tx)
+    .exec_without_ctx(tx)
     .await?;
 
     h.on_otp_create(ctx, &t, &otp).await?;

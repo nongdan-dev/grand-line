@@ -9,4 +9,4 @@ path = "lib.rs"
 proc-macro = true
 
 [dependencies]
-_utils = { path = "../macro_utils", default-features = false, features = [] }
+_utils = { path = "../macro_utils", default-features = false }

@@ -69,7 +69,7 @@ pub(crate) async fn otp_ensure_resolve(
         total_attempt: 0,
         ..t.into_active_model()
     })
-    .update(tx)
+    .exec_without_ctx(tx)
     .await?;
 
     Ok(t)

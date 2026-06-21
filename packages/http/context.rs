@@ -3,7 +3,7 @@ use cookie::{
     Cookie,
     time::{Duration, OffsetDateTime},
 };
-use std::{net::IpAddr, str::FromStr};
+use std::net::IpAddr;
 
 pub trait HttpContext {
     fn get_ua_raw(h: Option<HashMap<String, Vec<String>>>) -> Res<HashMap<String, String>> {

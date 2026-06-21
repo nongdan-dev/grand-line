@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::marker::PhantomData;
 
 #[derive(Clone)]
 pub struct AuthzConfig {

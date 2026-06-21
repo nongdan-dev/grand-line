@@ -19,12 +19,10 @@ pub fn gen_grand_line_err_derive(item: TokenStream) -> TokenStream {
     let name = &item.ident;
 
     let Data::Enum(d) = &item.data else {
-        return SynErr::new_spanned(
-            &item.ident,
-            "GrandLineErrDerive only support enum with ThisErr",
-        )
-        .to_compile_error()
-        .into();
+        let err = "GrandLineErrDerive only support enum with ThisErr";
+        return SynErr::new_spanned(&item.ident, err)
+            .to_compile_error()
+            .into();
     };
 
     let mut codes = Vec::new();

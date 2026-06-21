@@ -1,0 +1,10 @@
+# test each module independently to make sure the exports and feature flags are correct
+
+cargo test --no-default-features --features test_utils,sqlite --test err
+
+cargo test --no-default-features --features test_utils,sqlite --test model
+cargo test --no-default-features --features test_utils,sqlite --test relationship
+cargo test --no-default-features --features test_utils,sqlite --test soft_delete
+
+cargo test --no-default-features --features test_utils,sqlite,axum,auth --test auth
+cargo test --no-default-features --features test_utils,sqlite,axum,authz --test authz

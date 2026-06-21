@@ -1,33 +1,37 @@
 use crate::prelude::*;
-use core::panic;
 
 pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
-    let mut item = parse_macro_input!(item as ItemStruct);
+    let item = parse_macro_input!(item as ItemStruct);
+    try_gen_field_names(item).unwrap_or_else(|e| e.to_compile_error().into())
+}
 
+fn try_gen_field_names(mut item: ItemStruct) -> SynRes<TokenStream> {
     let name = item.ident.to_token_stream();
+    let name_span = item.ident.span();
     let mut fields = vec![];
     let mut idents = vec![];
 
     for mut f in match item.fields {
         Fields::Named(f) => f.named,
         _ => {
-            panic!("{name} struct should be named fields");
+            let err = format!("{name} struct should be named fields");
+            return Err(SynErr::new(name_span, err));
         }
     } {
-        let attrs = Attr::from_field(&name.to_string(), &f, &|_| false);
+        let attrs = Attr::from_field(&name.to_string(), &f, &|_| false)?;
         if let Some(a) = attrs.iter().find(|a| a.is("field_names")) {
             f.attrs = attrs
                 .iter()
                 .filter(|b| b.attr != a.attr)
                 .map(|a| a.field_attr())
-                .collect();
-            let a = a.clone().into_with_validate::<FieldNamesAttr>();
+                .collect::<SynRes<Vec<_>>>()?;
+            let a = a.clone().try_into_with_validate::<FieldNamesAttr>()?;
             if a.virt {
                 if f.to_token_stream().to_string().starts_with("pub ") {
-                    a.inner.panic("virtual field should not be public");
+                    return Err(a.inner.syn_err("virtual field should not be public"));
                 }
                 if f.ty.to_token_stream().to_string() != "!" {
-                    a.inner.panic("virtual field type should be `!`");
+                    return Err(a.inner.syn_err("virtual field type should be `!`"));
                 }
             }
             if !a.skip {
@@ -54,21 +58,21 @@ pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
         all.push(quote! {
             #f_str,
         });
-        let f = format!("FIELD_{f}").to_shouty_snake_case().ts2_or_panic();
+        let f = format!("FIELD_{f}").to_shouty_snake_case().ts2_or_err()?;
         impls.push(quote! {
             pub const #f: &'static str = #f_str;
         });
     }
     let l = all.len();
 
-    quote! {
+    Ok(quote! {
         #item
         impl #name {
             pub const FIELDS: [&'static str; #l] = [#(#all)*];
             #(#impls)*
         }
     }
-    .into()
+    .into())
 }
 
 struct FieldNamesAttr {
@@ -76,13 +80,14 @@ struct FieldNamesAttr {
     virt: bool,
     pub inner: Attr,
 }
-impl From<Attr> for FieldNamesAttr {
-    fn from(a: Attr) -> Self {
-        Self {
-            skip: a.bool("skip").unwrap_or(false),
-            virt: a.bool("virt").unwrap_or(false),
+impl TryFrom<Attr> for FieldNamesAttr {
+    type Error = SynErr;
+    fn try_from(a: Attr) -> SynRes<Self> {
+        Ok(Self {
+            skip: a.bool("skip")?.unwrap_or(false),
+            virt: a.bool("virt")?.unwrap_or(false),
             inner: a,
-        }
+        })
     }
 }
 impl AttrValidate for FieldNamesAttr {

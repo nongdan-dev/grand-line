@@ -1,6 +1,5 @@
 use crate::prelude::*;
 use std::any::type_name;
-use std::str::FromStr;
 
 #[derive(Clone)]
 pub struct Attr {
@@ -19,10 +18,17 @@ pub struct Attr {
     field: Option<(String, Attribute, Field)>,
     /// Only in attr such as #[default(..)], #[sql_expr(..)], etc..
     raw: Option<String>,
+    /// Span of the attribute for error reporting.
+    pub span: Span,
 }
 
 impl Attr {
-    fn init(debug: &str, attr: &str, args: Vec<(String, (String, AttrParseTy))>) -> Self {
+    fn init(
+        debug: &str,
+        attr: &str,
+        args: Vec<(String, (String, AttrParseTy))>,
+        span: Span,
+    ) -> SynRes<Self> {
         let mut a = Self {
             debug: debug.to_owned(),
             attr: attr.to_owned(),
@@ -30,64 +36,76 @@ impl Attr {
             first_path: None,
             field: None,
             raw: None,
+            span,
         };
         for (k, v) in args {
             if a.args.contains_key(&k) {
-                a.panic_by_key(&k, "appears more than once");
+                return Err(a.err_by_key(&k, "appears more than once"));
             }
             a.args.insert(k, v);
         }
-        a
+        Ok(a)
     }
 
-    pub fn from_proc_macro(macro_name: &str, a: AttrParse) -> Self {
-        let mut r = Self::init("", macro_name, a.args);
+    pub fn from_proc_macro(macro_name: &str, a: AttrParse) -> SynRes<Self> {
+        let mut r = Self::init("", macro_name, a.args, Span::call_site())?;
         r.first_path = a.first_path;
-        r
+        Ok(r)
     }
-    pub fn from_ts2(debug: &str, attr: &str, ts: Ts2) -> Self {
-        let a = AttrParse::from_meta_list_token_stream(ts);
-        let mut r = Self::init(debug, attr, a.args);
+    pub fn from_ts2(debug: &str, attr: &str, ts: Ts2) -> SynRes<Self> {
+        let span = ts.span();
+        let a = AttrParse::from_meta_list_token_stream(ts)?;
+        let mut r = Self::init(debug, attr, a.args, span)?;
         r.first_path = a.first_path;
-        r
+        Ok(r)
     }
-    pub fn from_ts2_into<V>(debug: &str, attr: &str, ts: Ts2) -> V
+    pub fn from_ts2_into<V>(debug: &str, attr: &str, ts: Ts2) -> SynRes<V>
     where
-        V: From<Self> + AttrValidate,
+        V: TryFrom<Self, Error = SynErr> + AttrValidate,
     {
-        Self::from_ts2(debug, attr, ts).into_with_validate()
+        Self::from_ts2(debug, attr, ts)?.try_into_with_validate()
     }
 
-    pub fn from_field(model: &str, f: &Field, raw: &dyn Fn(&str) -> bool) -> Vec<Self> {
+    pub fn from_field(model: &str, f: &Field, raw: &dyn Fn(&str) -> bool) -> SynRes<Vec<Self>> {
         f.attrs
             .iter()
             .map(|a| Self::from_field_attr(model, f, a, raw))
-            .collect::<Vec<_>>()
+            .collect::<SynRes<Vec<_>>>()
     }
-    fn from_field_attr(model: &str, f: &Field, a: &Attribute, raw: &dyn Fn(&str) -> bool) -> Self {
+    fn from_field_attr(
+        model: &str,
+        f: &Field,
+        a: &Attribute,
+        raw: &dyn Fn(&str) -> bool,
+    ) -> SynRes<Self> {
         let attr = a.path().to_token_stream().to_string();
         let field = f.ident.to_token_stream();
         let debug = format!("{model}.{field}");
-        let field = Some((model.to_owned(), a.clone(), f.clone()));
+        let span = a.span();
+        let field_data = Some((model.to_owned(), a.clone(), f.clone()));
         let mut r = if raw(&attr) {
-            let mut r = Self::init(&debug, &attr, vec![]);
+            let mut r = Self::init(&debug, &attr, vec![], span)?;
             r.raw = Some(match &a.meta {
                 Meta::List(l) => l.tokens.to_string(),
-                _ => panic!("raw attr should be meta list #[{attr}(some_value)]"),
+                _ => {
+                    let err = format!("raw attr should be meta list #[{attr}(some_value)]");
+                    return Err(SynErr::new(span, err));
+                }
             });
             r
         } else {
             match &a.meta {
                 // #[attr(nested)]
-                Meta::List(l) => Self::from_ts2(&debug, &attr, l.tokens.clone()),
+                Meta::List(l) => Self::from_ts2(&debug, &attr, l.tokens.clone())?,
                 // Meta::Path(_) => #[attr] without any nested meta, args should be empty
                 // Meta::NameValue(_) => #[attr = some_value] we are not using, args should be empty
                 // there are case such as #[doc = "some_value"] then we should not panic
-                _ => Self::init(&debug, &attr, vec![]),
+                _ => Self::init(&debug, &attr, vec![], span)?,
             }
         };
-        r.field = field;
-        r
+        r.field = field_data;
+        r.span = span;
+        Ok(r)
     }
 
     pub fn is(&self, attr: &str) -> bool {
@@ -97,212 +115,211 @@ impl Attr {
         self.args.contains_key(k)
     }
 
-    pub fn model_from_first_path(&self) -> String {
+    pub fn model_from_first_path(&self) -> SynRes<String> {
         match self.first_path.clone() {
             Some(v) => {
                 if v != v.to_pascal_case() {
-                    let err = format!("model `{v}` is not pascal case");
-                    self.panic(&err);
+                    return Err(self.syn_err(&format!("model `{v}` is not pascal case")));
                 }
-                v
+                Ok(v)
             }
             None => {
                 let attr = &self.attr;
-                let err = format!("missing model #[{attr}(Model, ...)]");
-                self.panic(&err);
+                Err(self.syn_err(&format!("missing model #[{attr}(Model, ...)]")))
             }
         }
     }
 
-    pub fn bool(&self, k: &str) -> Option<bool> {
+    pub fn bool(&self, k: &str) -> SynRes<Option<bool>> {
         match self.args.get(k) {
-            Some((_, AttrParseTy::Path)) => Some(true),
+            Some((_, AttrParseTy::Path)) => Ok(Some(true)),
             Some((v, AttrParseTy::NameValue)) => match v == "false" {
-                true => Some(false),
-                false => self.panic_invalid_bool(k),
+                true => Ok(Some(false)),
+                false => Err(self.err_invalid_bool(k)),
             },
-            Some(_) => self.panic_invalid_bool(k),
-            None => None,
+            Some(_) => Err(self.err_invalid_bool(k)),
+            None => Ok(None),
         }
     }
-    pub fn bool_or_panic(&self, k: &str) -> bool {
-        match self.bool(k) {
-            Some(v) => v,
-            None => self.panic_required(k),
+    pub fn bool_required(&self, k: &str) -> SynRes<bool> {
+        match self.bool(k)? {
+            Some(v) => Ok(v),
+            None => Err(self.err_required(k)),
         }
     }
-    pub fn bool_should_omit(&self, k: &str) -> bool {
-        match self.bool(k) {
+    pub fn bool_should_omit(&self, k: &str) -> SynRes<bool> {
+        match self.bool(k)? {
             Some(v) => {
                 if !v {
-                    self.panic_by_key(k, "should omit");
+                    return Err(self.err_by_key(k, "should omit"));
                 }
-                true
+                Ok(true)
             }
-            None => false,
+            None => Ok(false),
         }
     }
 
-    pub fn str(&self, k: &str) -> Option<String> {
+    pub fn str(&self, k: &str) -> SynRes<Option<String>> {
         match self.args.get(k) {
-            Some((v, AttrParseTy::NameValue)) => match parse2::<LitStr>(v.ts2_or_panic()) {
-                Ok(v) => Some(v.value()),
-                Err(_) => self.panic_invalid_string(k),
+            Some((v, AttrParseTy::NameValue)) => match parse2::<LitStr>(v.ts2_or_err()?) {
+                Ok(v) => Ok(Some(v.value())),
+                Err(_) => Err(self.err_invalid_string(k)),
             },
-            Some(_) => self.panic_invalid_string(k),
-            None => None,
+            Some(_) => Err(self.err_invalid_string(k)),
+            None => Ok(None),
         }
     }
-    pub fn str_or_panic(&self, k: &str) -> String {
-        match self.str(k) {
-            Some(v) => v,
-            None => self.panic_required(k),
+    pub fn str_required(&self, k: &str) -> SynRes<String> {
+        match self.str(k)? {
+            Some(v) => Ok(v),
+            None => Err(self.err_required(k)),
         }
     }
 
-    pub fn nested(&self, k: &str) -> Option<String> {
+    pub fn nested(&self, k: &str) -> SynRes<Option<String>> {
         match self.args.get(k) {
-            Some((v, AttrParseTy::List)) => Some(v.to_owned()),
-            Some(_) => self.panic_invalid_nested(k),
-            None => None,
+            Some((v, AttrParseTy::List)) => Ok(Some(v.to_owned())),
+            Some(_) => Err(self.err_invalid_nested(k)),
+            None => Ok(None),
         }
     }
-    pub fn nested_or_panic(&self, k: &str) -> String {
-        match self.nested(k) {
-            Some(v) => v,
-            None => self.panic_required(k),
+    pub fn nested_required(&self, k: &str) -> SynRes<String> {
+        match self.nested(k)? {
+            Some(v) => Ok(v),
+            None => Err(self.err_required(k)),
         }
     }
-    pub fn nested_into<V>(&self, k: &str) -> Option<V>
+    pub fn nested_into<V>(&self, k: &str) -> SynRes<Option<V>>
     where
-        V: From<Self> + AttrValidate,
+        V: TryFrom<Self, Error = SynErr> + AttrValidate,
     {
-        self.nested(k)
-            .map(|v| Self::from_ts2_into(&self.attr_debug(), k, v.ts2_or_panic()))
+        match self.nested(k)? {
+            Some(v) => Ok(Some(Self::from_ts2_into(
+                &self.attr_debug(),
+                k,
+                v.ts2_or_err()?,
+            )?)),
+            None => Ok(None),
+        }
     }
 
-    pub fn nested_with_path(&self, k: &str) -> Option<(bool, String)> {
+    pub fn nested_with_path(&self, k: &str) -> SynRes<Option<(bool, String)>> {
         match self.args.get(k) {
-            Some((v, AttrParseTy::Path)) => Some((true, v.to_owned())),
-            _ => self.nested(k).map(|v| (false, v)),
+            Some((v, AttrParseTy::Path)) => Ok(Some((true, v.to_owned()))),
+            _ => Ok(self.nested(k)?.map(|v| (false, v))),
         }
     }
-    pub fn nested_with_path_or_panic(&self, k: &str) -> (bool, String) {
-        match self.nested_with_path(k) {
-            Some(v) => v,
-            None => self.panic_required(k),
+    pub fn nested_with_path_required(&self, k: &str) -> SynRes<(bool, String)> {
+        match self.nested_with_path(k)? {
+            Some(v) => Ok(v),
+            None => Err(self.err_required(k)),
         }
     }
-    pub fn nested_with_path_into<V>(&self, k: &str) -> Option<(bool, V)>
+    pub fn nested_with_path_into<V>(&self, k: &str) -> SynRes<Option<(bool, V)>>
     where
-        V: From<Self> + AttrValidate,
+        V: TryFrom<Self, Error = SynErr> + AttrValidate,
     {
-        self.nested_with_path(k).map(|(path, v)| {
-            (
+        match self.nested_with_path(k)? {
+            Some((path, v)) => Ok(Some((
                 path,
                 if path {
-                    Self::init(&self.attr_debug(), k, vec![]).into_with_validate()
+                    Self::init(&self.attr_debug(), k, vec![], self.span)?
+                        .try_into_with_validate()?
                 } else {
-                    Self::from_ts2_into(&self.attr_debug(), k, v.ts2_or_panic())
+                    Self::from_ts2_into(&self.attr_debug(), k, v.ts2_or_err()?)?
                 },
-            )
-        })
+            ))),
+            None => Ok(None),
+        }
     }
 
-    pub fn parse<V>(&self, k: &str) -> Option<V>
+    pub fn parse<V>(&self, k: &str) -> SynRes<Option<V>>
     where
         V: FromStr,
     {
         match self.args.get(k) {
             Some((v, AttrParseTy::NameValue)) => match v.parse::<V>() {
-                Ok(v) => Some(v),
+                Ok(v) => Ok(Some(v)),
                 Err(_) => {
                     let t = type_name::<V>();
-                    let err = format!("cannot parse `{v}` as {t}");
-                    self.panic_by_key(k, &err);
+                    Err(self.err_by_key(k, &format!("cannot parse `{v}` as {t}")))
                 }
             },
-            Some(_) => {
-                let err = format!("should be `{k} = some_value`");
-                self.panic_by_key(k, &err);
-            }
-            None => None,
+            Some(_) => Err(self.err_by_key(k, &format!("should be `{k} = some_value`"))),
+            None => Ok(None),
         }
     }
-    pub fn parse_or_panic<V>(&self, k: &str) -> V
+    pub fn parse_required<V>(&self, k: &str) -> SynRes<V>
     where
         V: FromStr,
     {
-        match self.parse(k) {
-            Some(v) => v,
-            None => self.panic_required(k),
+        match self.parse(k)? {
+            Some(v) => Ok(v),
+            None => Err(self.err_required(k)),
         }
     }
 
-    fn field(&self) -> (String, Attribute, Field) {
-        match self.field.clone() {
-            Some(v) => v,
-            None => self.panic("field: None"),
-        }
+    fn field(&self) -> SynRes<(String, Attribute, Field)> {
+        self.field.clone().ok_or_else(|| {
+            let err = "field: None (programmer error)";
+            SynErr::new(self.span, err)
+        })
     }
-    pub fn field_model(&self) -> String {
-        self.field().0
+    pub fn field_model(&self) -> SynRes<String> {
+        Ok(self.field()?.0)
     }
-    pub fn field_attr(&self) -> Attribute {
-        self.field().1
+    pub fn field_attr(&self) -> SynRes<Attribute> {
+        Ok(self.field()?.1)
     }
-    pub fn field_name(&self) -> String {
-        self.field().2.ident.to_token_stream().to_string()
+    pub fn field_name(&self) -> SynRes<String> {
+        Ok(self.field()?.2.ident.to_token_stream().to_string())
     }
-    pub fn field_ty(&self) -> String {
-        self.field().2.ty.to_token_stream().to_string()
-    }
-
-    pub fn raw(&self) -> String {
-        match self.raw.clone() {
-            Some(v) => v,
-            None => self.panic("raw: None"),
-        }
+    pub fn field_ty(&self) -> SynRes<String> {
+        Ok(self.field()?.2.ty.to_token_stream().to_string())
     }
 
-    pub fn into_with_validate<V>(self) -> V
+    pub fn raw(&self) -> SynRes<String> {
+        self.raw.clone().ok_or_else(|| {
+            let err = "raw: None (programmer error)";
+            SynErr::new(self.span, err)
+        })
+    }
+
+    pub fn try_into_with_validate<V>(self) -> SynRes<V>
     where
-        V: From<Self> + AttrValidate,
+        V: TryFrom<Self, Error = SynErr> + AttrValidate,
     {
         let attrs = V::attr_fields(&self);
         let map = attrs.iter().collect::<HashSet<_>>();
         for (k, _) in self.args.clone() {
             if !map.contains(&k) {
-                self.panic_invalid(&k, &attrs);
+                return Err(self.err_invalid(&k, &attrs));
             }
         }
-        self.into()
+        self.try_into()
     }
 
-    pub fn panic_required(&self, k: &str) -> ! {
-        let err = "is required";
-        self.panic_by_key(k, err);
+    pub fn err_required(&self, k: &str) -> SynErr {
+        self.err_by_key(k, "is required")
     }
-    pub fn panic_invalid(&self, k: &str, valid: &[String]) -> ! {
+    pub fn err_invalid(&self, k: &str, valid: &[String]) -> SynErr {
         let valid = valid.join(", ");
-        let err = format!("is not valid here, should be one of: {valid}");
-        self.panic_by_key(k, &err);
+        self.err_by_key(k, &format!("is not valid here, should be one of: {valid}"))
     }
-    pub fn panic_invalid_bool(&self, k: &str) -> ! {
-        let err = format!("should be `{k}` for true, or `{k} = false` for false");
-        self.panic_by_key(k, &err);
+    pub fn err_invalid_bool(&self, k: &str) -> SynErr {
+        self.err_by_key(
+            k,
+            &format!("should be `{k}` for true, or `{k} = false` for false"),
+        )
     }
-    pub fn panic_invalid_string(&self, k: &str) -> ! {
-        let err = format!(r#"should be `{k} = "some_value"` for string"#);
-        self.panic_by_key(k, &err);
+    pub fn err_invalid_string(&self, k: &str) -> SynErr {
+        self.err_by_key(k, &format!(r#"should be `{k} = "some_value"` for string"#))
     }
-    pub fn panic_invalid_nested(&self, k: &str) -> ! {
-        let err = format!("should be `{k}(some_value)` for nested");
-        self.panic_by_key(k, &err);
+    pub fn err_invalid_nested(&self, k: &str) -> SynErr {
+        self.err_by_key(k, &format!("should be `{k}(some_value)` for nested"))
     }
-    pub fn panic_by_key(&self, k: &str, err: &str) -> ! {
-        let err = format!("key `{k}` {err}");
-        self.panic(&err);
+    pub fn err_by_key(&self, k: &str, err: &str) -> SynErr {
+        self.syn_err(&format!("key `{k}` {err}"))
     }
 }
 
@@ -314,6 +331,9 @@ impl AttrDebug for Attr {
         } else {
             format!("{debug} attr `{attr}`:")
         }
+    }
+    fn span(&self) -> Span {
+        self.span
     }
 }
 

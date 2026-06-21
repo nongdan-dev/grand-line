@@ -1,0 +1,12 @@
+[package]
+name = "grand_line_build"
+version = "0.0.0"
+edition = "2024"
+
+[lib]
+name = "grand_line_build"
+path = "lib.rs"
+
+[dependencies]
+heck = { version = "^0.5", default-features = false }
+syn = { version = "^2.0", default-features = false, features = ["full"] }

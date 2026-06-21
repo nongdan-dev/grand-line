@@ -9,22 +9,28 @@ pub struct ResolverAttr {
     #[field_names(skip)]
     pub inner: Attr,
 }
-impl From<Attr> for ResolverAttr {
-    fn from(a: Attr) -> Self {
-        Self {
-            call: a.str(Self::FIELD_CALL).unwrap_or_else(|| {
-                let field = a.field_name();
-                format!("resolve_{field}")
-            }),
-            sql_dep: a
-                .str(Self::FIELD_SQL_DEP)
-                .unwrap_or_default()
-                .split(',')
-                .map(|s| s.trim().to_owned())
-                .collect(),
-            ra: a.clone().into(),
+impl TryFrom<Attr> for ResolverAttr {
+    type Error = SynErr;
+    fn try_from(a: Attr) -> SynRes<Self> {
+        let call = if let Some(v) = a.str(Self::FIELD_CALL)? {
+            v
+        } else {
+            let field = a.field_name()?;
+            format!("resolve_{field}")
+        };
+        let sql_dep = a
+            .str(Self::FIELD_SQL_DEP)?
+            .unwrap_or_default()
+            .split(',')
+            .map(|s| s.trim().to_owned())
+            .collect();
+        let ra = a.clone().try_into()?;
+        Ok(Self {
+            call,
+            sql_dep,
+            ra,
             inner: a,
-        }
+        })
     }
 }
 impl AttrValidate for ResolverAttr {

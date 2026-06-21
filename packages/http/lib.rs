@@ -1,29 +1,29 @@
-pub mod consts;
 mod context;
 mod err;
 
-pub mod export {
-    pub use crate::{context::*, err::MyErr as HttpErr};
+pub mod consts;
 
+pub mod export {
+    pub use crate::context::*;
+    pub use crate::err::MyErr as HttpErr;
     #[cfg(feature = "axum")]
     pub use _http_axum::export::*;
 }
 
 pub mod reexport {
-    pub use cookie;
-
     #[cfg(feature = "axum")]
     pub use _http_axum::reexport::*;
+    pub use cookie;
 }
 
 #[allow(ambiguous_glob_reexports, dead_code, unused_imports)]
 pub mod prelude {
-    pub use crate::{export::*, reexport::*};
-    pub(crate) use {
-        crate::{consts::*, err::MyErr},
-        _core::prelude::*,
-    };
-
+    pub use crate::export::*;
+    pub use crate::reexport::*;
     #[cfg(feature = "axum")]
     pub use _http_axum::prelude::*;
+
+    pub(crate) use crate::consts::*;
+    pub(crate) use crate::err::MyErr;
+    pub(crate) use _core::prelude::*;
 }

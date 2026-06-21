@@ -3,83 +3,86 @@ use crate::prelude::*;
 pub struct GenRelation {
     pub ty: RelationTy,
     pub a: RelationAttr,
+    pub field_attrs: Vec<Attribute>,
 }
 
 impl GenRelation {
-    fn sql_dep_str(&self) -> String {
-        match self.ty {
-            RelationTy::BelongsTo => self.a.key_str(),
+    fn sql_dep_str(&self) -> SynRes<String> {
+        Ok(match self.ty {
+            RelationTy::BelongsTo => self.a.key_str()?,
             RelationTy::HasOne => "id".to_owned(),
             RelationTy::HasMany => "id".to_owned(),
             RelationTy::ManyToMany => "id".to_owned(),
-        }
+        })
     }
     fn input_one(&self) -> Ts2 {
         let mut inputs = quote!();
         inputs = push_include_deleted(inputs, !self.a.no_include_deleted);
         inputs
     }
-    fn input_many(&self) -> Ts2 {
-        let to = self.a.to();
-        let filter = ty_filter(&to);
-        let order_by = ty_order_by(&to);
+    fn input_many(&self) -> SynRes<Ts2> {
+        let to = self.a.to()?;
+        let filter = ty_filter(&to)?;
+        let order_by = ty_order_by(&to)?;
         let mut inputs = quote! {
             filter: Option<#filter>,
             order_by: Option<Vec<#order_by>>,
             page: Option<Pagination>,
         };
         inputs = push_include_deleted(inputs, !self.a.no_include_deleted);
-        inputs
+        Ok(inputs)
     }
 
-    fn output_one(&self) -> Ts2 {
-        let to = self.a.gql_to();
-        quote!(Option<#to>)
+    fn output_one(&self) -> SynRes<Ts2> {
+        let to = self.a.gql_to()?;
+        Ok(quote!(Option<#to>))
     }
-    fn output_many(&self) -> Ts2 {
-        let to = self.a.gql_to();
-        quote!(Vec<#to>)
+    fn output_many(&self) -> SynRes<Ts2> {
+        let to = self.a.gql_to()?;
+        Ok(quote!(Vec<#to>))
     }
 
-    fn body_utils(&self, r: Ts2, vec: bool) -> Ts2 {
-        let sql_dep = self.sql_dep_str().ts2_or_panic();
+    fn body_utils(&self, r: Ts2, vec: bool) -> SynRes<Ts2> {
+        let sql_dep = self.sql_dep_str()?.ts2_or_err()?;
         let none = if vec { quote!(vec![]) } else { quote!(None) };
-        quote! {
+        Ok(quote! {
             if let Some(id) = self.#sql_dep.clone() {
                 let tx = &*ctx.tx().await?;
                 #r
             } else {
                 #none
             }
-        }
+        })
     }
 
-    fn column(&self) -> Ts2 {
-        ty_column(self.a.to())
-    }
-    fn col(&self) -> Ts2 {
+    fn col(&self) -> SynRes<Ts2> {
         match self.ty {
             RelationTy::BelongsTo => "id".to_owned(),
-            RelationTy::HasOne => self.a.key_str(),
-            RelationTy::HasMany => self.a.key_str(),
+            RelationTy::HasOne => self.a.key_str()?,
+            RelationTy::HasMany => self.a.key_str()?,
             RelationTy::ManyToMany => "id".to_owned(),
         }
         .to_pascal_case()
-        .ts2_or_panic()
+        .ts2_or_err()
     }
 
-    fn body_one(&self) -> Ts2 {
-        let model = self.a.to();
-        let column = self.column();
-        let col = self.col();
+    fn body_one(&self) -> SynRes<Ts2> {
+        let model = self.a.to()?;
+        let column = self.column()?;
+        let col = self.col()?;
         let include_deleted = get_include_deleted(!self.a.no_include_deleted);
         let r = quote! {
             #model::gql_load(ctx, #column::#col, id, #include_deleted).await?
         };
         self.body_utils(r, false)
     }
-    fn body_many(&self, extra_cond: Ts2) -> Ts2 {
-        let model = self.a.to();
+    fn body_has_many(&self) -> SynRes<Ts2> {
+        let column = self.column()?;
+        let col = self.col()?;
+        let extra_cond = quote! {
+            let extra_cond = Condition::all().add(#column::#col.eq(id));
+        };
+        let model = self.a.to()?;
         let include_deleted = get_include_deleted(!self.a.no_include_deleted);
         let r = quote! {
             #extra_cond
@@ -87,27 +90,20 @@ impl GenRelation {
         };
         self.body_utils(r, true)
     }
-
-    fn body_has_many(&self) -> Ts2 {
-        let column = self.column();
-        let col = self.col();
-        let extra_cond = quote! {
-            let extra_cond = Condition::all().add(#column::#col.eq(id));
-        };
-        self.body_many(extra_cond)
-    }
-    fn body_many_to_many(&self) -> Ts2 {
-        let column = self.column();
-        let col = self.col();
-        let through = self.a.through();
-        let through_column = ty_column(&through);
-        let through_key_col = self.a.key_str().to_pascal_case().ts2_or_panic();
+    fn body_many_to_many(&self) -> SynRes<Ts2> {
+        let column = self.column()?;
+        let col = self.col()?;
+        let through = self.a.through()?;
+        let through_column = ty_column(&through)?;
+        let through_key_col = self.a.key_str()?.to_pascal_case().ts2_or_err()?;
         let through_other_key_col = self
             .a
-            .other_key()
+            .other_key()?
             .to_string()
             .to_pascal_case()
-            .ts2_or_panic();
+            .ts2_or_err()?;
+        let model = self.a.to()?;
+        let include_deleted = get_include_deleted(!self.a.no_include_deleted);
         let extra_cond = quote! {
             let sub = #through::find()
                 .select_only()
@@ -116,37 +112,58 @@ impl GenRelation {
                 .into_query();
             let extra_cond = Condition::all().add(#column::#col.in_subquery(sub));
         };
-        self.body_many(extra_cond)
+        let r = quote! {
+            #extra_cond
+            #model::gql_search(ctx, tx, Some(extra_cond), filter, None, order_by, None, page, #include_deleted).await?
+        };
+        self.body_utils(r, true)
+    }
+
+    fn column(&self) -> SynRes<Ts2> {
+        ty_column(self.a.to()?)
     }
 }
 
 impl VirtualResolverFn for GenRelation {
-    fn sql_dep(&self) -> Vec<String> {
-        vec![self.sql_dep_str()]
+    fn sql_dep(&self) -> SynRes<Vec<String>> {
+        Ok(vec![self.sql_dep_str()?])
     }
 }
 impl AttrDebug for GenRelation {
     fn attr_debug(&self) -> String {
         self.a.inner.attr_debug()
     }
+    fn span(&self) -> Span {
+        self.a.inner.span
+    }
 }
 
 impl ResolverFn for GenRelation {
-    fn name(&self) -> Ts2 {
+    fn name(&self) -> SynRes<Ts2> {
         self.a.name()
     }
-    fn gql_name(&self) -> String {
-        self.name().to_string().to_lower_camel_case()
+    fn gql_name(&self) -> SynRes<String> {
+        let (name_override, _) = attr_graphql_info(&self.field_attrs);
+        if let Some(n) = name_override {
+            return Ok(n);
+        }
+        Ok(self.name()?.to_string().to_lower_camel_case())
     }
-    fn inputs(&self) -> Ts2 {
+    fn doc_strs(&self) -> Vec<String> {
+        attr_doc_strs(&self.field_attrs)
+    }
+    fn extra_graphql(&self) -> Ts2 {
+        attr_graphql_info(&self.field_attrs).1
+    }
+    fn inputs(&self) -> SynRes<Ts2> {
         match self.ty {
-            RelationTy::BelongsTo => self.input_one(),
-            RelationTy::HasOne => self.input_one(),
+            RelationTy::BelongsTo => Ok(self.input_one()),
+            RelationTy::HasOne => Ok(self.input_one()),
             RelationTy::HasMany => self.input_many(),
             RelationTy::ManyToMany => self.input_many(),
         }
     }
-    fn output(&self) -> Ts2 {
+    fn output(&self) -> SynRes<Ts2> {
         match self.ty {
             RelationTy::BelongsTo => self.output_one(),
             RelationTy::HasOne => self.output_one(),
@@ -154,7 +171,7 @@ impl ResolverFn for GenRelation {
             RelationTy::ManyToMany => self.output_many(),
         }
     }
-    fn body(&self) -> Ts2 {
+    fn body(&self) -> SynRes<Ts2> {
         match self.ty {
             RelationTy::BelongsTo => self.body_one(),
             RelationTy::HasOne => self.body_one(),

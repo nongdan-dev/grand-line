@@ -26,7 +26,7 @@ async fn t() -> Res<()> {
     let tmp = tmp_db!(User);
     let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
-    let u = am_create!(User { a: 1 }).insert(&tmp.db).await?;
+    let u = am_create!(User { a: 1 }).exec_without_ctx(&tmp.db).await?;
 
     let q = r#"
     query test($id: ID!) {

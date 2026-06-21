@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::marker::PhantomData;
 
 pub struct AuthMergedMutation<U: AuthUser>(PhantomData<U>);
 

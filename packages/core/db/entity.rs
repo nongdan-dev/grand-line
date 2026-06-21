@@ -29,6 +29,15 @@ where
     /// Get column deleted_at.
     /// Should be generated in the model macro.
     fn col_deleted_at() -> Option<Self::C>;
+    /// Get column created_by_id.
+    /// Should be generated in the model macro.
+    fn col_created_by_id() -> Option<Self::C>;
+    /// Get column updated_by_id.
+    /// Should be generated in the model macro.
+    fn col_updated_by_id() -> Option<Self::C>;
+    /// Get column deleted_by_id.
+    /// Should be generated in the model macro.
+    fn col_deleted_by_id() -> Option<Self::C>;
 
     /// Get sql columns map with rust snake field name, for gql look ahead.
     /// Exclude all columns skipped with #[graphql(skip)].

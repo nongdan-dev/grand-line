@@ -2,20 +2,23 @@ use crate::prelude::*;
 
 pub struct ModelFieldsAttr {
     pub defaults: Vec<Attr>,
-    pub virtuals: Vec<Vec<Attr>>,
-    pub exprs: Vec<Vec<Attr>>,
+    pub virtuals: Vec<(Field, Vec<Attr>)>,
+    pub exprs: Vec<(Field, Vec<Attr>)>,
     pub gql_fields: Vec<(Field, Vec<Attr>)>,
     pub sql_fields: FieldsNamed,
 }
 
 /// Parse macro attributes, extract and validate fields.
-pub fn model_fields_attr(model: &str, fields: &Punctuated<Field, Token![,]>) -> ModelFieldsAttr {
+pub fn model_fields_attr(
+    model: &str,
+    fields: &Punctuated<Field, Token![,]>,
+) -> SynRes<ModelFieldsAttr> {
     let (mut defaults, mut virtuals, mut exprs, mut gql, mut sql) =
         (vec![], vec![], vec![], vec![], vec![]);
 
     for f in fields {
-        let attrs = Attr::from_field(model, f, &|a| ATTR_RAW.contains(a));
-        attr_validate(&attrs);
+        let attrs = Attr::from_field(model, f, &|a| ATTR_RAW.contains(a))?;
+        attr_validate(&attrs)?;
         // default
         if let Some(def) = attrs.iter().find(|a| a.attr == AttrTy::Default) {
             defaults.push(def.clone());
@@ -23,23 +26,23 @@ pub fn model_fields_attr(model: &str, fields: &Punctuated<Field, Token![,]>) -> 
         // virtuals
         if let Some(v) = attr_is_virtual(&attrs) {
             if v == VirtualTy::SqlExpr {
-                exprs.push(attrs);
+                exprs.push((f.clone(), attrs));
             } else {
-                virtuals.push(attrs);
+                virtuals.push((f.clone(), attrs));
             }
             continue;
         }
         // sql
         let mut extracted = f.clone();
-        extracted.attrs = attr_sql(&attrs);
+        extracted.attrs = attr_sql(&attrs)?;
         sql.push(extracted);
         // gql
         let mut extracted = f.clone();
-        extracted.attrs = attr_gql(&attrs);
+        extracted.attrs = attr_gql(&attrs)?;
         gql.push((extracted, attrs));
     }
 
-    ModelFieldsAttr {
+    Ok(ModelFieldsAttr {
         defaults,
         virtuals,
         exprs,
@@ -48,11 +51,11 @@ pub fn model_fields_attr(model: &str, fields: &Punctuated<Field, Token![,]>) -> 
             brace_token: Default::default(),
             named: Punctuated::from_iter(sql),
         },
-    }
+    })
 }
 
-/// Validate or panic.
-fn attr_validate(attrs: &[Attr]) {
+/// Validate or return error.
+fn attr_validate(attrs: &[Attr]) -> SynRes<()> {
     // ensure it should not have more than one of our attributes
     let map = AttrTy::all()
         .iter()
@@ -65,15 +68,17 @@ fn attr_validate(attrs: &[Attr]) {
         }
     }
     if matches.len() > 1 {
-        let model = attrs[0].field_model();
-        let field = attrs[0].field_name();
+        let model = attrs[0].field_model()?;
+        let field = attrs[0].field_name()?;
         let matches = matches
             .iter()
             .map(|t| t.to_string())
             .collect::<Vec<_>>()
             .join(", ");
-        panic!("{model}.{field} should have only one between: {matches}");
+        let err = format!("{model}.{field} should have only one between: {matches}");
+        return Err(SynErr::new(attrs[0].span, err));
     }
+    Ok(())
 }
 
 /// All virtual attributes.
@@ -92,7 +97,7 @@ fn attr_is_virtual(attrs: &[Attr]) -> Option<VirtualTy> {
 
 /// Filter to only keep related attrs for the sql model.
 /// If any of these attributes matched, we should removed them out of the field.
-fn attr_sql(attrs: &[Attr]) -> Vec<Attribute> {
+fn attr_sql(attrs: &[Attr]) -> SynRes<Vec<Attribute>> {
     let mut tobe_removed = AttrTy::all()
         .iter()
         .map(|t| t.to_string())
@@ -105,15 +110,13 @@ fn attr_sql(attrs: &[Attr]) -> Vec<Attribute> {
         .collect()
 }
 
-/// Filter to only keep related attrs for the gql model.
-fn attr_gql(attrs: &[Attr]) -> Vec<Attribute> {
-    let ne = hashset![
-        // TODO: copy #[graphql...] and comments from the original field
-        "",
-    ];
+/// Filter to only keep attrs relevant to the gql model field:
+/// doc comments and #[graphql(...)] pass through, all others are dropped.
+fn attr_gql(attrs: &[Attr]) -> SynRes<Vec<Attribute>> {
+    let keep = hashset!["doc", "graphql"];
     attrs
         .iter()
-        .filter(|a| !ne.contains(&a.attr.as_ref()))
+        .filter(|a| keep.contains(a.attr.as_str()))
         .map(|a| a.field_attr())
         .collect()
 }

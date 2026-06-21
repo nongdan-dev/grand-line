@@ -1,13 +1,14 @@
 use crate::prelude::*;
 
-pub fn filter_and_or_not(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
-    push_and_or(f, struk, query, "and");
-    push_and_or(f, struk, query, "or");
+pub fn filter_and_or_not(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) -> SynRes<()> {
+    push_and_or(f, struk, query, "and")?;
+    push_and_or(f, struk, query, "or")?;
     push_not(f, struk, query);
+    Ok(())
 }
 
-fn push_and_or(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
-    let op = op_str.ts2_or_panic();
+fn push_and_or(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) -> SynRes<()> {
+    let op = op_str.ts2_or_err()?;
     let gql_op = op_str.to_uppercase();
     let cond = if op_str == "and" {
         quote!(all)
@@ -28,6 +29,7 @@ fn push_and_or(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str
             c = c.add(#op);
         }
     });
+    Ok(())
 }
 
 fn push_not(f: &Ts2, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {

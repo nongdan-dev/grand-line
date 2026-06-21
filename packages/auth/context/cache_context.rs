@@ -53,7 +53,7 @@ impl AuthCacheContext for Context<'_> {
             ip: lsd.ip,
             ua: lsd.ua.to_json()?,
         })
-        .update(tx)
+        .exec_without_ctx(tx)
         .await?;
 
         Ok(Some(ls))

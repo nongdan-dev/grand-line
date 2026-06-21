@@ -1,51 +1,52 @@
 use crate::prelude::*;
 
-pub fn filter(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) {
-    push(f, struk, query, "eq");
-    push(f, struk, query, "ne");
+pub fn filter(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) -> SynRes<()> {
+    push(f, struk, query, "eq")?;
+    push(f, struk, query, "ne")?;
     let (_, uw_str) = unwrap_option_str(f.ty.to_token_stream());
     if uw_str == "bool" {
-        return;
+        return Ok(());
     }
-    push(f, struk, query, "is_in");
-    push(f, struk, query, "is_not_in");
+    push(f, struk, query, "is_in")?;
+    push(f, struk, query, "is_not_in")?;
     let name_str = f.ident.to_token_stream().to_string();
     if name_str == "id" || name_str.ends_with("_id") {
-        return;
+        return Ok(());
     }
-    push(f, struk, query, "gt");
-    push(f, struk, query, "gte");
-    push(f, struk, query, "lt");
-    push(f, struk, query, "lte");
+    push(f, struk, query, "gt")?;
+    push(f, struk, query, "gte")?;
+    push(f, struk, query, "lt")?;
+    push(f, struk, query, "lte")?;
     if uw_str != "String" {
-        return;
+        return Ok(());
     }
     #[cfg(not(feature = "postgres"))]
     {
-        push(f, struk, query, "like");
-        push(f, struk, query, "not_like");
+        push(f, struk, query, "like")?;
+        push(f, struk, query, "not_like")?;
     }
     #[cfg(feature = "postgres")]
     {
-        push(f, struk, query, "ilike");
-        push(f, struk, query, "not_ilike");
+        push(f, struk, query, "ilike")?;
+        push(f, struk, query, "not_ilike")?;
     }
-    push(f, struk, query, "starts_with");
-    push(f, struk, query, "ends_with");
+    push(f, struk, query, "starts_with")?;
+    push(f, struk, query, "ends_with")?;
+    Ok(())
 }
 
-fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
+fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) -> SynRes<()> {
     let col = f
         .ident
         .to_token_stream()
         .to_string()
         .to_pascal_case()
-        .ts2_or_panic();
-    let op = op_str.ts2_or_panic();
+        .ts2_or_err()?;
+    let op = op_str.ts2_or_err()?;
     let mut gql_op = op_str.to_owned();
     // unwrap Option<type>
     // the type can be generic such as Box<type>
-    let (opt, mut ty) = unwrap_option(f.ty.to_token_stream());
+    let (opt, mut ty) = unwrap_option(f.ty.to_token_stream())?;
     // handle special operators
     if op_str == "is_in" || op_str == "is_not_in" {
         gql_op = op_str.replace("is_", "");
@@ -60,7 +61,7 @@ fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
     let mut name = f.ident.to_token_stream();
     let mut gql_name = name.to_string().to_lower_camel_case();
     if op_str != "eq" {
-        name = format!("{name}_{gql_op}").to_snake_case().ts2_or_panic();
+        name = format!("{name}_{gql_op}").to_snake_case().ts2_or_err()?;
         let gql_op_camel = pg
             .get(op_str)
             .copied()
@@ -108,4 +109,5 @@ fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) {
         }
     };
     query.push(q);
+    Ok(())
 }

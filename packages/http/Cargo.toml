@@ -11,7 +11,7 @@ path = "lib.rs"
 axum = ["_http_axum"]
 
 [dependencies]
-_core = { path = "../core", default-features = false, features = [] }
-_http_axum = { path = "../http_axum", optional = true, default-features = false, features = [] }
-cookie = { version = "^0.18", default-features = false, features = [] }
-thiserror = { version = "^2.0", default-features = false, features = [] }
+_core = { path = "../core", default-features = false }
+_http_axum = { path = "../http_axum", optional = true, default-features = false }
+cookie = { version = "^0.18", default-features = false }
+thiserror = { version = "^2.0", default-features = false }

@@ -4,5 +4,5 @@ pub trait VirtualResolverFn
 where
     Self: ResolverFn,
 {
-    fn sql_dep(&self) -> Vec<String>;
+    fn sql_dep(&self) -> SynRes<Vec<String>>;
 }

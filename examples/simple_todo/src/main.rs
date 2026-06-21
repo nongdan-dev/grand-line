@@ -142,23 +142,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 // ----------------------------------------------------------------------------
 // init schema
 
-#[derive(Default, MergedObject)]
-struct Query(
-    TodoSearchQuery,
-    TodoCountQuery,
-    TodoSearch2024Query,
-    TodoDetailQuery,
-    TodoCountDoneQuery,
-);
-
-#[derive(Default, MergedObject)]
-struct Mutation(
-    TodoCreateMutation,
-    TodoUpdateMutation,
-    TodoToggleDoneMutation,
-    TodoDeleteMutation,
-    TodoDeleteDoneMutation,
-);
+grand_line::include_generated_schema! {}
 
 fn schema(db: &DatabaseConnection) -> Schema<Query, Mutation, EmptySubscription> {
     Schema::build(Query::default(), Mutation::default(), EmptySubscription)
@@ -182,19 +166,23 @@ async fn db() -> Result<DatabaseConnection, Box<dyn Error + Send + Sync>> {
         am_create!(Todo {
             content: "2023 good bye",
             done: true,
-        }),
+        })
+        .into_active_model(),
         am_create!(Todo {
             content: "2023 great",
             done: true,
-        }),
+        })
+        .into_active_model(),
         am_create!(Todo {
             content: "2024 hello",
             done: false,
-        }),
+        })
+        .into_active_model(),
         am_create!(Todo {
             content: "2024 awesome",
             done: false,
-        }),
+        })
+        .into_active_model(),
     ])
     .exec(&db)
     .await?;

@@ -5,11 +5,12 @@ use crate::prelude::*;
 pub struct AuthAttr {
     pub unauthenticated: bool,
 }
-impl From<Attr> for AuthAttr {
-    fn from(a: Attr) -> Self {
-        Self {
-            unauthenticated: a.bool_should_omit(Self::FIELD_UNAUTHENTICATED),
-        }
+impl TryFrom<Attr> for AuthAttr {
+    type Error = SynErr;
+    fn try_from(a: Attr) -> SynRes<Self> {
+        Ok(Self {
+            unauthenticated: a.bool_should_omit(Self::FIELD_UNAUTHENTICATED)?,
+        })
     }
 }
 impl AttrValidate for AuthAttr {

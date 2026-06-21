@@ -3,12 +3,16 @@ use crate::prelude::*;
 pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
     let a = parse_macro_input!(attr as AttrParse);
     let r = parse_macro_input!(item as ResolverTyItem);
-    let a = a.into_inner::<CrudAttr>("search");
-    let (mut r, ty, name) = r.init("query", "search", &a.model);
-    a.validate(&r);
+    try_gen_search(a, r).unwrap_or_else(|e| e.to_compile_error().into())
+}
 
-    let filter = ty_filter(&a.model);
-    let order_by = ty_order_by(&a.model);
+fn try_gen_search(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
+    let a = attr.into_inner::<CrudAttr>("search")?;
+    let (mut r, ty, name) = r.init("query", "search", &a.model)?;
+    a.validate(&r)?;
+
+    let filter = ty_filter(&a.model)?;
+    let order_by = ty_order_by(&a.model)?;
 
     if !a.resolver_inputs {
         r.inputs = quote! {
@@ -20,11 +24,11 @@ pub fn gen_search(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     if !a.resolver_output {
-        let output = ty_gql(&a.model);
+        let output = ty_gql(&a.model)?;
         r.output = quote!(Vec<#output>);
 
         let body = r.body;
-        let model = a.model.ts2_or_panic();
+        let model = a.model.ts2_or_err()?;
         let include_deleted = get_include_deleted(!a.resolver_inputs && !a.ra.no_include_deleted);
         r.body = quote! {
             let (filter_extra, order_by_default): (Option<#filter>, Option<Vec<#order_by>>) = {

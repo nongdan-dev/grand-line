@@ -75,13 +75,13 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
         email: "olivia@example.com",
         password_hashed: rand_utils::password_hash("123123")?,
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
     let u2 = am_create!(User {
         email: "peter@example.com",
         password_hashed: rand_utils::password_hash("123123")?,
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
 
     let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
@@ -93,7 +93,7 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
         ip: "127.0.0.1",
         ua: ua.to_json()?,
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
     let token1 = rand_utils::qs_token(&ls1.id, &secret1)?;
 
@@ -104,12 +104,16 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
         ip: "127.0.0.1",
         ua: ua.to_json()?,
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
     let token2 = rand_utils::qs_token(&ls2.id, &secret2)?;
 
-    let o1 = am_create!(Org { name: "Fringe" }).insert(&tmp.db).await?;
-    let o2 = am_create!(Org { name: "FBI" }).insert(&tmp.db).await?;
+    let o1 = am_create!(Org { name: "Fringe" })
+        .exec_without_ctx(&tmp.db)
+        .await?;
+    let o2 = am_create!(Org { name: "FBI" })
+        .exec_without_ctx(&tmp.db)
+        .await?;
 
     let r1 = am_create!(Role {
         name: "Org Admin",
@@ -117,14 +121,14 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
         operations: org1_admin_ops.to_json()?,
         org_id: Some(o1.id.clone()),
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
     am_create!(UserInRole {
         user_id: u1.id.clone(),
         role_id: r1.id.clone(),
         org_id: Some(o1.id.clone()),
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
 
     let r2 = am_create!(Role {
@@ -133,14 +137,14 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
         operations: operations_wildcard().to_json()?,
         org_id: Some(o2.id.clone()),
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
     am_create!(UserInRole {
         user_id: u2.id.clone(),
         role_id: r2.id.clone(),
         org_id: Some(o2.id.clone()),
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
 
     let r3 = am_create!(Role {
@@ -148,13 +152,13 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
         realm: "system",
         operations: operations_wildcard().to_json()?,
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
     am_create!(UserInRole {
         user_id: u1.id.clone(),
         role_id: r3.id.clone(),
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
 
     Ok(Prepare {

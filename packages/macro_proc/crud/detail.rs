@@ -3,9 +3,13 @@ use crate::prelude::*;
 pub fn gen_detail(attr: TokenStream, item: TokenStream) -> TokenStream {
     let a = parse_macro_input!(attr as AttrParse);
     let r = parse_macro_input!(item as ResolverTyItem);
-    let a = a.into_inner::<CrudAttr>("detail");
-    let (mut r, ty, name) = r.init("query", "detail", &a.model);
-    a.validate(&r);
+    try_gen_detail(a, r).unwrap_or_else(|e| e.to_compile_error().into())
+}
+
+fn try_gen_detail(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
+    let a = attr.into_inner::<CrudAttr>("detail")?;
+    let (mut r, ty, name) = r.init("query", "detail", &a.model)?;
+    a.validate(&r)?;
 
     if !a.resolver_inputs {
         r.inputs = quote! {
@@ -15,11 +19,11 @@ pub fn gen_detail(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
 
     if !a.resolver_output {
-        let output = ty_gql(&a.model);
+        let output = ty_gql(&a.model)?;
         r.output = quote!(Option<#output>);
 
         let body = r.body;
-        let model = a.model.ts2_or_panic();
+        let model = a.model.ts2_or_err()?;
         let include_deleted = get_include_deleted(!a.resolver_inputs && !a.ra.no_include_deleted);
         r.body = quote! {
             #body

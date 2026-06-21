@@ -19,8 +19,11 @@ impl Parse for Item {
 /// Can be simpler general macro with paste, but we dont want to export paste.
 pub fn gen_order_by(item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as Item);
-    let order_by = ty_order_by(item.model);
-    let paths = item.fields.iter().map(|f| quote!(#order_by::#f,));
+    try_gen_order_by(item).unwrap_or_else(|e| e.to_compile_error().into())
+}
 
-    quote!(vec![#(#paths)*]).into()
+fn try_gen_order_by(item: Item) -> SynRes<TokenStream> {
+    let order_by = ty_order_by(item.model)?;
+    let paths = item.fields.iter().map(|f| quote!(#order_by::#f,));
+    Ok(quote!(vec![#(#paths)*]).into())
 }

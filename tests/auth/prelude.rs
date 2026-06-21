@@ -36,7 +36,7 @@ pub async fn prepare() -> Res<Prepare> {
         password_hashed: rand_utils::password_hash("123123")?,
         display_name: "Olivia",
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
 
     let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
@@ -47,7 +47,7 @@ pub async fn prepare() -> Res<Prepare> {
         ip: "127.0.0.1",
         ua: ua.to_json()?,
     })
-    .insert(&tmp.db)
+    .exec_without_ctx(&tmp.db)
     .await?;
 
     let token = rand_utils::qs_token(&ls.id, &secret)?;

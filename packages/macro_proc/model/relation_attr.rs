@@ -12,14 +12,15 @@ pub struct RelationAttr {
     #[field_names(virt)]
     other_key: !,
 }
-impl From<Attr> for RelationAttr {
-    fn from(a: Attr) -> Self {
-        Self {
+impl TryFrom<Attr> for RelationAttr {
+    type Error = SynErr;
+    fn try_from(a: Attr) -> SynRes<Self> {
+        Ok(Self {
             no_include_deleted: a
-                .bool(Self::FIELD_NO_INCLUDE_DELETED)
+                .bool(Self::FIELD_NO_INCLUDE_DELETED)?
                 .unwrap_or(FEATURE_NO_INCLUDE_DELETED),
             inner: a,
-        }
+        })
     }
 }
 impl AttrValidate for RelationAttr {
@@ -34,54 +35,54 @@ impl AttrValidate for RelationAttr {
 }
 
 impl RelationAttr {
-    pub fn to(&self) -> Ts2 {
-        self.inner.field_ty().ts2_or_panic()
+    pub fn to(&self) -> SynRes<Ts2> {
+        self.inner.field_ty()?.ts2_or_err()
     }
-    pub fn gql_to(&self) -> Ts2 {
-        ty_gql(self.to())
+    pub fn gql_to(&self) -> SynRes<Ts2> {
+        ty_gql(self.to()?)
     }
-    pub fn name(&self) -> Ts2 {
-        self.inner.field_name().ts2_or_panic()
+    pub fn name(&self) -> SynRes<Ts2> {
+        self.inner.field_name()?.ts2_or_err()
     }
 
-    pub fn key_str(&self) -> String {
-        self.inner.str(Self::FIELD_KEY).unwrap_or_else(|| {
-            let field = self.inner.field_name();
-            let model = self.inner.field_model();
-            match self.inner.attr == RelationTy::BelongsTo {
-                true => format!("{field}_id").to_snake_case(),
-                false => format!("{model}_id").to_snake_case(),
-            }
+    pub fn key_str(&self) -> SynRes<String> {
+        if let Some(v) = self.inner.str(Self::FIELD_KEY)? {
+            return Ok(v);
+        }
+        let field = self.inner.field_name()?;
+        let model = self.inner.field_model()?;
+        Ok(match self.inner.attr == RelationTy::BelongsTo {
+            true => format!("{field}_id").to_snake_case(),
+            false => format!("{model}_id").to_snake_case(),
         })
     }
-    pub fn through(&self) -> Ts2 {
-        self.inner
-            .str(Self::FIELD_THROUGH)
-            .unwrap_or_else(|| {
-                let model = self.inner.field_model();
-                let ty = self.inner.field_ty();
-                match self.inner.attr == RelationTy::ManyToMany {
-                    true => format!("{model}_in_{ty}").to_pascal_case(),
-                    false => self.bug(Self::FIELD_THROUGH),
-                }
-            })
-            .ts2_or_panic()
+    pub fn through(&self) -> SynRes<Ts2> {
+        if let Some(v) = self.inner.str(Self::FIELD_THROUGH)? {
+            return v.ts2_or_err();
+        }
+        let model = self.inner.field_model()?;
+        let ty = self.inner.field_ty()?;
+        if self.inner.attr != RelationTy::ManyToMany {
+            return Err(self.bug(Self::FIELD_THROUGH));
+        }
+        format!("{model}_in_{ty}").to_pascal_case().ts2_or_err()
     }
-    pub fn other_key(&self) -> Ts2 {
-        self.inner
-            .str(Self::FIELD_OTHER_KEY)
-            .unwrap_or_else(|| {
-                let ty = self.inner.field_ty();
-                match self.inner.attr == RelationTy::ManyToMany {
-                    true => format!("{ty}_id").to_snake_case(),
-                    false => self.bug(Self::FIELD_OTHER_KEY),
-                }
-            })
-            .ts2_or_panic()
+    pub fn other_key(&self) -> SynRes<Ts2> {
+        if let Some(v) = self.inner.str(Self::FIELD_OTHER_KEY)? {
+            return v.ts2_or_err();
+        }
+        let ty = self.inner.field_ty()?;
+        if self.inner.attr != RelationTy::ManyToMany {
+            return Err(self.bug(Self::FIELD_OTHER_KEY));
+        }
+        format!("{ty}_id").to_snake_case().ts2_or_err()
     }
 
-    fn bug(&self, k: &str) -> ! {
-        self.inner
-            .panic_by_key(k, "should not access this key in this attr");
+    fn bug(&self, k: &str) -> SynErr {
+        let err = format!(
+            "{} key `{k}` should not access this key in this attr (programmer error)",
+            self.inner.attr_debug(),
+        );
+        SynErr::new(self.inner.span, err)
     }
 }

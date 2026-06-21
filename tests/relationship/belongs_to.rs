@@ -24,8 +24,12 @@ async fn t() -> Res<()> {
     let tmp = tmp_db!(User, Alias);
     let s = schema_q::<AliasDetailQuery>(&tmp.db).finish();
 
-    let u = am_create!(User { name: "Olivia" }).insert(&tmp.db).await?;
-    let f = am_create!(Alias { user_id: u.id }).insert(&tmp.db).await?;
+    let u = am_create!(User { name: "Olivia" })
+        .exec_without_ctx(&tmp.db)
+        .await?;
+    let f = am_create!(Alias { user_id: u.id })
+        .exec_without_ctx(&tmp.db)
+        .await?;
 
     let q = r#"
     query test($id: ID!) {

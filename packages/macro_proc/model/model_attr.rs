@@ -9,21 +9,22 @@ pub struct ModelAttr {
     #[field_names(skip)]
     pub inner: Attr,
 }
-impl From<Attr> for ModelAttr {
-    fn from(a: Attr) -> Self {
-        Self {
+impl TryFrom<Attr> for ModelAttr {
+    type Error = SynErr;
+    fn try_from(a: Attr) -> SynRes<Self> {
+        Ok(Self {
             no_created_at: a
-                .bool(Self::FIELD_NO_CREATED_AT)
+                .bool(Self::FIELD_NO_CREATED_AT)?
                 .unwrap_or(FEATURE_NO_CREATED_AT),
             no_updated_at: a
-                .bool(Self::FIELD_NO_UPDATED_AT)
+                .bool(Self::FIELD_NO_UPDATED_AT)?
                 .unwrap_or(FEATURE_NO_UPDATED_AT),
             no_deleted_at: a
-                .bool(Self::FIELD_NO_DELETED_AT)
+                .bool(Self::FIELD_NO_DELETED_AT)?
                 .unwrap_or(FEATURE_NO_DELETED_AT),
-            no_by_id: a.bool(Self::FIELD_NO_BY_ID).unwrap_or(FEATURE_NO_BY_ID),
+            no_by_id: a.bool(Self::FIELD_NO_BY_ID)?.unwrap_or(FEATURE_NO_BY_ID),
             inner: a,
-        }
+        })
     }
 }
 impl AttrValidate for ModelAttr {

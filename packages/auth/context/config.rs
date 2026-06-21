@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use std::marker::PhantomData;
 
 /// Non-generic config: timeouts, keys, and non-user-model handlers.
 /// Add this to your schema with `.data(AuthConfig::default())`.

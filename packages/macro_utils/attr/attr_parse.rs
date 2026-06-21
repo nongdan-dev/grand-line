@@ -17,24 +17,26 @@ pub struct AttrParse {
 }
 
 impl AttrParse {
-    pub fn into_inner<A>(self, macro_name: &str) -> A
+    pub fn into_inner<A>(self, macro_name: &str) -> SynRes<A>
     where
-        A: From<Attr> + AttrValidate,
+        A: TryFrom<Attr, Error = SynErr> + AttrValidate,
     {
-        Attr::from_proc_macro(macro_name, self).into_with_validate()
+        Attr::from_proc_macro(macro_name, self)?.try_into_with_validate()
     }
-    pub fn from_meta_list_token_stream(ts: Ts2) -> Self {
+    pub fn from_meta_list_token_stream(ts: Ts2) -> SynRes<Self> {
         if ts.to_string().trim().is_empty() {
-            panic!("empty meta list ()");
+            let err = "empty meta list ()";
+            return Err(SynErr::new(Span::call_site(), err));
         }
         let metas = Punctuated::<Meta, Token![,]>::parse_terminated
             .parse2(ts.clone())
-            .unwrap_or_else(|e| {
-                panic!("failed to parse meta list from token stream `{ts}`: {e}");
-            })
+            .map_err(|e| {
+                let err = format!("failed to parse meta list from token stream `{ts}`: {e}");
+                SynErr::new(e.span(), err)
+            })?
             .into_iter()
             .collect();
-        AttrParse::from_meta_list(metas)
+        Ok(AttrParse::from_meta_list(metas))
     }
     pub fn from_meta_list(metas: Vec<Meta>) -> Self {
         let mut args = Vec::new();

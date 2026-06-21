@@ -10,28 +10,35 @@ pub struct ResolverTyAttr {
     #[field_names(skip)]
     pub inner: Attr,
 }
-impl From<Attr> for ResolverTyAttr {
-    fn from(a: Attr) -> Self {
-        Self {
-            no_tx: a.bool(Self::FIELD_NO_TX).unwrap_or(FEATURE_NO_TX),
-            no_ctx: a.bool(Self::FIELD_NO_CTX).unwrap_or(FEATURE_NO_CTX),
-            no_include_deleted: a
-                .bool(Self::FIELD_NO_INCLUDE_DELETED)
-                .unwrap_or(FEATURE_NO_INCLUDE_DELETED),
-            auth: a.nested_with_path_into(Self::FIELD_AUTH).map(|(_, a)| a),
-            authz: a.nested_into(Self::FIELD_AUTHZ),
-            // .nested_with_path_into::<AuthzAttr>(Self::FIELD_AUTHZ)
-            // .map(|(path, mut a)| {
-            //     if path {
-            //         a.org = true;
-            //         a.user = true;
-            //     }
-            //     a
-            // }),
-            inner: a,
-        }
+
+impl ResolverTyAttr {
+    pub fn has_auth(&self) -> bool {
+        let auth = self.auth.as_ref();
+        let auth = auth.is_some() && !auth.map(|v| v.unauthenticated).unwrap_or_default();
+        let authz = self.authz.as_ref();
+        let authz = authz.is_some();
+        auth || authz
     }
 }
+
+impl TryFrom<Attr> for ResolverTyAttr {
+    type Error = SynErr;
+    fn try_from(a: Attr) -> SynRes<Self> {
+        Ok(Self {
+            no_tx: a.bool(Self::FIELD_NO_TX)?.unwrap_or(FEATURE_NO_TX),
+            no_ctx: a.bool(Self::FIELD_NO_CTX)?.unwrap_or(FEATURE_NO_CTX),
+            no_include_deleted: a
+                .bool(Self::FIELD_NO_INCLUDE_DELETED)?
+                .unwrap_or(FEATURE_NO_INCLUDE_DELETED),
+            auth: a
+                .nested_with_path_into::<AuthAttr>(Self::FIELD_AUTH)?
+                .map(|(_, a)| a),
+            authz: a.nested_into::<AuthzAttr>(Self::FIELD_AUTHZ)?,
+            inner: a,
+        })
+    }
+}
+
 impl AttrValidate for ResolverTyAttr {
     fn attr_fields(a: &Attr) -> Vec<String> {
         let f = Self::FIELDS

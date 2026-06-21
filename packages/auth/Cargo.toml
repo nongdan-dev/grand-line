@@ -11,9 +11,10 @@ path = "lib.rs"
 postgres = []
 
 [dependencies]
-_core = { path = "../core", default-features = false, features = [] }
-_http = { path = "../http", default-features = false, features = [] }
-_rand_utils = { path = "../rand_utils", default-features = false, features = [] }
-serde = { version = "^1.0", default-features = false, features = ["derive", "std"] }
-thiserror = { version = "^2.0", default-features = false, features = [] }
-validator = { version = "^0.20", default-features = false, features = [] }
+_core = { path = "../core", default-features = false }
+_http = { path = "../http", default-features = false }
+_rand_utils = { path = "../rand_utils", default-features = false }
+async-graphql = { version = "^7.2", default-features = false }
+serde = { version = "^1.0", default-features = false }
+thiserror = { version = "^2.0", default-features = false }
+validator = { version = "^0.20", default-features = false }

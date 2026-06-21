@@ -4,14 +4,14 @@ pub trait ResolverFn
 where
     Self: AttrDebug,
 {
-    fn name(&self) -> Ts2;
-    fn gql_name(&self) -> String;
-    fn inputs(&self) -> Ts2;
-    fn output(&self) -> Ts2;
-    fn body(&self) -> Ts2;
+    fn name(&self) -> SynRes<Ts2>;
+    fn gql_name(&self) -> SynRes<String>;
+    fn inputs(&self) -> SynRes<Ts2>;
+    fn output(&self) -> SynRes<Ts2>;
+    fn body(&self) -> SynRes<Ts2>;
 
-    fn root_operation_ty(&self) -> Option<String> {
-        None
+    fn root_operation_ty(&self) -> SynRes<Option<String>> {
+        Ok(None)
     }
 
     fn no_tx(&self) -> bool {
@@ -27,12 +27,25 @@ where
         None
     }
 
-    fn resolver_fn(&self) -> Ts2 {
-        let name = self.name();
-        let gql_name = self.gql_name();
-        let mut inputs = self.inputs();
-        let mut output = self.output();
-        let mut body = self.body();
+    /// Doc-comment strings from the original field definition.
+    /// Each entry corresponds to one `///` line (with leading space preserved).
+    fn doc_strs(&self) -> Vec<String> {
+        vec![]
+    }
+
+    /// Extra `#[graphql(...)]` args (everything except `name`) from the
+    /// original field definition. Already formatted with trailing commas,
+    /// ready to be spliced into the generated graphql attribute.
+    fn extra_graphql(&self) -> Ts2 {
+        quote!()
+    }
+
+    fn resolver_fn(&self) -> SynRes<Ts2> {
+        let name = self.name()?;
+        let gql_name = self.gql_name()?;
+        let mut inputs = self.inputs()?;
+        let mut output = self.output()?;
+        let mut body = self.body()?;
         let no_tx = self.no_tx();
         let no_ctx = self.no_ctx();
 
@@ -40,14 +53,14 @@ where
 
         if let Some(AuthAttr { unauthenticated }) = self.auth() {
             if no_ctx {
-                self.panic("auth requires ctx");
+                return Err(self.syn_err("auth requires ctx"));
             }
             let check_str = if unauthenticated {
                 "unauthenticated"
             } else {
                 "authenticated"
             };
-            let pascal = check_str.to_pascal_case().ts2_or_panic();
+            let pascal = check_str.to_pascal_case().ts2_or_err()?;
             let check = quote!(AuthDirectiveCheck::#pascal);
             body = quote! {
                 ctx.auth_ensure_in_macro(#check).await?;
@@ -56,7 +69,7 @@ where
             directives.push(quote! {
                 directive = auth_directive::apply(#check),
             });
-            let shouty = check_str.to_shouty_snake_case().ts2_or_panic();
+            let shouty = check_str.to_shouty_snake_case().ts2_or_err()?;
             directive_comments.push(format!("@auth(check: {shouty})"));
         }
 
@@ -67,14 +80,14 @@ where
         }) = self.authz()
         {
             if no_ctx {
-                self.panic("authz requires ctx");
+                return Err(self.syn_err("authz requires ctx"));
             }
             let org = !skip_org;
             let user = !skip_user;
             let operation_ty = self
-                .root_operation_ty()
-                .unwrap_or_else(|| self.panic("authz only available in root resolvers"))
-                .ts2_or_panic();
+                .root_operation_ty()?
+                .ok_or_else(|| self.syn_err("authz only available in root resolvers"))?
+                .ts2_or_err()?;
             let realm = quote!(#realm.to_owned());
             body = quote! {
                 ctx.cache(async || {
@@ -114,7 +127,7 @@ where
 
         if !no_tx {
             if no_ctx {
-                self.panic("tx requires ctx");
+                return Err(self.syn_err("tx requires ctx"));
             }
             body = quote! {
                 let tx = &*ctx.tx().await?;
@@ -134,16 +147,21 @@ where
         };
         output = quote!(Res<#output>);
 
-        quote! {
-            // TODO: copy #[graphql...] and directive_comments from the original field
-            #[graphql(
-                name = #gql_name,
-                #(#directives)*
-            )]
+        let field_doc_strs = self.doc_strs();
+        let field_extra = self.extra_graphql();
+        let graphql_attr = if field_extra.is_empty() {
+            quote!(#[graphql(name = #gql_name, #(#directives)*)])
+        } else {
+            quote!(#[graphql(name = #gql_name, #(#directives)* #field_extra)])
+        };
+
+        Ok(quote! {
+            #(#[doc = #field_doc_strs])*
+            #graphql_attr
             #(#[doc = #directive_comments])*
             async fn #name(&self, #inputs) -> #output {
                 #body
             }
-        }
+        })
     }
 }

@@ -8,8 +8,8 @@ name = "_http_axum"
 path = "lib.rs"
 
 [dependencies]
-_core = { path = "../core", default-features = false, features = [] }
-async-graphql-axum = { version = "^7.0", default-features = false, features = [] }
+_core = { path = "../core", default-features = false }
+async-graphql-axum = { version = "^7.2", default-features = false }
 axum = { version = "^0.8", default-features = false, features = ["http1", "http2", "json", "query", "tokio", "multipart"] }
-tower = { version = "^0.5", default-features = false, features = [] }
-tower-http = { version = "^0.6", default-features = false, features = ["cors", "normalize-path"] }
+tower = { version = "^0.5", default-features = false }
+tower-http = { version = "^0.7", default-features = false, features = ["cors", "normalize-path"] }

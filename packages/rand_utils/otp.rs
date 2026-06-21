@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD as B64};
-use hmac::{Hmac, Mac};
-use rand::{Rng, rng};
+use hmac::{Hmac, KeyInit, Mac};
+use rand::{RngExt, rng};
 use sha2::Sha256;
 
 pub fn otp() -> String {

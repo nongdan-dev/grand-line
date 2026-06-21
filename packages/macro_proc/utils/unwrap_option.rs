@@ -1,8 +1,8 @@
 use crate::prelude::*;
 
-pub fn unwrap_option(ty: impl Display) -> (bool, Ts2) {
+pub fn unwrap_option(ty: impl Display) -> SynRes<(bool, Ts2)> {
     let (opt, uw_str) = unwrap_option_str(ty);
-    (opt, uw_str.ts2_or_panic())
+    Ok((opt, uw_str.ts2_or_err()?))
 }
 
 pub fn unwrap_option_str(ty: impl Display) -> (bool, String) {

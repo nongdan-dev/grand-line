@@ -31,7 +31,7 @@ pub(crate) async fn login_session_create(
         ip: data.ip.clone(),
         ua: data.ua.to_json()?,
     })
-    .insert(tx)
+    .exec_without_ctx(tx)
     .await?;
 
     let lsws = LoginSessionWithSecret {

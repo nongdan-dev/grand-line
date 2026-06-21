@@ -108,31 +108,28 @@ pub fn active_model(item: TokenStream) -> TokenStream {
     expr_struct(item, "ActiveModel", "Set", "")
 }
 
-/// Helper to quickly create an active model with concise syntax
+/// Helper to quickly create an ActiveModelWrapper<AmCreate, E, A> with concise syntax
 /// and convert all string literals into String automatically.
-/// It will also wrap the active model with ActiveModelX::set_defaults_on_create
-/// to get default values on this operation.
+/// Call .exec_without_ctx(db) or .exec(ctx) to execute.
 #[proc_macro]
 pub fn am_create(item: TokenStream) -> TokenStream {
-    expr_struct(item, "ActiveModel", "Set", "set_defaults_on_create")
+    expr_struct_am_wrapper(item, "ActiveModel", "AmCreate")
 }
 
-/// Helper to quickly create active model with concise syntax
+/// Helper to quickly create an ActiveModelWrapper<AmUpdate, E, A> with concise syntax
 /// and convert all string literals into String automatically.
-/// It will also wrap the active model with ActiveModelX::set_defaults_on_update
-/// to get default values on this operation.
+/// Call .exec_without_ctx(db) or .exec(ctx) to execute.
 #[proc_macro]
 pub fn am_update(item: TokenStream) -> TokenStream {
-    expr_struct(item, "ActiveModel", "Set", "set_defaults_on_update")
+    expr_struct_am_wrapper(item, "ActiveModel", "AmUpdate")
 }
 
-/// Helper to quickly create active model with concise syntax
+/// Helper to quickly create an ActiveModelWrapper<AmSoftDelete, E, A> with concise syntax
 /// and convert all string literals into String automatically.
-/// It will also wrap the active model with ActiveModelX::set_defaults_on_delete
-/// to get default values on this operation.
+/// Call .exec_without_ctx(db) or .exec(ctx) to execute.
 #[proc_macro]
 pub fn am_soft_delete(item: TokenStream) -> TokenStream {
-    expr_struct(item, "ActiveModel", "Set", "set_defaults_on_delete")
+    expr_struct_am_wrapper(item, "ActiveModel", "AmSoftDelete")
 }
 
 /// Automatically derive ThisErr, GrandLineErrDerive, Debug.

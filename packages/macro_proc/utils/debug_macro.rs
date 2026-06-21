@@ -33,17 +33,37 @@ pub fn debug_macro(name: &str, ts: Ts2) {
         let path = format!("target/grand-line/{name}.rs");
         let path = PathBuf::from(path);
 
-        let parent = path.parent().unwrap_or_else(|| panic!("path.parent: None"));
-        create_dir_all(parent).unwrap_or_else(|e| panic!("create_dir_all: {e}"));
+        let parent = match path.parent() {
+            Some(p) => p,
+            None => {
+                eprintln!("debug_macro: path.parent returned None for {path:?}");
+                return;
+            }
+        };
+        if let Err(e) = create_dir_all(parent) {
+            eprintln!("debug_macro: create_dir_all failed: {e}");
+            return;
+        }
 
-        let mut file = File::create(&path).unwrap_or_else(|e| panic!("File::create: {e}"));
-        writeln!(file, "{}", code).unwrap_or_else(|e| panic!("writeln!: {e}"));
+        let mut file = match File::create(&path) {
+            Ok(f) => f,
+            Err(e) => {
+                eprintln!("debug_macro: File::create failed: {e}");
+                return;
+            }
+        };
+        if let Err(e) = writeln!(file, "{}", code) {
+            eprintln!("debug_macro: writeln failed: {e}");
+            return;
+        }
 
-        Command::new("rustfmt")
+        let cmd = Command::new("rustfmt")
             .arg("--edition")
             .arg("2024")
             .arg(&path)
-            .status()
-            .unwrap_or_else(|e| panic!("rustfmt: {e}"));
+            .status();
+        if let Err(e) = cmd {
+            eprintln!("debug_macro: rustfmt failed: {e}");
+        }
     }
 }

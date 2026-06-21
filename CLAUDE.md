@@ -1,9 +1,8 @@
+# Important
+
+- Always use English in code and comments. Chat responses are in Vietnamese.
+
 # Formatting Rules
-
-## Language
-
-- Always write code and comment in English.
-- You can response in chat using user prompt language.
 
 ## Characters
 
@@ -30,6 +29,7 @@ Use instead:
 - Math: use plain ASCII operators (\*, /, -)
 - Ellipsis: two plain periods (..)
 - Copyright: (c)
+- Semicolon: colon (,)
 
 ## Formatting
 
