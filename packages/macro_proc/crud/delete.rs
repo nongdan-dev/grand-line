@@ -34,11 +34,17 @@ fn try_gen_delete(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
             quote!(None)
         };
 
+        let by_id = if a.ra.has_auth() {
+            quote!(ctx.auth().await.ok())
+        } else {
+            quote!(None)
+        };
+
         let body = r.body;
         let model = a.model.ts2_or_err()?;
         r.body = quote! {
             #body
-            #model::gql_delete(tx, &id, #permanent).await?
+            #model::gql_delete(tx, &id, #permanent, #by_id).await?
         };
     }
 

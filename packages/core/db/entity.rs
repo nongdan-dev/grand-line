@@ -192,15 +192,48 @@ where
         Ok(r)
     }
 
+    /// Returns true when this entity tracks history.
+    /// Override in generated code when #[model(history)] is used.
+    fn has_history() -> bool {
+        false
+    }
+
+    /// Record a history entry for this entity. Default is a no-op.
+    /// Override in generated code when #[model(history)] is used.
+    async fn record_history<D: ConnectionTrait>(
+        _db: &D,
+        _op: &str,
+        _m: &Self::M,
+        _by_id: Option<String>,
+    ) -> Res<()> {
+        Ok(())
+    }
+
     /// Helper to use in resolver body of the macro delete.
-    async fn gql_delete<D>(db: &D, id: &str, permanent: Option<bool>) -> Res<Self::G>
+    /// by_id is the current user id for history tracking (None if not authenticated).
+    async fn gql_delete<D>(
+        db: &D,
+        id: &str,
+        permanent: Option<bool>,
+        by_id: Option<String>,
+    ) -> Res<Self::G>
     where
         D: ConnectionTrait,
     {
         if permanent.unwrap_or_default() {
+            if Self::has_history() {
+                if let Some(m) = Self::find().filter_by_id(id).one(db).await? {
+                    Self::record_history(db, "delete", &m, by_id).await?;
+                }
+            }
             Self::delete_many().filter_by_id(id).exec(db).await?;
         } else {
             Self::soft_delete_by_id(id)?.exec(db).await?;
+            if Self::has_history() {
+                if let Some(m) = Self::find().filter_by_id(id).one(db).await? {
+                    Self::record_history(db, "delete", &m, by_id).await?;
+                }
+            }
         }
         let r = Self::G::from_id(id);
         Ok(r)

@@ -273,6 +273,66 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
         gql_resolver.push(f.resolver_fn()?);
     }
 
+    // ------------------------------------------------------------------------
+    // history model (when history = true)
+    let history_impl = if a.history {
+        let history_model_name = format_ident!("{}History", &model_str);
+        let history_module = format_ident!("{}_history", &sql_alias);
+        // Generate the history entity using the same model macro infrastructure.
+        // history = false to prevent infinite recursion.
+        let history_attr = AttrParse::from_meta_list_token_stream(
+            quote!(no_updated_at, no_deleted_at, no_by_id),
+        )?;
+        let history_item: ItemStruct = parse_quote! {
+            pub struct #history_model_name {
+                pub entity_id: String,
+                pub operation: String,
+                pub by_id: Option<String>,
+                pub data: JsonValue,
+            }
+        };
+        let history_gen: Ts2 = try_gen_model(history_attr, history_item)?.into();
+        let entity_x_history_impl = quote! {
+            fn has_history() -> bool {
+                true
+            }
+            async fn record_history<D: ConnectionTrait>(
+                db: &D,
+                op: &str,
+                m: &Model,
+                by_id: Option<String>,
+            ) -> Res<()> {
+                let data = serde_json::to_value(m)?;
+                let am = super::#history_module::ActiveModel {
+                    id: Set(ulid()),
+                    created_at: Set(now()),
+                    entity_id: Set(m.id.clone()),
+                    operation: Set(op.to_owned()),
+                    by_id: Set(by_id),
+                    data: Set(data),
+                };
+                am.insert(db).await?;
+                Ok(())
+            }
+        };
+        (history_gen, entity_x_history_impl, true)
+    } else {
+        (quote!(), quote!(), false)
+    };
+    let (history_model_ts, entity_x_history_methods, has_async_history) = history_impl;
+    let entity_x_impl_prefix = if has_async_history {
+        quote!(#[async_trait])
+    } else {
+        quote!()
+    };
+
+    // Serialize derive is only needed when history is enabled (to serialize model to JSON).
+    let serialize_derive = if a.history {
+        quote!(Serialize,)
+    } else {
+        quote!()
+    };
+
     let r = quote! {
         mod #module {
             use super::*;
@@ -281,6 +341,7 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
                 Debug,
                 Clone,
                 DeriveEntityModel,
+                #serialize_derive
             )]
             #[sea_orm(table_name = #sql_alias)]
             #item
@@ -328,6 +389,7 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
                 m
             });
 
+            #entity_x_impl_prefix
             impl EntityX for Entity {
                 type M = Model;
                 type A = ActiveModel;
@@ -368,6 +430,7 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
                 fn gql_select() -> &'static LazyLock<HashMap<&'static str, HashSet<&'static str>>> {
                     &GQL_SELECT
                 }
+                #entity_x_history_methods
             }
 
             impl ModelX<Entity> for Model {
@@ -519,6 +582,8 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
             #filter,
             #order_by,
         };
+
+        #history_model_ts
     };
 
     #[cfg(feature = "debug_macro")]
