@@ -45,26 +45,12 @@ struct DefaultHandlers;
 #[async_trait]
 impl AuthHandlers for DefaultHandlers {}
 
-/// Generic user config: callbacks that receive the user's own model type.
-/// Use `let auth_user_impl = AuthUserImpl::<User>::default()` for no-op handlers,
-/// or `let auth_user_impl = AuthUserImpl::<User>::new(MyHandlers)` to provide custom callbacks.
-/// Add this to your schema with `.data(auth_user_impl)`.
+/// Generic user config: callbacks with user's own model type.
 pub struct AuthUserImpl<U>
 where
     U: AuthUser,
 {
     pub handlers: Arc<dyn AuthUserImplHandlers<U>>,
-}
-
-impl<U> AuthUserImpl<U>
-where
-    U: AuthUser,
-{
-    pub fn new(handlers: impl AuthUserImplHandlers<U> + 'static) -> Self {
-        Self {
-            handlers: Arc::new(handlers),
-        }
-    }
 }
 
 impl<U> Default for AuthUserImpl<U>
@@ -101,3 +87,15 @@ where
 struct DefaultUserImplHandlers<U>(PhantomData<U>);
 #[async_trait]
 impl<U> AuthUserImplHandlers<U> for DefaultUserImplHandlers<U> where U: AuthUser {}
+
+pub fn auth_user_impl<U: AuthUser>(handlers: Option<impl AuthUserImplHandlers<U> + 'static>) -> AuthUserImpl<U> {
+    if let Some(h) = handlers {
+        AuthUserImpl {
+            handlers: Arc::new(h),
+        }
+    } else {
+        AuthUserImpl {
+            handlers: Arc::new(DefaultUserImplHandlers(PhantomData)),
+        }
+    }
+}

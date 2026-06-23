@@ -18,7 +18,7 @@ impl Default for AuthzConfig {
 #[allow(unused_variables)]
 #[async_trait]
 pub trait AuthzHandlers: Send + Sync {
-    async fn on_formula(&self, ctx: &Context<'_>) -> Res<Option<JsonValue>> {
+    async fn on_row_script(&self, ctx: &Context<'_>) -> Res<Option<JsonValue>> {
         Ok(None)
     }
 }
@@ -27,9 +27,7 @@ struct DefaultHandlers;
 #[async_trait]
 impl AuthzHandlers for DefaultHandlers {}
 
-/// Type-erased org lookup - stored in context so proc-macro resolvers can
-/// use it without needing to know the generic `O` type parameter.
-/// Register with `.data(authz_org_impl::<YourOrg>())` when building your schema.
+/// Generic org config: callbacks with user's own model type.
 #[async_trait]
 pub trait AuthzOrgImpl: Send + Sync {
     async fn find_by_id(&self, id: &str, tx: &DatabaseTransaction) -> Res<Option<OrgMinimal>>;

@@ -62,7 +62,7 @@ impl AuthzRowContext for Context<'_> {
 
         let h = &self.authz_config().handlers;
 
-        let Some(json) = h.on_formula(self).await? else {
+        let Some(json) = h.on_row_script(self).await? else {
             return Ok(None);
         };
         let filter = F::from_json(json).map_err(|e| MyErr::RowScript(e.to_string()))?;
