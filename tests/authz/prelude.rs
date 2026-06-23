@@ -61,10 +61,10 @@ pub struct Prepare {
 }
 
 pub async fn prepare_wildcard() -> Res<Prepare> {
-    prepare_with_ops(operations_wildcard()).await
+    prepare_with_policy(col_policy_wildcard()).await
 }
 
-pub async fn prepare_with_ops(org1_admin_ops: ColPolicy) -> Res<Prepare> {
+pub async fn prepare_with_policy(org1_admin: ColPolicy) -> Res<Prepare> {
     let org_impl = authz_org_impl::<Org>();
 
     let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole);
@@ -123,7 +123,7 @@ pub async fn prepare_with_ops(org1_admin_ops: ColPolicy) -> Res<Prepare> {
     let r1 = am_create!(Role {
         name: "Org Admin",
         realm: "org",
-        col_policy: org1_admin_ops.to_json()?,
+        col_policy: org1_admin.to_json()?,
         row_policy: json!(null),
         org_id: Some(o1.id.clone()),
     })
@@ -140,7 +140,7 @@ pub async fn prepare_with_ops(org1_admin_ops: ColPolicy) -> Res<Prepare> {
     let r2 = am_create!(Role {
         name: "Org Admin",
         realm: "org",
-        col_policy: operations_wildcard().to_json()?,
+        col_policy: col_policy_wildcard().to_json()?,
         row_policy: json!(null),
         org_id: Some(o2.id.clone()),
     })
@@ -157,7 +157,7 @@ pub async fn prepare_with_ops(org1_admin_ops: ColPolicy) -> Res<Prepare> {
     let r3 = am_create!(Role {
         name: "System Admin",
         realm: "system",
-        col_policy: operations_wildcard().to_json()?,
+        col_policy: col_policy_wildcard().to_json()?,
         row_policy: json!(null),
     })
     .exec_without_ctx(&tmp.db)
@@ -185,57 +185,57 @@ pub async fn prepare_with_ops(org1_admin_ops: ColPolicy) -> Res<Prepare> {
     })
 }
 
-pub const fn field(children: ColPolicyFields) -> ColPolicyField {
+pub const fn col_policy_field(children: ColPolicyFields) -> ColPolicyField {
     ColPolicyField {
         allow: true,
         children: Some(children),
     }
 }
-pub const fn field_no_children() -> ColPolicyField {
+pub const fn col_policy_field_no_children() -> ColPolicyField {
     ColPolicyField {
         allow: true,
         children: None,
     }
 }
 
-pub fn fields(k: String, children: ColPolicyFields) -> ColPolicyFields {
+pub fn col_policy_fields(k: String, children: ColPolicyFields) -> ColPolicyFields {
     hashmap! {
-        k => field(children),
+        k => col_policy_field(children),
     }
 }
-pub fn fields_no_children(k: String) -> ColPolicyFields {
+pub fn col_policy_fields_no_children(k: String) -> ColPolicyFields {
     hashmap! {
-        k => field_no_children(),
+        k => col_policy_field_no_children(),
     }
 }
 
-pub fn fields_wildcard() -> ColPolicyFields {
-    fields_no_children("*".to_owned())
+pub fn col_policy_fields_wildcard() -> ColPolicyFields {
+    col_policy_fields_no_children("*".to_owned())
 }
-pub fn fields_wildcard_nested() -> ColPolicyFields {
-    fields_no_children("**".to_owned())
+pub fn col_policy_fields_wildcard_nested() -> ColPolicyFields {
+    col_policy_fields_no_children("**".to_owned())
 }
 
-pub const fn operation(inputs: ColPolicyField, output: ColPolicyField) -> ColPolicyOperation {
+pub const fn col_policy_operation(inputs: ColPolicyField, output: ColPolicyField) -> ColPolicyOperation {
     ColPolicyOperation {
         inputs,
         output,
     }
 }
-pub fn operations(k: String, inputs: ColPolicyField, output: ColPolicyField) -> ColPolicy {
+pub fn col_policy(k: String, inputs: ColPolicyField, output: ColPolicyField) -> ColPolicy {
     hashmap! {
-        k => operation(inputs, output),
+        k => col_policy_operation(inputs, output),
     }
 }
 
-pub fn operations_wildcard() -> ColPolicy {
-    let children = fields_wildcard_nested();
-    let field = field(children);
-    operations("*".to_owned(), field.clone(), field)
+pub fn col_policy_wildcard() -> ColPolicy {
+    let children = col_policy_fields_wildcard_nested();
+    let field = col_policy_field(children);
+    col_policy("*".to_owned(), field.clone(), field)
 }
 
-pub fn operations_col_level_org_name() -> ColPolicy {
-    let inputs = field(fields_wildcard_nested());
-    let output = field(fields_no_children("name".to_owned()));
-    operations("org".to_owned(), inputs, output)
+pub fn col_policy_org_name() -> ColPolicy {
+    let inputs = col_policy_field(col_policy_fields_wildcard_nested());
+    let output = col_policy_field(col_policy_fields_no_children("name".to_owned()));
+    col_policy("org".to_owned(), inputs, output)
 }
