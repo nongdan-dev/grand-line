@@ -1,7 +1,5 @@
 use crate::prelude::*;
 
-/// Non-generic config: timeouts, keys, and non-user-model handlers.
-/// Add this to your schema with `.data(AuthConfig::default())`.
 #[derive(Clone)]
 pub struct AuthConfig {
     pub cookie_login_session_key: &'static str,
@@ -39,37 +37,7 @@ pub trait AuthHandlers: Send + Sync {
     async fn on_otp_create(&self, ctx: &Context<'_>, otp: &AuthOtpSql, otp_raw: &str) -> Res<()> {
         Ok(())
     }
-}
 
-struct DefaultHandlers;
-#[async_trait]
-impl AuthHandlers for DefaultHandlers {}
-
-/// User lifecycle callbacks, non-generic: receives only user_id so the trait
-/// needs no type parameter and can be stored as a plain trait object.
-pub struct AuthUserImpl {
-    pub handlers: Arc<dyn AuthUserImplHandlers>,
-}
-
-impl AuthUserImpl {
-    pub fn new(handlers: impl AuthUserImplHandlers + 'static) -> Self {
-        Self {
-            handlers: Arc::new(handlers),
-        }
-    }
-}
-
-impl Default for AuthUserImpl {
-    fn default() -> Self {
-        Self {
-            handlers: Arc::new(DefaultUserImplHandlers),
-        }
-    }
-}
-
-#[allow(unused_variables)]
-#[async_trait]
-pub trait AuthUserImplHandlers: Send + Sync {
     async fn on_register_resolve(&self, ctx: &Context<'_>, user_id: &str, ls: &LoginSessionSql) -> Res<()> {
         Ok(())
     }
@@ -83,6 +51,6 @@ pub trait AuthUserImplHandlers: Send + Sync {
     }
 }
 
-struct DefaultUserImplHandlers;
+struct DefaultHandlers;
 #[async_trait]
-impl AuthUserImplHandlers for DefaultUserImplHandlers {}
+impl AuthHandlers for DefaultHandlers {}

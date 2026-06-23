@@ -15,19 +15,3 @@ impl<'a> AuthConfigContext<'a> for Context<'a> {
         }
     }
 }
-
-static DEFAULT_USER_IMPL: LazyLock<AuthUserImpl> = LazyLock::new(AuthUserImpl::default);
-
-pub trait AuthUserImplContext<'a> {
-    fn auth_user_impl(&self) -> &'a AuthUserImpl;
-}
-
-impl<'a> AuthUserImplContext<'a> for Context<'a> {
-    fn auth_user_impl(&self) -> &'a AuthUserImpl {
-        if let Some(cfg) = self.data_opt::<AuthUserImpl>() {
-            cfg
-        } else {
-            &DEFAULT_USER_IMPL
-        }
-    }
-}

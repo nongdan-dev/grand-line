@@ -12,7 +12,6 @@ where
 
     let tx = &*ctx.tx().await?;
     let h = &ctx.auth_config().handlers;
-    let ih = &ctx.auth_user_impl().handlers;
 
     h.password_validate(ctx, &password).await?;
     let lsd = login_session_data(ctx)?;
@@ -28,7 +27,7 @@ where
     let ls = login_session_create(ctx, tx, &u.get_id(), &lsd).await?;
     AuthOtp::delete_by_id(t.id).exec(tx).await?;
 
-    ih.on_forgot_resolve(ctx, &d.user_id, &ls.inner).await?;
+    h.on_forgot_resolve(ctx, &d.user_id, &ls.inner).await?;
 
     Ok(ls)
 }

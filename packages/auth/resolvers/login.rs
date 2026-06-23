@@ -19,7 +19,7 @@ where
 
     let tx = &*ctx.tx().await?;
     let lsd = login_session_data(ctx)?;
-    let ih = &ctx.auth_user_impl().handlers;
+    let h = &ctx.auth_config().handlers;
 
     let u = U::find()
         .exclude_deleted()
@@ -34,7 +34,7 @@ where
 
     let ls = login_session_create(ctx, tx, &u.get_id(), &lsd).await?;
 
-    ih.on_login_resolve(ctx, &u.get_id(), &ls.inner).await?;
+    h.on_login_resolve(ctx, &u.get_id(), &ls.inner).await?;
 
     Ok(ls)
 }

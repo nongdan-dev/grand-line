@@ -27,46 +27,37 @@ struct DefaultHandlers;
 #[async_trait]
 impl AuthzHandlers for DefaultHandlers {}
 
-/// Generic org config: callbacks that receive the org's own model type.
-/// Use `let org_impl = AuthzOrgImpl::<Org>::default()` for no-op handlers,
-/// or `let org_impl = AuthzOrgImpl::<Org>::new(MyHandlers)` to provide custom callbacks.
-/// Add this to your schema with `.data(org_impl)`.
-pub struct AuthzOrgImpl<O>
-where
-    O: AuthzOrg,
-{
-    pub handlers: Arc<dyn AuthzOrgImplHandlers<O>>,
+/// Org lookup callbacks, non-generic: method signatures use only primitives
+/// so the trait needs no type parameter.
+/// Use `AuthzOrgImpl::default::<YourOrg>()` to build with the default DB lookup,
+/// or `AuthzOrgImpl::new(MyHandlers)` to provide a custom implementation.
+/// Add this to your schema with `.data(AuthzOrgImpl::default::<YourOrg>())`.
+pub struct AuthzOrgImpl {
+    pub handlers: Arc<dyn AuthzOrgImplHandlers>,
 }
 
-impl<O> AuthzOrgImpl<O>
-where
-    O: AuthzOrg,
-{
-    pub fn new(handlers: impl AuthzOrgImplHandlers<O> + 'static) -> Self {
+impl AuthzOrgImpl {
+    pub fn new(handlers: impl AuthzOrgImplHandlers) -> Self {
         Self {
             handlers: Arc::new(handlers),
         }
     }
-}
 
-impl<O> Default for AuthzOrgImpl<O>
-where
-    O: AuthzOrg,
-{
-    fn default() -> Self {
+    pub fn default<O: AuthzOrg>() -> Self {
         Self {
-            handlers: Arc::new(DefaultUserImplHandlers(PhantomData)),
+            handlers: Arc::new(DefaultOrgImplHandlers::<O>(PhantomData)),
         }
     }
 }
 
-#[allow(unused_variables)]
 #[async_trait]
-pub trait AuthzOrgImplHandlers<O>
-where
-    O: AuthzOrg,
-    Self: Send + Sync,
-{
+pub trait AuthzOrgImplHandlers: Send + Sync {
+    async fn find_by_id(&self, id: &str, tx: &DatabaseTransaction) -> Res<Option<OrgMinimal>>;
+}
+
+struct DefaultOrgImplHandlers<O>(PhantomData<O>);
+#[async_trait]
+impl<O: AuthzOrg> AuthzOrgImplHandlers for DefaultOrgImplHandlers<O> {
     async fn find_by_id(&self, id: &str, tx: &DatabaseTransaction) -> Res<Option<OrgMinimal>> {
         let r = O::find()
             .exclude_deleted()
@@ -79,7 +70,3 @@ where
         Ok(r)
     }
 }
-
-struct DefaultUserImplHandlers<O>(PhantomData<O>);
-#[async_trait]
-impl<O> AuthzOrgImplHandlers<O> for DefaultUserImplHandlers<O> where O: AuthzOrg {}
