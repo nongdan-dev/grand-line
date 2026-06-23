@@ -34,7 +34,6 @@ pub async fn prepare() -> Res<Prepare> {
     let u = am_create!(User {
         email: "olivia@example.com",
         password_hashed: rand_utils::password_hash("123123")?,
-        display_name: "Olivia",
     })
     .exec_without_ctx(&tmp.db)
     .await?;

@@ -6,14 +6,18 @@ pub use grand_line::prelude::*;
 #[path = "../_fixtures/user.rs"]
 mod user;
 pub use user::*;
-
 #[path = "../_fixtures/org.rs"]
 mod org;
 pub use org::*;
-
 #[path = "../_fixtures/task.rs"]
 mod task;
 pub use task::*;
+#[path = "../_fixtures/col_policy.rs"]
+mod col_policy;
+pub use col_policy::*;
+#[path = "../_fixtures/row_policy.rs"]
+mod row_policy;
+pub use row_policy::*;
 
 #[query(authz(realm = "org"))]
 fn org_primitive() -> i64 {
@@ -197,63 +201,4 @@ pub async fn prepare_with_policy(org1_admin: ColPolicy, org1_row: RowPolicy) -> 
         role_id1_system: r3.id,
         role_id2: r2.id,
     })
-}
-
-pub const fn col_policy_field(children: ColPolicyFields) -> ColPolicyField {
-    ColPolicyField {
-        allow: true,
-        children: Some(children),
-    }
-}
-pub const fn col_policy_field_no_children() -> ColPolicyField {
-    ColPolicyField {
-        allow: true,
-        children: None,
-    }
-}
-
-pub fn col_policy_fields(k: String, children: ColPolicyFields) -> ColPolicyFields {
-    hashmap! {
-        k => col_policy_field(children),
-    }
-}
-pub fn col_policy_fields_no_children(k: String) -> ColPolicyFields {
-    hashmap! {
-        k => col_policy_field_no_children(),
-    }
-}
-
-pub fn col_policy_fields_wildcard() -> ColPolicyFields {
-    col_policy_fields_no_children("*".to_owned())
-}
-pub fn col_policy_fields_wildcard_nested() -> ColPolicyFields {
-    col_policy_fields_no_children("**".to_owned())
-}
-
-pub const fn col_policy_operation(inputs: ColPolicyField, output: ColPolicyField) -> ColPolicyOperation {
-    ColPolicyOperation {
-        inputs,
-        output,
-    }
-}
-pub fn col_policy(k: String, inputs: ColPolicyField, output: ColPolicyField) -> ColPolicy {
-    hashmap! {
-        k => col_policy_operation(inputs, output),
-    }
-}
-
-pub fn col_policy_wildcard() -> ColPolicy {
-    let children = col_policy_fields_wildcard_nested();
-    let field = col_policy_field(children);
-    col_policy("*".to_owned(), field.clone(), field)
-}
-
-pub fn col_policy_org_name() -> ColPolicy {
-    let inputs = col_policy_field(col_policy_fields_wildcard_nested());
-    let output = col_policy_field(col_policy_fields_no_children("name".to_owned()));
-    col_policy("org".to_owned(), inputs, output)
-}
-
-pub fn row_policy(k: String, script: String) -> RowPolicy {
-    hashmap! { k => script }
 }

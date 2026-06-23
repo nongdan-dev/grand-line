@@ -5,8 +5,6 @@ pub struct User {
     pub email: String,
     #[graphql(skip)]
     pub password_hashed: String,
-    #[default("")]
-    pub display_name: String,
 }
 
 impl AuthUser for User {

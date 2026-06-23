@@ -1,12 +1,28 @@
-// Tests that org-realm resolvers reject requests missing the org-id header.
-
 #[path = "./prelude.rs"]
 mod prelude;
 use prelude::*;
 
-// An org-realm request with no org-id header returns HeaderOrgId404.
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn err_on_missing_role_id() -> Res<()> {
+    let d = prepare_with_col_wildcard().await?;
+
+    let mut h = d.h;
+    h.insert(H_AUTHORIZATION, h_bearer(&d.token1));
+    // Intentionally omit H_ROLE_ID.
+    let s = d.s.data(h).finish();
+
+    let q = "
+    query test {
+        systemPrimitive
+    }
+    ";
+    exec_assert_err(&s, q, None, &AuthzErr::HeaderRoleId404).await;
+
+    d.tmp.drop().await
+}
+
+#[tokio::test]
+async fn err_on_missing_org_id() -> Res<()> {
     let d = prepare_with_col_wildcard().await?;
 
     let mut h = d.h;

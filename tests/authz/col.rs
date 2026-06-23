@@ -4,7 +4,7 @@ use prelude::*;
 
 #[tokio::test]
 async fn ok() -> Res<()> {
-    let d = prepare_with_col_policy(col_policy_org_name()).await?;
+    let d = prepare_with_col_policy(col_policy_with_children("org", "name")).await?;
 
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));
@@ -32,8 +32,8 @@ async fn ok() -> Res<()> {
 }
 
 #[tokio::test]
-async fn err_output_field() -> Res<()> {
-    let d = prepare_with_col_policy(col_policy_org_name()).await?;
+async fn err() -> Res<()> {
+    let d = prepare_with_col_policy(col_policy_with_children("org", "name")).await?;
 
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));

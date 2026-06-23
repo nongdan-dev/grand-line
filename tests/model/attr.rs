@@ -7,8 +7,8 @@ async fn name_override() -> Res<()> {
 
         #[model]
         pub struct User {
-            #[graphql(name = "customX")]
-            pub x_field: i64,
+            #[graphql(name = "y")]
+            pub x: i64,
         }
 
         #[detail(User)]
@@ -21,7 +21,7 @@ async fn name_override() -> Res<()> {
     let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
     let u = am_create!(User {
-        x_field: 42,
+        x: 42,
     })
     .exec_without_ctx(&tmp.db)
     .await?;
@@ -29,14 +29,21 @@ async fn name_override() -> Res<()> {
     let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
-            customX
+            y
         }
     }
     ";
-    let v = value!({ "id": u.id });
-    let expected = value!({ "userDetail": { "customX": 42 } });
+    let v = value!({
+        "id": u.id,
+    });
+    let expected = value!({
+        "userDetail": {
+            "y": 42,
+        },
+    });
 
     exec_assert(&s, q, Some(v), &expected).await;
+
     tmp.drop().await
 }
 
@@ -64,6 +71,7 @@ async fn skip() -> Res<()> {
 
     assert!(sdl.contains("visible"), "visible missing: {sdl}");
     assert!(!sdl.contains("hidden"), "skipped leaked: {sdl}");
+
     tmp.drop().await
 }
 
@@ -89,6 +97,7 @@ async fn doc_comment() -> Res<()> {
     let sdl = s.sdl();
 
     assert!(sdl.contains("This is a description."), "doc missing: {sdl}");
+
     tmp.drop().await
 }
 
@@ -116,6 +125,7 @@ async fn deprecation() -> Res<()> {
 
     assert!(sdl.contains("@deprecated"), "deprecated missing: {sdl}");
     assert!(sdl.contains("use y instead"), "reason missing: {sdl}");
+
     tmp.drop().await
 }
 
@@ -126,8 +136,8 @@ async fn name_override_with_extra() -> Res<()> {
 
         #[model]
         pub struct User {
-            #[graphql(name = "renamedX", deprecation = "old field")]
-            pub x_field: i64,
+            #[graphql(name = "y", deprecation = "should not use")]
+            pub x: i64,
         }
 
         #[detail(User)]
@@ -140,7 +150,7 @@ async fn name_override_with_extra() -> Res<()> {
     let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
     let u = am_create!(User {
-        x_field: 7,
+        x: 7,
     })
     .exec_without_ctx(&tmp.db)
     .await?;
@@ -148,16 +158,23 @@ async fn name_override_with_extra() -> Res<()> {
     let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
-            renamedX
+            y
         }
     }
     ";
-    let v = value!({ "id": u.id });
-    let expected = value!({ "userDetail": { "renamedX": 7 } });
+    let v = value!({
+        "id": u.id,
+    });
+    let expected = value!({
+        "userDetail": {
+            "y": 7,
+        },
+    });
 
     exec_assert(&s, q, Some(v), &expected).await;
 
     let sdl = s.sdl();
     assert!(sdl.contains("@deprecated"), "deprecated missing: {sdl}");
+
     tmp.drop().await
 }
