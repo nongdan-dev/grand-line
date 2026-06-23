@@ -9,6 +9,7 @@ async fn ok() -> Res<()> {
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));
     h.insert(H_AUTHORIZATION, h_bearer(&d.token1));
+    h.insert(H_ROLE_ID, h_str(&d.role_id1));
 
     let s = d.s.data(h).finish();
 
@@ -37,6 +38,7 @@ async fn err_output_field() -> Res<()> {
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));
     h.insert(H_AUTHORIZATION, h_bearer(&d.token1));
+    h.insert(H_ROLE_ID, h_str(&d.role_id1));
 
     let s = d.s.data(h).finish();
 

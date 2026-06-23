@@ -38,7 +38,10 @@ pub trait AuthzOrgImpl: Send + Sync {
 
 struct DefaultOrgImpl<O>(PhantomData<O>);
 #[async_trait]
-impl<O: AuthzOrg> AuthzOrgImpl for DefaultOrgImpl<O> {
+impl<O> AuthzOrgImpl for DefaultOrgImpl<O>
+where
+    O: AuthzOrg,
+{
     async fn find_by_id(&self, id: &str, tx: &DatabaseTransaction) -> Res<Option<OrgMinimal>> {
         let r = O::find()
             .exclude_deleted()
@@ -50,4 +53,11 @@ impl<O: AuthzOrg> AuthzOrgImpl for DefaultOrgImpl<O> {
             .await?;
         Ok(r)
     }
+}
+
+pub fn authz_org_impl<O>() -> Box<dyn AuthzOrgImpl>
+where
+    O: AuthzOrg,
+{
+    Box::new(DefaultOrgImpl::<O>(PhantomData))
 }

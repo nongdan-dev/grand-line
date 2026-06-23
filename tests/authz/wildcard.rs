@@ -3,12 +3,13 @@ mod prelude;
 use prelude::*;
 
 #[tokio::test]
-async fn ok() -> Res<()> {
+async fn ok_org_realm() -> Res<()> {
     let d = prepare_wildcard().await?;
 
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));
     h.insert(H_AUTHORIZATION, h_bearer(&d.token1));
+    h.insert(H_ROLE_ID, h_str(&d.role_id1));
 
     let s = d.s.data(h).finish();
 
@@ -32,6 +33,19 @@ async fn ok() -> Res<()> {
         },
     });
     exec_assert(&s, q, None, &expected).await;
+
+    d.tmp.drop().await
+}
+
+#[tokio::test]
+async fn ok_system_realm() -> Res<()> {
+    let d = prepare_wildcard().await?;
+
+    let mut h = d.h;
+    h.insert(H_AUTHORIZATION, h_bearer(&d.token1));
+    h.insert(H_ROLE_ID, h_str(&d.role_id1_system));
+
+    let s = d.s.data(h).finish();
 
     let q = "
     query test {
@@ -64,13 +78,15 @@ async fn ok() -> Res<()> {
 async fn err() -> Res<()> {
     let d = prepare_wildcard().await?;
 
+    // user2's role (role_id2) belongs to org2. Sending org1 header -> role not found
+    // (role's OrgId != org1) -> Unauthorized.
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));
     h.insert(H_AUTHORIZATION, h_bearer(&d.token2));
+    h.insert(H_ROLE_ID, h_str(&d.role_id2));
 
     let s = d.s.data(h).finish();
 
-    // Use org id 1 in the header, but token2 belongs to a user in org id 2 -> unauthorized.
     let q = "
     query test {
         org {

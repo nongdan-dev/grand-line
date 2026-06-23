@@ -1,5 +1,4 @@
 use grand_line::prelude::*;
-use serde_json::to_string as json;
 
 // create a sea orm model and graphql object
 // id, created_at, updated_at, deleted_at... are inserted automatically
@@ -13,9 +12,9 @@ pub struct Todo {
 // variables are generated automatically
 #[search(Todo)]
 fn resolver() {
-    let f = json(&filter)?;
-    let o = json(&order_by)?;
-    let p = json(&page)?;
+    let f = json_string(&filter)?;
+    let o = json_string(&order_by)?;
+    let p = json_string(&page)?;
     println!("todoSearch filter={f} order_by={o} page={p}");
     (None, None)
 }
@@ -35,7 +34,7 @@ fn todo_search_2024() {
 // count Todo with filter from client
 #[count(Todo)]
 fn resolver() {
-    let f = json(&filter)?;
+    let f = json_string(&filter)?;
     println!("todoCount filter={f}");
     None
 }
@@ -53,7 +52,7 @@ pub struct TodoCreate {
 }
 #[create(Todo)]
 fn resolver() {
-    let d = json(&data)?;
+    let d = json_string(&data)?;
     println!("todoCreate data={d}");
     am_create!(Todo {
         content: data.content,
@@ -67,7 +66,7 @@ pub struct TodoUpdate {
 }
 #[update(Todo)]
 fn resolver() {
-    let d = json(&data)?;
+    let d = json_string(&data)?;
     println!("todoUpdate id={id} data={d}");
     Todo::find_by_id(&id).exists_or_404(tx).await?;
     am_update!(Todo {

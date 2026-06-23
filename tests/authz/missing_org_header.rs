@@ -9,9 +9,9 @@ use prelude::*;
 async fn t() -> Res<()> {
     let d = prepare_wildcard().await?;
 
-    // Auth token present but no org id header.
     let mut h = d.h;
     h.insert(H_AUTHORIZATION, h_bearer(&d.token1));
+    h.insert(H_ROLE_ID, h_str(&d.role_id1));
     // Intentionally omit H_ORG_ID.
     let s = d.s.data(h).finish();
 

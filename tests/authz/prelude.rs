@@ -55,6 +55,9 @@ pub struct Prepare {
     pub token2: String,
     pub org_id1: String,
     pub org_id2: String,
+    pub role_id1: String,
+    pub role_id1_system: String,
+    pub role_id2: String,
 }
 
 pub async fn prepare_wildcard() -> Res<Prepare> {
@@ -120,7 +123,8 @@ pub async fn prepare_with_ops(org1_admin_ops: ColPolicy) -> Res<Prepare> {
     let r1 = am_create!(Role {
         name: "Org Admin",
         realm: "org",
-        operations: org1_admin_ops.to_json()?,
+        col_policy: org1_admin_ops.to_json()?,
+        row_policy: json!(null),
         org_id: Some(o1.id.clone()),
     })
     .exec_without_ctx(&tmp.db)
@@ -136,7 +140,8 @@ pub async fn prepare_with_ops(org1_admin_ops: ColPolicy) -> Res<Prepare> {
     let r2 = am_create!(Role {
         name: "Org Admin",
         realm: "org",
-        operations: operations_wildcard().to_json()?,
+        col_policy: operations_wildcard().to_json()?,
+        row_policy: json!(null),
         org_id: Some(o2.id.clone()),
     })
     .exec_without_ctx(&tmp.db)
@@ -152,7 +157,8 @@ pub async fn prepare_with_ops(org1_admin_ops: ColPolicy) -> Res<Prepare> {
     let r3 = am_create!(Role {
         name: "System Admin",
         realm: "system",
-        operations: operations_wildcard().to_json()?,
+        col_policy: operations_wildcard().to_json()?,
+        row_policy: json!(null),
     })
     .exec_without_ctx(&tmp.db)
     .await?;
@@ -173,6 +179,9 @@ pub async fn prepare_with_ops(org1_admin_ops: ColPolicy) -> Res<Prepare> {
         token2,
         org_id1: o1.id,
         org_id2: o2.id,
+        role_id1: r1.id,
+        role_id1_system: r3.id,
+        role_id2: r2.id,
     })
 }
 
@@ -207,11 +216,10 @@ pub fn fields_wildcard_nested() -> ColPolicyFields {
     fields_no_children("**".to_owned())
 }
 
-pub const fn operation(inputs: ColPolicyField, output: ColPolicyField) -> ColPolicyOperation {
+pub fn operation(inputs: ColPolicyField, output: ColPolicyField) -> ColPolicyOperation {
     ColPolicyOperation {
         inputs,
         output,
-        row: None,
     }
 }
 pub fn operations(k: String, inputs: ColPolicyField, output: ColPolicyField) -> ColPolicy {

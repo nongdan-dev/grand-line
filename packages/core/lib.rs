@@ -43,7 +43,7 @@ pub mod prelude {
         *,
     };
     pub use serde::{Deserialize, Serialize};
-    pub use serde_json::Error as JsonErr;
+    pub use serde_json::{Error as JsonErr, json, to_string as json_string};
     pub use thiserror::Error as ThisErr;
     pub use tokio::sync::{Mutex, OnceCell};
     _utils::use_common_std!();
