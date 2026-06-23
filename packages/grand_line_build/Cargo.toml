@@ -10,3 +10,6 @@ path = "lib.rs"
 [dependencies]
 heck = { version = "^0.5", default-features = false }
 syn = { version = "^2.0", default-features = false, features = ["full"] }
+
+[lints]
+workspace = true

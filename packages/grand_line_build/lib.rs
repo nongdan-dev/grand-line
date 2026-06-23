@@ -1,9 +1,9 @@
-use heck::{ToLowerCamelCase, ToPascalCase, ToSnakeCase};
+use heck::{ToLowerCamelCase as _, ToPascalCase as _, ToSnakeCase as _};
 use std::collections::HashSet;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use syn::{Attribute, Item, ItemFn, Meta, punctuated::Punctuated};
+use syn::{Attribute, Item, ItemFn, Meta, Token, parse_file, punctuated::Punctuated};
 
 // ============================================================================
 // Public API
@@ -43,7 +43,7 @@ pub struct SchemaBuilder {
 }
 
 impl SchemaBuilder {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             dirs: vec![],
             extra_query: vec![],
@@ -72,8 +72,22 @@ impl SchemaBuilder {
     /// Scan all configured dirs, compute resolver struct names, and write
     /// `$OUT_DIR/grand_line_schema.rs`.
     pub fn generate(self) {
-        let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
-        let out_dir = env::var("OUT_DIR").expect("OUT_DIR not set");
+        let manifest_dir = match env::var("CARGO_MANIFEST_DIR") {
+            Ok(v) => v,
+            Err(e) => {
+                let msg = format!("CARGO_MANIFEST_DIR not set: {e}");
+                println!("cargo:warning=grand_line_build: {msg}");
+                return;
+            }
+        };
+        let out_dir = match env::var("OUT_DIR") {
+            Ok(v) => v,
+            Err(e) => {
+                let msg = format!("OUT_DIR not set: {e}");
+                println!("cargo:warning=grand_line_build: {msg}");
+                return;
+            }
+        };
 
         let mut query_types = self.extra_query;
         let mut mutation_types = self.extra_mutation;
@@ -87,9 +101,12 @@ impl SchemaBuilder {
         let query_types = dedup_warn(query_types, "query");
         let mutation_types = dedup_warn(mutation_types, "mutation");
 
-        let code = generate_code(&query_types, &mutation_types);
+        let code = generate(&query_types, &mutation_types);
         let out_path = PathBuf::from(&out_dir).join("grand_line_schema.rs");
-        fs::write(&out_path, code).expect("failed to write grand_line_schema.rs");
+        if let Err(e) = fs::write(&out_path, code) {
+            let msg = format!("failed to write grand_line_schema.rs: {e}");
+            println!("cargo:warning=grand_line_build: {msg}");
+        }
     }
 }
 
@@ -106,9 +123,8 @@ fn scan_dir(dir: &Path, query_types: &mut Vec<String>, mutation_types: &mut Vec<
     if !dir.exists() {
         return;
     }
-    let entries = match fs::read_dir(dir) {
-        Ok(e) => e,
-        Err(_) => return,
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
     };
     for entry in entries.flatten() {
         let path = entry.path();
@@ -122,9 +138,8 @@ fn scan_dir(dir: &Path, query_types: &mut Vec<String>, mutation_types: &mut Vec<
 }
 
 fn scan_file(content: &str, query_types: &mut Vec<String>, mutation_types: &mut Vec<String>) {
-    let file = match syn::parse_file(content) {
-        Ok(f) => f,
-        Err(_) => return,
+    let Ok(file) = parse_file(content) else {
+        return;
     };
     scan_items(&file.items, query_types, mutation_types);
 }
@@ -146,16 +161,12 @@ fn scan_items(items: &[Item], query_types: &mut Vec<String>, mutation_types: &mu
 
 fn scan_fn(fn_item: &ItemFn, query_types: &mut Vec<String>, mutation_types: &mut Vec<String>) {
     let fn_name = fn_item.sig.ident.to_string();
-    let resolver_attrs: Vec<(String, &'static str, String)> = fn_item
-        .attrs
-        .iter()
-        .filter_map(detect_resolver_attr)
-        .collect();
+    let resolver_attrs: Vec<(String, &'static str, String)> =
+        fn_item.attrs.iter().filter_map(detect_resolver_attr).collect();
 
     if resolver_attrs.len() > 1 {
-        let msg = format!(
-            "`{fn_name}` has multiple resolver attributes; only one resolver attribute per function is valid",
-        );
+        let msg =
+            format!("`{fn_name}` has multiple resolver attributes; only one resolver attribute per function is valid");
         println!("cargo:warning=grand_line_build: {msg}");
     }
 
@@ -213,13 +224,13 @@ fn detect_resolver_attr(attr: &Attribute) -> Option<(String, &'static str, Strin
 // Handles `#[search(Todo)]`, `#[update(Todo, resolver_inputs)]`, etc.
 fn first_arg_ident(attr: &Attribute) -> Option<String> {
     let args = attr
-        .parse_args_with(Punctuated::<Meta, syn::Token![,]>::parse_terminated)
+        .parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)
         .ok()?;
 
     match args.into_iter().next()? {
-        Meta::Path(p) => p.get_ident().map(|id| id.to_string()),
-        Meta::List(l) => l.path.get_ident().map(|id| id.to_string()),
-        Meta::NameValue(nv) => nv.path.get_ident().map(|id| id.to_string()),
+        Meta::Path(p) => p.get_ident().map(|v| v.to_string()),
+        Meta::List(l) => l.path.get_ident().map(|v| v.to_string()),
+        Meta::NameValue(nv) => nv.path.get_ident().map(|v| v.to_string()),
     }
 }
 
@@ -258,20 +269,19 @@ fn dedup_warn(types: Vec<String>, kind: &str) -> Vec<String> {
 // ============================================================================
 // Code generation
 
-fn generate_code(query_types: &[String], mutation_types: &[String]) -> String {
-    let mut out = String::new();
-
+fn generate(query_types: &[String], mutation_types: &[String]) -> String {
+    let mut out: Vec<String> = vec![];
     if !query_types.is_empty() {
-        let types = query_types.join(", ");
-        let query = format!("#[derive(Default, MergedObject)]\npub struct Query({types});\n");
-        out.push_str(&query);
+        gen_merged_object(&mut out, "Query", query_types);
     }
-
     if !mutation_types.is_empty() {
-        let types = mutation_types.join(", ");
-        let mutation = format!("#[derive(Default, MergedObject)]\npub struct Mutation({types});\n");
-        out.push_str(&mutation);
+        gen_merged_object(&mut out, "Mutation", mutation_types);
     }
+    out.join("\n")
+}
 
-    out
+fn gen_merged_object(out: &mut Vec<String>, name: &str, types: &[String]) {
+    out.push("#[derive(Default, MergedObject)]".to_owned());
+    let op = format!("pub struct {}({});", name, types.join(","));
+    out.push(op);
 }

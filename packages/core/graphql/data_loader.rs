@@ -23,7 +23,7 @@ where
         let tx = self.tx.as_ref();
         let mut r = E::find();
         if let Some(expr) = self.exclude_deleted.clone() {
-            r = r.filter(expr)
+            r = r.filter(expr);
         }
         let r = r
             .filter(self.col.is_in(keys))
@@ -32,7 +32,7 @@ where
             .await?;
         let mut map = HashMap::<String, E::G>::new();
         for g in r {
-            let c = g.get_string(self.col).ok_or(MyErr::LoaderKeyNone {
+            let c = g.get_string(self.col).ok_or_else(|| MyErr::LoaderKeyNone {
                 col: self.col.to_string_with_model_name(),
             })?;
             map.insert(c, g);

@@ -12,12 +12,11 @@ pub fn attr_doc_strs(attrs: &[Attribute]) -> Vec<String> {
             if !attr.path().is_ident("doc") {
                 return None;
             }
-            if let syn::Meta::NameValue(ref nv) = attr.meta {
-                if let syn::Expr::Lit(ref el) = nv.value {
-                    if let syn::Lit::Str(ref s) = el.lit {
-                        return Some(s.value());
-                    }
-                }
+            if let Meta::NameValue(nv) = &attr.meta
+                && let Expr::Lit(el) = &nv.value
+                && let Lit::Str(s) = &el.lit
+            {
+                return Some(s.value());
             }
             None
         })
@@ -45,10 +44,10 @@ pub fn attr_graphql_info(attrs: &[Attribute]) -> (Option<String>, Ts2) {
         for meta in args {
             match &meta {
                 Meta::NameValue(nv) if nv.path.is_ident("name") => {
-                    if let syn::Expr::Lit(ref el) = nv.value {
-                        if let syn::Lit::Str(ref s) = el.lit {
-                            name_override = Some(s.value());
-                        }
+                    if let Expr::Lit(el) = &nv.value
+                        && let Lit::Str(s) = &el.lit
+                    {
+                        name_override = Some(s.value());
                     }
                 }
                 _ => extras.push(quote!(#meta,)),
@@ -73,25 +72,8 @@ pub struct GqlAttr {
 }
 
 pub fn gql_attr(gql_fields: &[(Field, Vec<Attr>)]) -> SynRes<GqlAttr> {
-    let (
-        mut struk,
-        mut struk_fields,
-        mut defaults,
-        mut resolver,
-        mut into,
-        mut cols,
-        mut select,
-        mut get_string,
-    ) = (
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-    );
+    let (mut struk, mut struk_fields, mut defaults, mut resolver, mut into, mut cols, mut select, mut get_string) =
+        (vec![], vec![], vec![], vec![], vec![], vec![], vec![], vec![]);
 
     for (f, a) in gql_fields {
         let name = f.ident.to_token_stream();
@@ -162,9 +144,7 @@ pub struct GqlAttrVirtuals {
     pub select: Vec<Ts2>,
 }
 
-pub fn gql_attr_virtuals(
-    virtual_resolvers: &[Box<dyn VirtualResolverFn>],
-) -> SynRes<GqlAttrVirtuals> {
+pub fn gql_attr_virtuals(virtual_resolvers: &[Box<dyn VirtualResolverFn>]) -> SynRes<GqlAttrVirtuals> {
     let mut select = vec![];
     for v in virtual_resolvers {
         let gql_name = v.gql_name()?;
@@ -174,7 +154,9 @@ pub fn gql_attr_virtuals(
             });
         }
     }
-    Ok(GqlAttrVirtuals { select })
+    Ok(GqlAttrVirtuals {
+        select,
+    })
 }
 
 pub struct GqlAttrExprs {
@@ -191,14 +173,11 @@ pub fn gql_exprs_ts2(exprs: &[(Field, Vec<Attr>)]) -> SynRes<GqlAttrExprs> {
         (vec![], vec![], vec![], vec![], vec![], vec![]);
 
     for (f, e) in exprs {
-        let a = e
-            .iter()
-            .find(|a| a.attr == VirtualTy::SqlExpr)
-            .ok_or_else(|| {
-                let span = e.first().map(|a| a.span).unwrap_or_else(Span::call_site);
-                let err = "cannot find VirtualTy::SqlExpr to build select as";
-                SynErr::new(span, err)
-            })?;
+        let a = e.iter().find(|a| a.attr == VirtualTy::SqlExpr).ok_or_else(|| {
+            let span = e.first().map(|a| a.span).unwrap_or_else(Span::call_site);
+            let err = "cannot find VirtualTy::SqlExpr to build select as";
+            SynErr::new(span, err)
+        })?;
         let name_str = a.field_name()?;
         let name = name_str.ts2_or_err()?;
         let ty = a.field_ty()?.ts2_or_err()?;

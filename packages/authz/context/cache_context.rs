@@ -2,53 +2,43 @@ use crate::prelude::*;
 
 #[async_trait]
 pub trait AuthzCacheContext {
-    async fn authz_with_cache(
-        &self,
-        check: AuthzDirectiveEnsure,
-    ) -> Res<Arc<Option<AuthzCacheItem>>>;
-    async fn authz_without_cache(&self, check: AuthzDirectiveEnsure)
-    -> Res<Option<AuthzCacheItem>>;
-    async fn authz_cache_or_init(
-        &self,
-    ) -> Res<Arc<Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>>>;
+    async fn authz_with_cache(&self, check: AuthzDirectiveEnsure) -> Res<Arc<Option<AuthzCacheItem>>>;
+    async fn authz_without_cache(&self, check: AuthzDirectiveEnsure) -> Res<Option<AuthzCacheItem>>;
+    async fn authz_cache_or_init(&self) -> Res<Arc<Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>>>;
     async fn authz_cache_key(&self) -> Res<String>;
 }
 
 #[async_trait]
 impl AuthzCacheContext for Context<'_> {
-    async fn authz_with_cache(
-        &self,
-        check: AuthzDirectiveEnsure,
-    ) -> Res<Arc<Option<AuthzCacheItem>>> {
+    async fn authz_with_cache(&self, check: AuthzDirectiveEnsure) -> Res<Arc<Option<AuthzCacheItem>>> {
         let cache_k = self.authz_cache_key().await?;
         let m = self.authz_cache_or_init().await?;
         let mut guard = m.lock().await;
         if let Some(v) = guard.get(&cache_k) {
-            return Ok(v.clone());
+            let v = Arc::clone(v);
+            drop(guard);
+            return Ok(v);
         }
         let v = self.authz_without_cache(check).await?;
         let v = Arc::new(v);
-        guard.insert(cache_k, v.clone());
+        guard.insert(cache_k, Arc::clone(&v));
+        drop(guard);
         Ok(v)
     }
 
-    async fn authz_without_cache(
-        &self,
-        check: AuthzDirectiveEnsure,
-    ) -> Res<Option<AuthzCacheItem>> {
+    async fn authz_without_cache(&self, check: AuthzDirectiveEnsure) -> Res<Option<AuthzCacheItem>> {
         let mut q = Role::find()
             .exclude_deleted()
             .filter(RoleColumn::Realm.eq(&check.realm));
 
-        let mut org = None;
-
-        if check.org {
+        let mut org = if check.org {
             let o = self.org_unauthorized().await?;
             q = q.filter(RoleColumn::OrgId.eq(&o.id));
-            org = Some(o);
+            Some(o)
         } else {
             q = q.filter(RoleColumn::OrgId.is_null());
-        }
+            None
+        };
 
         if check.user {
             let user_id = self.auth().await?;
@@ -77,16 +67,17 @@ impl AuthzCacheContext for Context<'_> {
                 && policy_check_inputs(self, &p.inputs)
                 && policy_check_output(self, &p.output)
             {
-                return Ok(Some(AuthzCacheItem { role, org }));
+                return Ok(Some(AuthzCacheItem {
+                    role,
+                    org,
+                }));
             }
         }
 
         Ok(None)
     }
 
-    async fn authz_cache_or_init(
-        &self,
-    ) -> Res<Arc<Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>>> {
+    async fn authz_cache_or_init(&self) -> Res<Arc<Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>>> {
         let m = self.cache(async || Ok(Mutex::new(HashMap::new()))).await?;
         Ok(m)
     }

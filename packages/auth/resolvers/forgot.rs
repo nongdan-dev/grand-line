@@ -5,14 +5,11 @@ pub struct Forgot {
     pub email: Email,
 }
 
-pub(crate) async fn forgot_impl<U: AuthUser>(
-    ctx: &Context<'_>,
-    data: Forgot,
-) -> Res<AuthOtpWithSecret> {
+pub async fn forgot_impl<U: AuthUser>(ctx: &Context<'_>, data: Forgot) -> Res<AuthOtpWithSecret> {
     let tx = &*ctx.tx().await?;
     let h = &ctx.auth_config().handlers;
 
-    otp_ensure_re_request(ctx, tx, AuthOtpTy::Forgot, &data.email.0).await?;
+    auth_otp_ensure_re_request(ctx, tx, AuthOtpTy::Forgot, &data.email.0).await?;
 
     let u = U::find()
         .exclude_deleted()
@@ -29,7 +26,7 @@ pub(crate) async fn forgot_impl<U: AuthUser>(
         email: data.email.0,
         secret_hashed: rand_utils::secret_hash(&secret),
         data: AuthOtpDataForgot {
-            user_id: u.get_id().to_owned(),
+            user_id: u.get_id().clone(),
         }
         .to_json()?,
         otp_salt,
@@ -40,5 +37,8 @@ pub(crate) async fn forgot_impl<U: AuthUser>(
 
     h.on_otp_create(ctx, &t, &otp).await?;
 
-    Ok(AuthOtpWithSecret { inner: t, secret })
+    Ok(AuthOtpWithSecret {
+        inner: t,
+        secret,
+    })
 }

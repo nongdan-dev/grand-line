@@ -24,14 +24,18 @@ async fn t() -> Res<()> {
     let tmp = tmp_db!(User, Alias);
     let s = schema_q::<AliasDetailQuery>(&tmp.db).finish();
 
-    let u = am_create!(User { name: "Olivia" })
-        .exec_without_ctx(&tmp.db)
-        .await?;
-    let f = am_create!(Alias { user_id: u.id })
-        .exec_without_ctx(&tmp.db)
-        .await?;
+    let u = am_create!(User {
+        name: "Olivia",
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
+    let f = am_create!(Alias {
+        user_id: u.id,
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
 
-    let q = r#"
+    let q = "
     query test($id: ID!) {
         aliasDetail(id: $id) {
             user {
@@ -39,7 +43,7 @@ async fn t() -> Res<()> {
             }
         }
     }
-    "#;
+    ";
     let v = value!({
         "id": f.id,
     });

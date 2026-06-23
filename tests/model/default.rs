@@ -23,13 +23,17 @@ async fn insert_defaults() -> Res<()> {
     let tmp = tmp_db!(User);
     let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
-    let u = am_create!(User { c: 9 }).exec_without_ctx(&tmp.db).await?;
+    let u = am_create!(User {
+        c: 9,
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
 
     pretty_eq!(u.a, "I love you");
     pretty_eq!(u.b, 3000);
     pretty_eq!(u.c, 9);
 
-    let q = r#"
+    let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
             a
@@ -37,7 +41,7 @@ async fn insert_defaults() -> Res<()> {
             c
         }
     }
-    "#;
+    ";
     let v = value!({
         "id": u.id,
     });

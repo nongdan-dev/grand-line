@@ -15,21 +15,31 @@ pub enum MyErr {
     // server errors
     //
     #[error("hash password error: {inner}")]
-    PasswordHash { inner: PasswordHashErr },
+    PasswordHash {
+        inner: PasswordHashErr,
+    },
     #[error("query string error: {inner}")]
-    QsErr { inner: QsErr },
+    QsErr {
+        inner: QsErr,
+    },
     #[error("hmac error: {inner}")]
-    HmacErr { inner: String },
+    HmacErr {
+        inner: String,
+    },
 }
 
 impl From<PasswordHashErr> for MyErr {
     fn from(v: PasswordHashErr) -> Self {
-        MyErr::PasswordHash { inner: v }
+        Self::PasswordHash {
+            inner: v,
+        }
     }
 }
 
 impl From<QsErr> for MyErr {
     fn from(v: QsErr) -> Self {
-        MyErr::QsErr { inner: v }
+        Self::QsErr {
+            inner: v,
+        }
     }
 }

@@ -18,7 +18,9 @@ pub enum MyErr {
         inner: DbErr,
     },
     #[error("`{col}` column not found")]
-    DbCol404 { col: String },
+    DbCol404 {
+        col: String,
+    },
 
     #[error("resolver try to unwrap with no value")]
     GqlResolverNone,

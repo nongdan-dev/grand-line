@@ -1,14 +1,14 @@
 use crate::prelude::*;
 use argon2::{
-    Argon2, PasswordHasher, PasswordVerifier,
+    Argon2, PasswordHasher as _, PasswordVerifier as _,
     password_hash::{PasswordHash, SaltString},
 };
-use rand::{Rng, rng};
+use rand::{Rng as _, rng};
 use zxcvbn::{Score, zxcvbn};
 
 pub fn password_validate(password: &str) -> Res<()> {
     if zxcvbn(password, &[]).score() < Score::Three {
-        Err(MyErr::PasswordInvalid)?;
+        return Err(MyErr::PasswordInvalid.into());
     }
     Ok(())
 }
@@ -26,9 +26,7 @@ pub fn password_hash(password: &str) -> Res<String> {
 
 pub fn password_eq(password_hashed: &str, password: &str) -> bool {
     match PasswordHash::new(password_hashed) {
-        Ok(v) => Argon2::default()
-            .verify_password(password.as_bytes(), &v)
-            .is_ok(),
+        Ok(v) => Argon2::default().verify_password(password.as_bytes(), &v).is_ok(),
         _ => false,
     }
 }

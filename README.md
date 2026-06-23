@@ -76,7 +76,9 @@ pub struct TodoCreate {
 }
 #[create(Todo)]
 fn resolver() {
-    am_create!(Todo { content: data.content })
+    am_create!(Todo {
+        content: data.content,
+    })
 }
 ```
 
@@ -121,10 +123,10 @@ Every model gets these automatically:
 Opt-out per model:
 
 ```rs
-#[model(no_created_at)]   // no created_at / created_by_id
-#[model(no_updated_at)]   // no updated_at / updated_by_id
-#[model(no_deleted_at)]   // no deleted_at / deleted_by_id - also disables soft-delete
-#[model(no_by_id)]        // no *_by_id fields
+#[model(created_at=false)]   // no created_at / created_by_id
+#[model(updated_at=false)]   // no updated_at / updated_by_id
+#[model(deleted_at=false)]   // no deleted_at / deleted_by_id - also disables soft-delete
+#[model(by_id=false)]        // no *_by_id fields
 ```
 
 #### Field attributes
@@ -137,7 +139,7 @@ pub struct Todo {
     pub content: String,
     #[default(false)]
     pub done: bool,
-    #[default(days_from_now(7))]  // any valid Rust expression
+    #[default(days_from_now(7))] // any valid Rust expression
     pub due_at: DateTimeUtc,
 }
 ```
@@ -172,13 +174,21 @@ async fn resolve_full_name(u: &UserGql, _: &Context<'_>) -> Res<String> {
 
 ```rs
 #[gql_input]
-pub struct TodoCreate { pub content: String }
+pub struct TodoCreate {
+    pub content: String,
+}
 
-#[gql_enum]   // GraphQL-only enum
-pub enum Direction { Asc, Desc }
+#[gql_enum] // GraphQL-only enum
+pub enum Direction {
+    Asc,
+    Desc,
+}
 
-#[sql_enum]   // stored as VARCHAR(255) snake_case, exposed in GraphQL
-pub enum Status { Active, Inactive }
+#[sql_enum] // stored as VARCHAR(255) snake_case, exposed in GraphQL
+pub enum Status {
+    Active,
+    Inactive,
+}
 ```
 
 ---
@@ -201,19 +211,26 @@ The input type for `#[create]` / `#[update]` is the PascalCase of the GraphQL fi
 ```rs
 #[search(Todo)]
 fn resolver() {
-    let extra = filter!(Todo { content_starts_with: "2024" });
-    (Some(extra), Some(order_by!(Todo [CreatedAtDesc])))
+    let extra = filter!(Todo {
+        content_starts_with: "2024",
+    });
+    (Some(extra), Some(order_by!(Todo[CreatedAtDesc])))
 }
 
 #[create(Todo)]
 fn resolver() {
-    am_create!(Todo { content: data.content })
+    am_create!(Todo {
+        content: data.content,
+    })
 }
 
 #[update(Todo)]
 fn resolver() {
     Todo::find_by_id(&id).exists_or_404(tx).await?;
-    am_update!(Todo { id: id.clone(), content: data.content })
+    am_update!(Todo {
+        id: id.clone(),
+        content: data.content,
+    })
 }
 
 #[delete(Todo)]
@@ -221,7 +238,7 @@ fn resolver() {
     Todo::find_by_id(&id).exists_or_404(tx).await?;
 }
 
-#[delete(Todo, no_permanent_delete)]  // remove the permanent option
+#[delete(Todo, permanent_delete = false)] // remove the permanent option
 fn resolver() {}
 ```
 
@@ -232,13 +249,23 @@ fn resolver() {}
 ```rs
 #[query]
 fn todo_count_done() -> u64 {
-    filter!(Todo { done: true }).into_select().count(tx).await?
+    filter!(Todo {
+        done: true,
+    })
+    .into_select()
+    .count(tx)
+    .await?
 }
 
 #[mutation]
 fn todo_delete_done() -> Vec<TodoGql> {
-    let f = filter!(Todo { done: true });
-    Todo::soft_delete_many()?.filter(f.clone().into_condition()).exec(tx).await?;
+    let f = filter!(Todo {
+        done: true,
+    });
+    Todo::soft_delete_many()?
+        .filter(f.clone().into_condition())
+        .exec(tx)
+        .await?;
     f.gql_select_id().all(tx).await?
 }
 ```
@@ -257,7 +284,12 @@ Each resolver macro generates a named struct (`TodoSearchQuery`, `TodoCreateMuta
 struct Query(TodoSearchQuery, TodoCountQuery, TodoDetailQuery, TodoCountDoneQuery);
 
 #[derive(Default, MergedObject)]
-struct Mutation(TodoCreateMutation, TodoUpdateMutation, TodoDeleteMutation, TodoDeleteDoneMutation);
+struct Mutation(
+    TodoCreateMutation,
+    TodoUpdateMutation,
+    TodoDeleteMutation,
+    TodoDeleteDoneMutation,
+);
 ```
 
 `grand_line_build` eliminates this by scanning source files at build time and auto-generating `Query` and `Mutation`. It works across crates - any source directory can be included.
@@ -309,12 +341,22 @@ The generated `Query` and `Mutation` match the names produced by the resolver ma
 
 ### Resolver bodies
 
-Resolver bodies are blocks, not functions - `return` doesn't work, use `?` to exit early. `ctx: &Context<'_>` and `tx: &DatabaseTransaction` are always injected.
+Resolver bodies are blocks, not functions - `return` only works with errors. `ctx: &Context<'_>` and `tx: &DatabaseTransaction` are always injected.
 
 ```rs
 #[query]
 fn my_query() -> String {
-    if missing { Err(MyErr::NotFound)?; }
+    // ok
+    if missing {
+        return Err(MyErr::NotFound.into());
+    }
+
+    // this will not work
+    // if present {
+    //     return "ok".to_string();
+    // }
+
+    // ok
     "ok".to_string()
 }
 ```
@@ -325,7 +367,10 @@ Use `resolver_inputs` to define fully custom parameters:
 #[update(Todo, resolver_inputs)]
 fn todo_toggle_done(id: String) {
     let todo = Todo::find_by_id(&id).one_or_404(tx).await?;
-    am_update!(Todo { id: id.clone(), done: !todo.done })
+    am_update!(Todo {
+        id: id.clone(),
+        done: !todo.done,
+    })
 }
 ```
 
@@ -381,19 +426,26 @@ Declare on `#[model]` fields. Resolved with look-ahead - only requested fields a
 ```rs
 #[model]
 pub struct User {
-    #[has_one]    pub profile: UserProfile,  // UserProfile holds user_id FK
-    #[has_many]   pub posts: Post,
-    #[many_to_many] pub orgs: Org,           // requires UserInOrg join model
+    #[has_one]
+    pub profile: UserProfile, // UserProfile holds user_id FK
+    #[has_many]
+    pub posts: Post,
+    #[many_to_many]
+    pub orgs: Org, // requires UserInOrg join model
 }
 
 #[model]
 pub struct Post {
     pub user_id: String,
-    #[belongs_to] pub user: User,
+    #[belongs_to]
+    pub user: User,
 }
 
 #[model]
-pub struct UserInOrg { pub user_id: String, pub org_id: String }
+pub struct UserInOrg {
+    pub user_id: String,
+    pub org_id: String,
+}
 ```
 
 Soft-deleted related records are excluded by default. Override per field:
@@ -412,7 +464,10 @@ query {
 ### Filtering and sorting
 
 ```rs
-let f = filter!(Todo { done: true, content_starts_with: "2024" });
+let f = filter!(Todo {
+    done: true,
+    content_starts_with: "2024",
+});
 let f = TodoFilter::combine_and(f1, f2);
 
 let sort = order_by!(Todo [CreatedAtDesc, ContentAsc]);
@@ -434,11 +489,19 @@ content_like  content_starts_with  content_ends_with
 
 ```rs
 // auto id, created_at, updated_at
-am_create!(Todo { content: "hello", done: false })
+am_create!(Todo {
+    content: "hello",
+    done: false,
+})
 // auto updated_at
-am_update!(Todo { id: id.clone(), content: "new" })
+am_update!(Todo {
+    id: id.clone(),
+    content: "new",
+})
 // auto deleted_at, updated_at
-am_soft_delete!(Todo { id: id.clone() })
+am_soft_delete!(Todo {
+    id: id.clone(),
+})
 // auto *_by_id
 am.exec(ctx)
 // without *_by_id
@@ -511,7 +574,7 @@ Your migration must include the `User` table (defined by you) plus `AuthOtp` and
 The framework does not ship a `User` model. You define your own and implement `AuthUser`:
 
 ```rs
-#[model(no_by_id)]
+#[model(by_id = false)]
 pub struct User {
     pub email: String,
     #[graphql(skip)]
@@ -522,10 +585,18 @@ pub struct User {
 }
 
 impl AuthUser for User {
-    fn email_col() -> UserColumn         { UserColumn::Email }
-    fn password_col() -> UserColumn      { UserColumn::PasswordHashed }
-    fn get_email(m: &UserSql) -> &str    { &m.email }
-    fn get_password_hashed(m: &UserSql) -> &str { &m.password_hashed }
+    fn email_col() -> UserColumn {
+        UserColumn::Email
+    }
+    fn password_col() -> UserColumn {
+        UserColumn::PasswordHashed
+    }
+    fn get_email(m: &UserSql) -> &str {
+        &m.email
+    }
+    fn get_password_hashed(m: &UserSql) -> &str {
+        &m.password_hashed
+    }
 }
 ```
 
@@ -634,7 +705,10 @@ impl AuthUserHandlers<User> for MyUserHandlers {
     async fn on_register_resolve(&self, ctx: &Context<'_>, user: &UserSql, _: &LoginSessionSql) -> Res<()> {
         let tx = &*ctx.tx().await?;
         // user.id, user.display_name, etc. are all available
-        am_create!(UserProfile { user_id: user.id.clone(), bio: "" }).exec(ctx).await?;
+        am_create!(UserProfile {
+            user_id: user.id.clone(),
+            bio: "",
+        }).exec(ctx).await?;
         Ok(())
     }
 }
@@ -678,12 +752,14 @@ am_create!(Role {
     name: "Org Admin", realm: "org",
     org_id: Some(org_id.clone()),
     operations: operations.to_json()?,
-}).exec(ctx).await?;
+})
+.exec(ctx).await?;
 
 am_create!(UserInRole {
     user_id: user_id.clone(), role_id: role_id.clone(),
     org_id: Some(org_id.clone()),  // must match role's org_id
-}).exec(ctx).await?;
+})
+.exec(ctx).await?;
 ```
 
 #### Defining your Org model
@@ -699,7 +775,7 @@ pub struct Org {
     pub plan: OrgPlan,
 }
 
-impl AuthzOrg for Org {}  // marker trait - EntityX provides everything needed
+impl AuthzOrg for Org {} // marker trait - EntityX provides everything needed
 ```
 
 The framework looks up orgs via `authz_org::<Org>()` using the `id` from the `X-Org-Id` header. Your custom fields are accessible in your own resolvers via normal `Org::find()` queries.
@@ -716,11 +792,15 @@ fn org_dashboard() -> OrgGql {
 
 // System-wide: requires Authorization only
 #[query(authz(realm = "system", skip_org))]
-fn system_dashboard() -> String { "ok".to_string() }
+fn system_dashboard() -> String {
+    "ok".to_string()
+}
 
 // Works on all CRUD macros
 #[search(Todo, authz(realm = "org"))]
-fn resolver() { (None, None) }
+fn resolver() {
+    (None, None)
+}
 ```
 
 Use `ctx.authz_role().await?` to get the matched `Role` row inside any authz-guarded resolver.
@@ -733,13 +813,13 @@ Each `Role.operations` is a JSON-encoded `PolicyOperations` map that controls al
 pub type PolicyOperations = HashMap<String, PolicyOperation>;
 
 pub struct PolicyOperation {
-    pub inputs: PolicyField,  // allowed GraphQL arguments
-    pub output: PolicyField,  // allowed response fields
+    pub inputs: PolicyField, // allowed GraphQL arguments
+    pub output: PolicyField, // allowed response fields
 }
 
 pub struct PolicyField {
     pub allow: bool,
-    pub children: Option<PolicyFields>,  // HashMap<String, PolicyField>
+    pub children: Option<PolicyFields>, // HashMap<String, PolicyField>
 }
 ```
 

@@ -56,7 +56,7 @@ fn resolver() {
     let d = json(&data)?;
     println!("todoCreate data={d}");
     am_create!(Todo {
-        content: data.content
+        content: data.content,
     })
 }
 
@@ -72,7 +72,7 @@ fn resolver() {
     Todo::find_by_id(&id).exists_or_404(tx).await?;
     am_update!(Todo {
         id: id.clone(),
-        content: data.content
+        content: data.content,
     })
 }
 
@@ -98,14 +98,18 @@ fn resolver() {
 // manual query: count number of all done Todo
 #[query]
 fn todo_count_done() -> u64 {
-    let f = filter!(Todo { done: true });
+    let f = filter!(Todo {
+        done: true,
+    });
     f.into_select().count(tx).await?
 }
 
 // manual mutation: soft delete all done Todo
 #[mutation]
 fn todo_delete_done() -> Vec<TodoGql> {
-    let f = filter!(Todo { done: true });
+    let f = filter!(Todo {
+        done: true,
+    });
     Todo::soft_delete_many()?
         .filter(f.clone().into_condition())
         .exec(tx)

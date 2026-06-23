@@ -6,30 +6,12 @@ pub struct Register {
     pub password: String,
 }
 
-pub(crate) async fn register_ensure_email_not_exists<U: AuthUser>(
-    tx: &DatabaseTransaction,
-    email: &str,
-) -> Res<()> {
-    let exists = U::find()
-        .exclude_deleted()
-        .filter(U::email_col().eq(email))
-        .exists(tx)
-        .await?;
-    if exists {
-        Err(MyErr::RegisterEmailExists)?;
-    }
-    Ok(())
-}
-
-pub(crate) async fn register_impl<U: AuthUser>(
-    ctx: &Context<'_>,
-    data: Register,
-) -> Res<AuthOtpWithSecret> {
+pub async fn register_impl<U: AuthUser>(ctx: &Context<'_>, data: Register) -> Res<AuthOtpWithSecret> {
     let tx = &*ctx.tx().await?;
     let h = &ctx.auth_config().handlers;
 
     register_ensure_email_not_exists::<U>(tx, &data.email.0).await?;
-    otp_ensure_re_request(ctx, tx, AuthOtpTy::Register, &data.email.0).await?;
+    auth_otp_ensure_re_request(ctx, tx, AuthOtpTy::Register, &data.email.0).await?;
     h.password_validate(ctx, &data.password).await?;
 
     let otp = h.otp(ctx).await?;
@@ -52,5 +34,20 @@ pub(crate) async fn register_impl<U: AuthUser>(
 
     h.on_otp_create(ctx, &t, &otp).await?;
 
-    Ok(AuthOtpWithSecret { inner: t, secret })
+    Ok(AuthOtpWithSecret {
+        inner: t,
+        secret,
+    })
+}
+
+pub async fn register_ensure_email_not_exists<U: AuthUser>(tx: &DatabaseTransaction, email: &str) -> Res<()> {
+    let exists = U::find()
+        .exclude_deleted()
+        .filter(U::email_col().eq(email))
+        .exists(tx)
+        .await?;
+    if exists {
+        return Err(MyErr::RegisterEmailExists.into());
+    }
+    Ok(())
 }

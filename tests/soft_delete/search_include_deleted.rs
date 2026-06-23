@@ -6,13 +6,13 @@ use prelude::*;
 async fn t() -> Res<()> {
     let d = prepare().await?;
 
-    let q = r#"
+    let q = "
     query test {
         userSearch(orderBy: [NameAsc], includeDeleted: true) {
             name
         }
     }
-    "#;
+    ";
     let expected = value!({
         "userSearch": [{
             "name": "Olivia",

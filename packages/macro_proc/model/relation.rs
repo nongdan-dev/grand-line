@@ -17,7 +17,7 @@ impl GenRelation {
     }
     fn input_one(&self) -> Ts2 {
         let mut inputs = quote!();
-        inputs = push_include_deleted(inputs, !self.a.no_include_deleted);
+        inputs = push_include_deleted(inputs, self.a.include_deleted);
         inputs
     }
     fn input_many(&self) -> SynRes<Ts2> {
@@ -29,7 +29,7 @@ impl GenRelation {
             order_by: Option<Vec<#order_by>>,
             page: Option<Pagination>,
         };
-        inputs = push_include_deleted(inputs, !self.a.no_include_deleted);
+        inputs = push_include_deleted(inputs, self.a.include_deleted);
         Ok(inputs)
     }
 
@@ -42,9 +42,13 @@ impl GenRelation {
         Ok(quote!(Vec<#to>))
     }
 
-    fn body_utils(&self, r: Ts2, vec: bool) -> SynRes<Ts2> {
+    fn body_utils(&self, r: &Ts2, vec: bool) -> SynRes<Ts2> {
         let sql_dep = self.sql_dep_str()?.ts2_or_err()?;
-        let none = if vec { quote!(vec![]) } else { quote!(None) };
+        let none = if vec {
+            quote!(vec![])
+        } else {
+            quote!(None)
+        };
         Ok(quote! {
             if let Some(id) = self.#sql_dep.clone() {
                 let tx = &*ctx.tx().await?;
@@ -70,11 +74,11 @@ impl GenRelation {
         let model = self.a.to()?;
         let column = self.column()?;
         let col = self.col()?;
-        let include_deleted = get_include_deleted(!self.a.no_include_deleted);
+        let include_deleted = get_include_deleted(self.a.include_deleted);
         let r = quote! {
             #model::gql_load(ctx, #column::#col, id, #include_deleted).await?
         };
-        self.body_utils(r, false)
+        self.body_utils(&r, false)
     }
     fn body_has_many(&self) -> SynRes<Ts2> {
         let column = self.column()?;
@@ -83,12 +87,12 @@ impl GenRelation {
             let extra_cond = Condition::all().add(#column::#col.eq(id));
         };
         let model = self.a.to()?;
-        let include_deleted = get_include_deleted(!self.a.no_include_deleted);
+        let include_deleted = get_include_deleted(self.a.include_deleted);
         let r = quote! {
             #extra_cond
             #model::gql_search(ctx, tx, Some(extra_cond), filter, None, order_by, None, page, #include_deleted).await?
         };
-        self.body_utils(r, true)
+        self.body_utils(&r, true)
     }
     fn body_many_to_many(&self) -> SynRes<Ts2> {
         let column = self.column()?;
@@ -96,14 +100,9 @@ impl GenRelation {
         let through = self.a.through()?;
         let through_column = ty_column(&through)?;
         let through_key_col = self.a.key_str()?.to_pascal_case().ts2_or_err()?;
-        let through_other_key_col = self
-            .a
-            .other_key()?
-            .to_string()
-            .to_pascal_case()
-            .ts2_or_err()?;
+        let through_other_key_col = self.a.other_key()?.to_string().to_pascal_case().ts2_or_err()?;
         let model = self.a.to()?;
-        let include_deleted = get_include_deleted(!self.a.no_include_deleted);
+        let include_deleted = get_include_deleted(self.a.include_deleted);
         let extra_cond = quote! {
             let sub = #through::find()
                 .select_only()
@@ -116,7 +115,7 @@ impl GenRelation {
             #extra_cond
             #model::gql_search(ctx, tx, Some(extra_cond), filter, None, order_by, None, page, #include_deleted).await?
         };
-        self.body_utils(r, true)
+        self.body_utils(&r, true)
     }
 
     fn column(&self) -> SynRes<Ts2> {

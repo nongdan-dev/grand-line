@@ -1,13 +1,13 @@
 use crate::prelude::*;
 
-pub(crate) async fn register_resolve_impl<U: AuthUser>(
+pub async fn register_resolve_impl<U: AuthUser>(
     ctx: &Context<'_>,
     data: AuthOtpResolve,
 ) -> Res<LoginSessionWithSecret> {
     let tx = &*ctx.tx().await?;
     let lsd = login_session_data(ctx)?;
 
-    let t = otp_ensure_resolve(ctx, tx, AuthOtpTy::Register, data).await?;
+    let t = auth_otp_ensure_resolve(ctx, tx, AuthOtpTy::Register, data).await?;
     let d = AuthOtpDataRegister::from_json(t.data)?;
 
     register_ensure_email_not_exists::<U>(tx, &t.email).await?;

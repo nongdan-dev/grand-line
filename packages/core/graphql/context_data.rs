@@ -2,7 +2,7 @@ use super::prelude::*;
 
 /// GrandLineContextData should be constructed on each request.
 /// We will get it in the resolvers to manage per-request db transaction, graphql loaders, cache...
-/// We should only use it in the GrandLineExtension to inject this context automatically on each request
+/// We should only use it in the GrandLineExtension to inject this context automatically on each request.
 pub struct GrandLineContextData {
     pub(crate) db: Arc<DatabaseConnection>,
     pub(crate) tx: Mutex<Option<Arc<DatabaseTransaction>>>,
@@ -22,13 +22,15 @@ impl GrandLineContextData {
 
     pub(crate) async fn tx(&self) -> Res<Arc<DatabaseTransaction>> {
         let mut guard = self.tx.lock().await;
-        match &*guard {
-            Some(a) => Ok(a.clone()),
-            None => {
-                let tx = Arc::new(self.db.begin().await?);
-                *guard = Some(tx.clone());
-                Ok(tx)
-            }
+        if let Some(a) = &*guard {
+            let a = Arc::clone(a);
+            drop(guard);
+            Ok(a)
+        } else {
+            let tx = Arc::new(self.db.begin().await?);
+            *guard = Some(Arc::clone(&tx));
+            drop(guard);
+            Ok(tx)
         }
     }
 
@@ -42,13 +44,14 @@ impl GrandLineContextData {
     }
 
     async fn commit(&self) -> Res<()> {
-        if let Some(tx) = self.tx.lock().await.take() {
+        let tx = self.tx.lock().await.take();
+        if let Some(tx) = tx {
             match Arc::try_unwrap(tx) {
                 Ok(tx) => {
                     tx.commit().await?;
                 }
                 Err(_) => {
-                    Err(MyErr::TxCommit)?;
+                    return Err(MyErr::TxCommit.into());
                 }
             }
         }
@@ -56,13 +59,14 @@ impl GrandLineContextData {
     }
 
     async fn rollback(&self) -> Res<()> {
-        if let Some(tx) = self.tx.lock().await.take() {
+        let tx = self.tx.lock().await.take();
+        if let Some(tx) = tx {
             match Arc::try_unwrap(tx) {
                 Ok(tx) => {
                     tx.rollback().await?;
                 }
                 Err(_) => {
-                    Err(MyErr::TxRollback)?;
+                    return Err(MyErr::TxRollback.into());
                 }
             }
         }

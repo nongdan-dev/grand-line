@@ -13,7 +13,22 @@ path = "lib.rs"
 
 [features]
 default = ["postgres", "default_without_db"]
-default_without_db = ["axum", "auth", "authz"]
+default_without_db = [
+  "axum",
+  "auth",
+  "authz",
+  "default_flags",
+]
+default_flags = [
+  "model_created_at",
+  "model_updated_at",
+  "model_deleted_at",
+  "model_by_id",
+  "resolver_tx",
+  "resolver_ctx",
+  "resolver_include_deleted",
+  "resolver_permanent_delete",
+]
 # db
 sqlite = ["_core/sqlite"]
 mysql = ["_core/mysql"]
@@ -22,26 +37,24 @@ postgres = ["_core/postgres", "_auth/postgres"]
 debug_macro_cli = ["_core/debug_macro_cli"]
 debug_macro_file = ["_core/debug_macro_file"]
 # model flags
-no_created_at = ["_core/no_created_at"]
-no_updated_at = ["_core/no_updated_at"]
-no_deleted_at = ["_core/no_deleted_at"]
-no_by_id = ["_core/no_by_id"]
+model_created_at = ["_core/model_created_at"]
+model_updated_at = ["_core/model_updated_at"]
+model_deleted_at = ["_core/model_deleted_at"]
+model_by_id = ["_core/model_by_id"]
 # resolver flags
-resolver_inputs = ["_core/resolver_inputs"]
-resolver_output = ["_core/resolver_output"]
-no_tx = ["_core/no_tx"]
-no_ctx = ["_core/no_ctx"]
-no_include_deleted = ["_core/no_include_deleted"]
-no_permanent_delete = ["_core/no_permanent_delete"]
+resolver_tx = ["_core/resolver_tx"]
+resolver_ctx = ["_core/resolver_ctx"]
+resolver_include_deleted = ["_core/resolver_include_deleted"]
+resolver_permanent_delete = ["_core/resolver_permanent_delete"]
 # testing
-test_utils = ["pretty_assertions", "serde", "thiserror"]
+test_utils = ["default_flags", "dep:pretty_assertions", "dep:serde", "dep:thiserror"]
 # packages
-tracing = ["_tracing", "_core/tracing"]
-http = ["_http"]
+tracing = ["dep:_tracing", "_core/tracing"]
+http = ["dep:_http"]
 axum = ["http", "_http/axum"]
-auth = ["_auth", "_core/auth", "rand_utils"]
-authz = ["auth", "_authz", "_core/authz"]
-rand_utils = ["_rand_utils"]
+auth = ["dep:_auth", "_core/auth", "rand_utils"]
+authz = ["auth", "dep:_authz", "_core/authz"]
+rand_utils = ["dep:_rand_utils"]
 
 [dependencies]
 _auth = { path = "./packages/auth", optional = true, default-features = false }
@@ -56,10 +69,13 @@ pretty_assertions = { version = "^1.4", optional = true, default-features = fals
 serde = { version = "^1.0", optional = true, default-features = false }
 thiserror = { version = "^2.0", optional = true, default-features = false }
 
-[lints.rust]
+[lints]
+workspace = true
+
+[workspace.lints.rust]
 unsafe_code = "warn"
 
-[lints.clippy]
+[workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
@@ -69,8 +85,77 @@ blanket_clippy_restriction_lints = "allow"
 
 allow_attributes = "allow"
 allow_attributes_without_reason = "allow"
+approx_constant = "allow"
+arbitrary_source_item_ordering = "allow"
+arithmetic_side_effects = "allow"
+as_conversions = "allow"
+assertions_on_constants = "allow"
+assigning_clones = "allow"
 cargo_common_metadata = "allow"
+cast_possible_truncation = "allow"
+cast_precision_loss = "allow"
+cognitive_complexity = "allow"
+default_numeric_fallback = "allow"
+default_trait_access = "allow"
+doc_link_with_quotes = "allow"
+doc_markdown = "allow"
+duplicate_mod = "allow"
+else_if_without_else = "allow"
+exhaustive_enums = "allow"
+exhaustive_structs = "allow"
+field_scoped_visibility_modifiers = "allow"
+impl_trait_in_params = "allow"
+implicit_return = "allow"
+inline_always = "allow"
+integer_division = "allow"
+integer_division_remainder_used = "allow"
+iter_over_hash_type = "allow"
+large_include_file = "allow"
+let_underscore_untyped = "allow"
+many_single_char_names = "allow"
+map_err_ignore = "allow"
+map_unwrap_or = "allow"
+match_same_arms = "allow"
+match_wildcard_for_single_variants = "allow"
+min_ident_chars = "allow"
 missing_docs_in_private_items = "allow"
+missing_errors_doc = "allow"
+missing_inline_in_public_items = "allow"
+missing_panics_doc = "allow"
+missing_trait_methods = "allow"
+mod_module_files = "allow"
+module_inception = "allow"
 multiple_crate_versions = "allow"
-negative_feature_names = "allow"
+must_use_candidate = "allow"
+needless_doctest_main = "allow"
+option_if_let_else = "allow"
+panic_in_result_fn = "allow"
+partial_pub_fields = "allow"
+pattern_type_mismatch = "allow"
+print_stderr = "allow"
+print_stdout = "allow"
 pub_use = "allow"
+pub_with_shorthand = "allow"
+question_mark_used = "allow"
+redundant_closure_for_method_calls = "allow"
+return_self_not_must_use = "allow"
+shadow_reuse = "allow"
+shadow_unrelated = "allow"
+similar_names = "allow"
+single_call_fn = "allow"
+single_char_lifetime_names = "allow"
+std_instead_of_alloc = "allow"
+string_add = "allow"
+string_slice = "allow"
+tests_outside_test_module = "allow"
+too_long_first_doc_paragraph = "allow"
+too_many_arguments = "allow"
+too_many_lines = "allow"
+type_complexity = "allow"
+unnecessary_debug_formatting = "allow"
+unseparated_literal_suffix = "allow"
+unused_async = "allow"
+use_debug = "allow"
+useless_let_if_seq = "allow"
+wildcard_enum_match_arm = "allow"
+wildcard_imports = "allow"

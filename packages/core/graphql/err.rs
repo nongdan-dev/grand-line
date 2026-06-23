@@ -25,7 +25,9 @@ pub enum MyErr {
     #[error("data loader cannot downcast from arc dyn any")]
     LoaderDowncast,
     #[error("data loader cannot get string key with column `{col}`")]
-    LoaderKeyNone { col: String },
+    LoaderKeyNone {
+        col: String,
+    },
 
     #[error("cache cannot downcast from once cell arc")]
     CacheDowncast,

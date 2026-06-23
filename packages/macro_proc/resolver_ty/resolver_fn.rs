@@ -14,11 +14,11 @@ where
         Ok(None)
     }
 
-    fn no_tx(&self) -> bool {
-        false
+    fn tx(&self) -> bool {
+        true
     }
-    fn no_ctx(&self) -> bool {
-        false
+    fn ctx(&self) -> bool {
+        true
     }
     fn auth(&self) -> Option<AuthAttr> {
         None
@@ -46,16 +46,16 @@ where
         let mut inputs = self.inputs()?;
         let mut output = self.output()?;
         let mut body = self.body()?;
-        let no_tx = self.no_tx();
-        let no_ctx = self.no_ctx();
+        let tx = self.tx();
+        let ctx = self.ctx();
 
         let (mut directives, mut directive_comments) = (vec![], vec![]);
 
-        if let Some(AuthAttr { unauthenticated }) = self.auth() {
-            if no_ctx {
+        if let Some(a) = self.auth() {
+            if !ctx {
                 return Err(self.syn_err("auth requires ctx"));
             }
-            let check_str = if unauthenticated {
+            let check_str = if a.unauthenticated {
                 "unauthenticated"
             } else {
                 "authenticated"
@@ -79,7 +79,7 @@ where
             skip_user,
         }) = self.authz()
         {
-            if no_ctx {
+            if !ctx {
                 return Err(self.syn_err("authz requires ctx"));
             }
             let org = !skip_org;
@@ -125,8 +125,8 @@ where
             directive_comments.push(format!("@authz(realm: {realm}, check: [{checks}])"));
         }
 
-        if !no_tx {
-            if no_ctx {
+        if tx {
+            if !ctx {
                 return Err(self.syn_err("tx requires ctx"));
             }
             body = quote! {
@@ -135,7 +135,7 @@ where
             };
         }
 
-        if !no_ctx {
+        if ctx {
             inputs = quote!(ctx: &Context<'_>, #inputs);
         }
 

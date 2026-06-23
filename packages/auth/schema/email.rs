@@ -11,7 +11,7 @@ impl ScalarType for Email {
             Value::String(mut s) => {
                 s = s.trim().to_lowercase();
                 if ValidateEmail::validate_email(&s) {
-                    Ok(Email(s.clone()))
+                    Ok(Self(s))
                 } else {
                     Err(InputValueError::custom("Invalid email"))
                 }

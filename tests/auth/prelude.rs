@@ -3,9 +3,9 @@
 use axum::http::HeaderMap;
 pub use grand_line::prelude::*;
 
-#[path = "../fixture_user.rs"]
-mod fixture_user;
-pub use fixture_user::*;
+#[path = "../_fixtures/user.rs"]
+mod user;
+pub use user::*;
 
 #[derive(Default, MergedObject)]
 pub struct Query(AuthMergedQuery);

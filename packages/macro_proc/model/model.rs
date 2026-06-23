@@ -12,12 +12,11 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
     // ------------------------------------------------------------------------
     // insert built-in fields: id, created_at, updated_at...
     let model = item.ident.to_token_stream();
-    let mut fields = match item.fields {
-        Fields::Named(f) => f.named,
-        _ => {
-            let err = format!("{model} struct should be named fields");
-            return Err(a.inner.syn_err(&err));
-        }
+    let mut fields = if let Fields::Named(f) = item.fields {
+        f.named
+    } else {
+        let err = format!("{model} struct should be named fields");
+        return Err(a.inner.syn_err(&err));
     };
     fields.insert(
         0,
@@ -27,14 +26,14 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
         }
         .field_or_err()?,
     );
-    if !a.no_created_at {
+    if a.created_at {
         fields.push(
             quote! {
                 pub created_at: DateTimeUtc
             }
             .field_or_err()?,
         );
-        if !a.no_by_id {
+        if a.by_id {
             fields.push(
                 quote! {
                     pub created_by_id: Option<String>
@@ -43,14 +42,14 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
             );
         }
     }
-    if !a.no_updated_at {
+    if a.updated_at {
         fields.push(
             quote! {
                 pub updated_at: Option<DateTimeUtc>
             }
             .field_or_err()?,
         );
-        if !a.no_by_id {
+        if a.by_id {
             fields.push(
                 quote! {
                     pub updated_by_id: Option<String>
@@ -59,14 +58,14 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
             );
         }
     }
-    if !a.no_deleted_at {
+    if a.deleted_at {
         fields.push(
             quote! {
                 pub deleted_at: Option<DateTimeUtc>
             }
             .field_or_err()?,
         );
-        if !a.no_by_id {
+        if a.by_id {
             fields.push(
                 quote! {
                     pub deleted_by_id: Option<String>
@@ -110,31 +109,24 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
             quote!(Some(#col))
         }
     };
-    let col_created_at = col_opt(a.no_created_at, quote!(Column::CreatedAt));
-    let col_updated_at = col_opt(a.no_updated_at, quote!(Column::UpdatedAt));
-    let col_deleted_at = col_opt(a.no_deleted_at, quote!(Column::DeletedAt));
-    let col_created_by_id = col_opt(a.no_created_at || a.no_by_id, quote!(Column::CreatedById));
-    let col_updated_by_id = col_opt(a.no_updated_at || a.no_by_id, quote!(Column::UpdatedById));
-    let col_deleted_by_id = col_opt(a.no_deleted_at || a.no_by_id, quote!(Column::DeletedById));
+    let col_created_at = col_opt(!a.created_at, quote!(Column::CreatedAt));
+    let col_updated_at = col_opt(!a.updated_at, quote!(Column::UpdatedAt));
+    let col_deleted_at = col_opt(!a.deleted_at, quote!(Column::DeletedAt));
+    let col_created_by_id = col_opt(!a.created_at || !a.by_id, quote!(Column::CreatedById));
+    let col_updated_by_id = col_opt(!a.updated_at || !a.by_id, quote!(Column::UpdatedById));
+    let col_deleted_by_id = col_opt(!a.deleted_at || !a.by_id, quote!(Column::DeletedById));
 
     // ------------------------------------------------------------------------
     // active model default
-    let mut am_defaults = vec![];
     let mut self_am_defaults = vec![];
     for a in defaults {
         let mut raw_str = a.raw()?;
-        if (raw_str.starts_with('"') && raw_str.ends_with('"'))
-            || (raw_str.starts_with("r#") && raw_str.ends_with('#'))
+        if (raw_str.starts_with('"') && raw_str.ends_with('"')) || (raw_str.starts_with("r#") && raw_str.ends_with('#'))
         {
-            raw_str += ".to_owned()"
+            raw_str += ".to_owned()";
         }
         let raw = raw_str.ts2_or_err()?;
         let name = a.field_name()?.ts2_or_err()?;
-        am_defaults.push(quote! {
-            if !matches!(am.#name, Set(_)) {
-                am.#name = Set(#raw);
-            }
-        });
         self_am_defaults.push(quote! {
             if !matches!(self.#name, Set(_)) {
                 self.#name = Set(#raw);
@@ -153,15 +145,12 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
         let r = (quote!(self.#f.clone()), quote! { self.#f = Set(v); self });
         Ok(r)
     };
-    let (am_get_created_at, am_set_created_at) = am_field(a.no_created_at, "created_at")?;
-    let (am_get_updated_at, am_set_updated_at) = am_field(a.no_updated_at, "updated_at")?;
-    let (am_get_deleted_at, am_set_deleted_at) = am_field(a.no_deleted_at, "deleted_at")?;
-    let (am_get_created_by_id, am_set_created_by_id) =
-        am_field(a.no_created_at || a.no_by_id, "created_by_id")?;
-    let (am_get_updated_by_id, am_set_updated_by_id) =
-        am_field(a.no_updated_at || a.no_by_id, "updated_by_id")?;
-    let (am_get_deleted_by_id, am_set_deleted_by_id) =
-        am_field(a.no_deleted_at || a.no_by_id, "deleted_by_id")?;
+    let (am_get_created_at, am_set_created_at) = am_field(!a.created_at, "created_at")?;
+    let (am_get_updated_at, am_set_updated_at) = am_field(!a.updated_at, "updated_at")?;
+    let (am_get_deleted_at, am_set_deleted_at) = am_field(!a.deleted_at, "deleted_at")?;
+    let (am_get_created_by_id, am_set_created_by_id) = am_field(!a.created_at || !a.by_id, "created_by_id")?;
+    let (am_get_updated_by_id, am_set_updated_by_id) = am_field(!a.updated_at || !a.by_id, "updated_by_id")?;
+    let (am_get_deleted_by_id, am_set_deleted_by_id) = am_field(!a.deleted_at || !a.by_id, "deleted_by_id")?;
 
     // ------------------------------------------------------------------------
     // filter / order_by
@@ -180,9 +169,7 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
 
     // ------------------------------------------------------------------------
     // filter has_deleted_at
-    let has_deleted_at = if a.no_deleted_at {
-        quote!(false)
-    } else {
+    let has_deleted_at = if a.deleted_at {
         quote! {
             !self.deleted_at.is_undefined() ||
             !self.deleted_at_ne.is_undefined() ||
@@ -193,6 +180,8 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
             self.deleted_at_lt.is_some() ||
             self.deleted_at_lte.is_some()
         }
+    } else {
+        quote!(false)
     };
 
     // ------------------------------------------------------------------------
@@ -259,7 +248,10 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
                     }
                     Box::new(g)
                 }
-                _ => return Err(a.err_by_key(v.as_ref(), "is invalid for virtual resolver")),
+                _ => {
+                    let err = "is invalid for virtual resolver";
+                    return Err(a.err_by_key(v.as_ref(), err));
+                }
             });
         }
     }
@@ -522,7 +514,7 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
     };
 
     #[cfg(feature = "debug_macro")]
-    debug_macro(&model_str, r.clone());
+    debug_macro(&model_str, &r);
 
     Ok(r.into())
 }

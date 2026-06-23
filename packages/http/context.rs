@@ -3,16 +3,19 @@ use cookie::{
     Cookie,
     time::{Duration, OffsetDateTime},
 };
-use std::net::IpAddr;
+use core::net::{IpAddr, SocketAddr};
 
 pub trait HttpContext {
     fn get_ua_raw(h: Option<HashMap<String, Vec<String>>>) -> Res<HashMap<String, String>> {
         let mut m = HashMap::<String, String>::new();
-        for (k, v) in h.ok_or(MyErr::CtxHeaders404)?.iter() {
+        for (k, v) in &h.ok_or(MyErr::CtxHeaders404)? {
             let k = k.as_str();
             if k.starts_with(H_UA_SEC_CH) || k == H_UA {
                 if v.len() > 1 {
-                    Err(MyErr::HeaderMultipleValues { k: k.to_owned() })?;
+                    return Err(MyErr::HeaderMultipleValues {
+                        k: k.to_owned(),
+                    }
+                    .into());
                 }
                 m.insert(k.to_owned(), v.first().cloned().unwrap_or_default());
             }
@@ -20,25 +23,23 @@ pub trait HttpContext {
         Ok(m)
     }
 
-    fn get_header(&self, k: &str) -> Res<String>;
-    fn get_ip(&self) -> Res<String>;
-    fn get_ua(&self) -> Res<HashMap<String, String>>;
-    fn get_authorization_token(&self) -> Res<String>;
-    fn get_cookies(&self) -> Res<HashMap<String, String>>;
-    fn get_cookie(&self, k: &str) -> Res<Option<String>>;
-    fn set_cookie(&self, k: &str, v: &str, expires: i64);
-}
+    // overridden by the HTTP integration layer (e.g. HttpAxumContext via axum feature)
+    fn get_headers(&self) -> Option<HashMap<String, Vec<String>>> {
+        None
+    }
 
-impl HttpContext for Context<'_> {
     fn get_header(&self, k: &str) -> Res<String> {
         let req_headers = self.get_headers().ok_or(MyErr::CtxHeaders404)?;
-        let v = if let Some(v) = req_headers.get(k) {
-            v
+        let v: Vec<String> = if let Some(v) = req_headers.get(k) {
+            v.clone()
         } else {
-            return Ok("".to_owned());
+            return Ok(String::new());
         };
         if v.len() > 1 {
-            Err(MyErr::HeaderMultipleValues { k: k.to_owned() })?;
+            return Err(MyErr::HeaderMultipleValues {
+                k: k.to_owned(),
+            }
+            .into());
         }
         let v = v.first().cloned().unwrap_or_default();
         Ok(v)
@@ -52,16 +53,21 @@ impl HttpContext for Context<'_> {
         if v.is_empty() {
             v = self.get_header(H_SOCKET_ADDR)?;
         }
-        let ip = v.split(',').next().unwrap_or_default().trim().to_owned();
+        let raw = v.split(',').next().unwrap_or_default().trim();
+        let ip = if let Ok(sa) = raw.parse::<SocketAddr>() {
+            sa.ip().to_string()
+        } else {
+            raw.to_owned()
+        };
         if IpAddr::from_str(&ip).is_err() {
-            Err(MyErr::HeaderIp404)?;
+            return Err(MyErr::HeaderIp404.into());
         }
         Ok(ip)
     }
 
     fn get_ua(&self) -> Res<HashMap<String, String>> {
         if self.get_header(H_UA)?.is_empty() {
-            Err(MyErr::HeaderUa404)?;
+            return Err(MyErr::HeaderUa404.into());
         }
         let h = self.get_headers();
         let ua = Self::get_ua_raw(h)?;
@@ -69,8 +75,8 @@ impl HttpContext for Context<'_> {
     }
 
     fn get_authorization_token(&self) -> Res<String> {
-        let v = self.get_header(H_AUTHORIZATION)?.replace(BEARER, "");
-        Ok(v)
+        let h = self.get_header(H_AUTHORIZATION)?;
+        Ok(h.strip_prefix(BEARER).unwrap_or(&h).to_owned())
     }
 
     fn get_cookies(&self) -> Res<HashMap<String, String>> {
@@ -87,6 +93,17 @@ impl HttpContext for Context<'_> {
     fn get_cookie(&self, k: &str) -> Res<Option<String>> {
         let v = self.get_cookies()?.get(k).cloned();
         Ok(v)
+    }
+
+    // abstract: writing response headers requires integration-specific API
+    fn set_cookie(&self, k: &str, v: &str, expires: i64);
+}
+
+impl HttpContext for Context<'_> {
+    // when axum feature is on, delegate to HttpAxumContext which reads from axum HeaderMap
+    #[cfg(feature = "axum")]
+    fn get_headers(&self) -> Option<HashMap<String, Vec<String>>> {
+        <Self as HttpAxumContext>::get_headers(self)
     }
 
     fn set_cookie(&self, k: &str, v: &str, expires: i64) {

@@ -19,17 +19,19 @@ async fn name_override() -> Res<()> {
     let tmp = tmp_db!(User);
     let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
-    let u = am_create!(User { x_field: 42 })
-        .exec_without_ctx(&tmp.db)
-        .await?;
+    let u = am_create!(User {
+        x_field: 42,
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
 
-    let q = r#"
+    let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
             customX
         }
     }
-    "#;
+    ";
     let v = value!({ "id": u.id });
     let expected = value!({ "userDetail": { "customX": 42 } });
 
@@ -132,17 +134,19 @@ async fn name_override_with_extra() -> Res<()> {
     let tmp = tmp_db!(User);
     let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
-    let u = am_create!(User { x_field: 7 })
-        .exec_without_ctx(&tmp.db)
-        .await?;
+    let u = am_create!(User {
+        x_field: 7,
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
 
-    let q = r#"
+    let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
             renamedX
         }
     }
-    "#;
+    ";
     let v = value!({ "id": u.id });
     let expected = value!({ "userDetail": { "renamedX": 7 } });
 

@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[model(no_deleted_at, no_by_id)]
+#[model(deleted_at = false, by_id = false)]
 pub struct LoginSession {
     pub user_id: String,
 

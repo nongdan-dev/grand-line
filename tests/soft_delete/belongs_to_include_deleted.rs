@@ -6,7 +6,7 @@ use prelude::*;
 async fn t() -> Res<()> {
     let d = prepare().await?;
 
-    let q = r#"
+    let q = "
     query test($id: ID!) {
         personDetail(id: $id) {
             user(includeDeleted: true) {
@@ -14,7 +14,7 @@ async fn t() -> Res<()> {
             }
         }
     }
-    "#;
+    ";
     let v = value!({
         "id": d.pid2,
     });

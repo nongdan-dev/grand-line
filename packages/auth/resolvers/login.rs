@@ -6,19 +6,44 @@ pub struct Login {
     pub password: String,
 }
 
-pub(crate) struct LoginSessionData {
+pub struct LoginSessionData {
     pub ip: String,
     pub ua: HashMap<String, String>,
 }
 
-pub(crate) fn login_session_data(ctx: &Context<'_>) -> Res<LoginSessionData> {
+pub async fn login_impl<U: AuthUser>(ctx: &Context<'_>, data: Login) -> Res<LoginSessionWithSecret> {
+    let tx = &*ctx.tx().await?;
+    let lsd = login_session_data(ctx)?;
+
+    let u = U::find()
+        .exclude_deleted()
+        .filter(U::email_col().eq(&data.email))
+        .one(tx)
+        .await?
+        .ok_or(MyErr::LoginIncorrect)?;
+
+    if !rand_utils::password_eq(U::get_password_hashed(&u), &data.password) {
+        return Err(MyErr::LoginIncorrect.into());
+    }
+
+    let ls = login_session_create(ctx, tx, &u.get_id(), &lsd).await?;
+
+    ctx.auth_user_config::<U>()?
+        .handlers
+        .on_login_resolve(ctx, &u, &ls.inner)
+        .await?;
+
+    Ok(ls)
+}
+
+pub fn login_session_data(ctx: &Context<'_>) -> Res<LoginSessionData> {
     Ok(LoginSessionData {
         ip: ctx.get_ip()?,
         ua: ctx.get_ua()?,
     })
 }
 
-pub(crate) async fn login_session_create(
+pub async fn login_session_create(
     ctx: &Context<'_>,
     tx: &DatabaseTransaction,
     user_id: &str,
@@ -35,37 +60,9 @@ pub(crate) async fn login_session_create(
     .await?;
 
     let lsws = LoginSessionWithSecret {
-        inner: ls.clone(),
+        inner: ls,
         secret: secret.clone(),
     };
     ctx.set_cookie_login_session(&lsws)?;
     Ok(lsws)
-}
-
-pub(crate) async fn login_impl<U: AuthUser>(
-    ctx: &Context<'_>,
-    data: Login,
-) -> Res<LoginSessionWithSecret> {
-    let tx = &*ctx.tx().await?;
-    let lsd = login_session_data(ctx)?;
-
-    let u = U::find()
-        .exclude_deleted()
-        .filter(U::email_col().eq(&data.email))
-        .one(tx)
-        .await?
-        .ok_or(MyErr::LoginIncorrect)?;
-
-    if !rand_utils::password_eq(U::get_password_hashed(&u), &data.password) {
-        Err(MyErr::LoginIncorrect)?;
-    }
-
-    let ls = login_session_create(ctx, tx, &u.get_id(), &lsd).await?;
-
-    ctx.auth_user_config::<U>()?
-        .handlers
-        .on_login_resolve(ctx, &u, &ls.inner)
-        .await?;
-
-    Ok(ls)
 }

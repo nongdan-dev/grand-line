@@ -21,7 +21,7 @@ where
     res
 }
 
-pub async fn exec_assert_err<Q, M, S, E>(s: &Schema<Q, M, S>, q: &str, v: Option<Value>, err: E)
+pub async fn exec_assert_err<Q, M, S, E>(s: &Schema<Q, M, S>, q: &str, v: Option<Value>, err: &E)
 where
     Q: ObjectType + Default + 'static,
     M: ObjectType + Default + 'static,

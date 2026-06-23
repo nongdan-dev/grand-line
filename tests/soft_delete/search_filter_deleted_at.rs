@@ -6,13 +6,13 @@ use prelude::*;
 async fn t() -> Res<()> {
     let d = prepare().await?;
 
-    let q = r#"
+    let q = "
     query test {
         userSearch(filter: { deletedAt_ne: null }) {
             name
         }
     }
-    "#;
+    ";
     let expected = value!({
         "userSearch": [{
             "name": "Peter",
@@ -20,7 +20,7 @@ async fn t() -> Res<()> {
     });
     exec_assert(&d.s, q, None, &expected).await;
 
-    let q = r#"
+    let q = "
     query test {
         userSearch(
             filter: {
@@ -34,7 +34,7 @@ async fn t() -> Res<()> {
             name
         }
     }
-    "#;
+    ";
     let expected = value!({
         "userSearch": [{
             "name": "Olivia",

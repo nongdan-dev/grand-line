@@ -9,7 +9,7 @@ pub fn init_common_headers() -> HeaderMap {
     h
 }
 
-pub fn h_static(v: &'static str) -> HeaderValue {
+pub const fn h_static(v: &'static str) -> HeaderValue {
     HeaderValue::from_static(v)
 }
 pub fn h_str(v: &str) -> HeaderValue {

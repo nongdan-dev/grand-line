@@ -12,8 +12,6 @@ pub mod export {
     pub use _http::export::*;
     #[cfg(feature = "rand_utils")]
     pub use _rand_utils::export::*;
-    #[cfg(feature = "tracing")]
-    pub use _tracing::export::*;
 }
 
 pub mod reexport {

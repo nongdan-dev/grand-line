@@ -2,10 +2,10 @@ use crate::prelude::*;
 
 #[field_names]
 pub struct ModelAttr {
-    pub no_created_at: bool,
-    pub no_updated_at: bool,
-    pub no_deleted_at: bool,
-    pub no_by_id: bool,
+    pub created_at: bool,
+    pub updated_at: bool,
+    pub deleted_at: bool,
+    pub by_id: bool,
     #[field_names(skip)]
     pub inner: Attr,
 }
@@ -13,16 +13,10 @@ impl TryFrom<Attr> for ModelAttr {
     type Error = SynErr;
     fn try_from(a: Attr) -> SynRes<Self> {
         Ok(Self {
-            no_created_at: a
-                .bool(Self::FIELD_NO_CREATED_AT)?
-                .unwrap_or(FEATURE_NO_CREATED_AT),
-            no_updated_at: a
-                .bool(Self::FIELD_NO_UPDATED_AT)?
-                .unwrap_or(FEATURE_NO_UPDATED_AT),
-            no_deleted_at: a
-                .bool(Self::FIELD_NO_DELETED_AT)?
-                .unwrap_or(FEATURE_NO_DELETED_AT),
-            no_by_id: a.bool(Self::FIELD_NO_BY_ID)?.unwrap_or(FEATURE_NO_BY_ID),
+            created_at: a.bool(Self::FIELD_CREATED_AT)?.unwrap_or(FEATURE_MODEL_CREATED_AT),
+            updated_at: a.bool(Self::FIELD_UPDATED_AT)?.unwrap_or(FEATURE_MODEL_UPDATED_AT),
+            deleted_at: a.bool(Self::FIELD_DELETED_AT)?.unwrap_or(FEATURE_MODEL_DELETED_AT),
+            by_id: a.bool(Self::FIELD_BY_ID)?.unwrap_or(FEATURE_MODEL_BY_ID),
             inner: a,
         })
     }

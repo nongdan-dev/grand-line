@@ -19,14 +19,14 @@ impl AuthEnsureContext for Context<'_> {
 
     async fn auth_ensure_authenticated(&self) -> Res<()> {
         if self.auth_with_cache().await?.as_ref().is_none() {
-            Err(MyErr::Unauthenticated)?;
+            return Err(MyErr::Unauthenticated.into());
         }
         Ok(())
     }
 
     async fn auth_ensure_not_authenticated(&self) -> Res<()> {
         if self.auth_with_cache().await?.as_ref().is_some() {
-            Err(MyErr::AlreadyAuthenticated)?;
+            return Err(MyErr::AlreadyAuthenticated.into());
         }
         Ok(())
     }

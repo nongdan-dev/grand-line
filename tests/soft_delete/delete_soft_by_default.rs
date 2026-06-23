@@ -6,13 +6,13 @@ use prelude::*;
 async fn t() -> Res<()> {
     let d = prepare().await?;
 
-    let q = r#"
+    let q = "
     mutation test($id: ID!) {
         userDelete(id: $id) {
             id
         }
     }
-    "#;
+    ";
     let v = value!({
         "id": d.id1,
     });
@@ -25,7 +25,7 @@ async fn t() -> Res<()> {
 
     match User::find_by_id(&d.id1).one(&d.tmp.db).await? {
         Some(u) => assert!(
-            u.deleted_at != None,
+            u.deleted_at.is_some(),
             "it should be soft delete by default, found deleted_at=None",
         ),
         None => assert!(

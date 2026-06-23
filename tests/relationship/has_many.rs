@@ -32,7 +32,7 @@ async fn t() -> Res<()> {
     .exec_without_ctx(&tmp.db)
     .await?;
 
-    let q = r#"
+    let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
             aliases {
@@ -40,7 +40,7 @@ async fn t() -> Res<()> {
             }
         }
     }
-    "#;
+    ";
     let v = value!({
         "id": u.id,
     });

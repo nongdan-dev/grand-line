@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[field_names]
 pub struct RelationAttr {
-    pub no_include_deleted: bool,
+    pub include_deleted: bool,
     #[field_names(skip)]
     pub inner: Attr,
     #[field_names(virt)]
@@ -16,9 +16,9 @@ impl TryFrom<Attr> for RelationAttr {
     type Error = SynErr;
     fn try_from(a: Attr) -> SynRes<Self> {
         Ok(Self {
-            no_include_deleted: a
-                .bool(Self::FIELD_NO_INCLUDE_DELETED)?
-                .unwrap_or(FEATURE_NO_INCLUDE_DELETED),
+            include_deleted: a
+                .bool(Self::FIELD_INCLUDE_DELETED)?
+                .unwrap_or(FEATURE_RESOLVER_INCLUDE_DELETED),
             inner: a,
         })
     }
@@ -51,9 +51,10 @@ impl RelationAttr {
         }
         let field = self.inner.field_name()?;
         let model = self.inner.field_model()?;
-        Ok(match self.inner.attr == RelationTy::BelongsTo {
-            true => format!("{field}_id").to_snake_case(),
-            false => format!("{model}_id").to_snake_case(),
+        Ok(if self.inner.attr == RelationTy::BelongsTo {
+            format!("{field}_id").to_snake_case()
+        } else {
+            format!("{model}_id").to_snake_case()
         })
     }
     pub fn through(&self) -> SynRes<Ts2> {

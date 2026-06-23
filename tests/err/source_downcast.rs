@@ -11,8 +11,7 @@ struct Query;
 #[Object]
 impl Query {
     async fn my_err(&self) -> Res<i64> {
-        Err(MyErr::Test)?;
-        Ok(0)
+        Err(MyErr::Test.into())
     }
 }
 
@@ -27,13 +26,12 @@ async fn should_be_my_err() {
     let r = s.execute("{ myErr }").await;
     assert!(r.errors.len() == 1, "response should have an error");
 
-    let e = &r.errors[0];
+    let Some(e) = &r.errors.first() else {
+        return;
+    };
     pretty_eq!(e.message, "test", "error message should match");
 
-    let e = e
-        .source
-        .as_deref()
-        .and_then(|e| e.downcast_ref::<GrandLineErr>());
+    let e = e.source.as_deref().and_then(|e| e.downcast_ref::<GrandLineErr>());
     if let Some(e) = e {
         let code = e.0.code();
         pretty_eq!(code, "Test", "error code after downcast should match");

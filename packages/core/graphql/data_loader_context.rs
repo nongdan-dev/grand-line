@@ -1,5 +1,6 @@
 use super::prelude::*;
 use dataloader::DataLoader;
+use tokio::spawn;
 
 #[async_trait]
 pub trait DataLoaderContext {
@@ -29,8 +30,9 @@ impl DataLoaderContext for Context<'_> {
         let gl = self.grand_line()?;
         let mut guard = gl.loaders.lock().await;
         let a = if let Some(a) = guard.get(&key) {
-            a.clone()
-                .downcast::<DataLoader<LoaderX<E>>>()
+            let a = Arc::clone(a);
+            drop(guard);
+            a.downcast::<DataLoader<LoaderX<E>>>()
                 .map_err(|_| MyErr::LoaderDowncast)?
         } else {
             let a = Arc::new(DataLoader::new(
@@ -40,9 +42,10 @@ impl DataLoaderContext for Context<'_> {
                     look_ahead,
                     exclude_deleted,
                 },
-                tokio::spawn,
+                spawn,
             ));
-            guard.insert(key, a.clone());
+            guard.insert(key, Arc::<DataLoader<LoaderX<E>>>::clone(&a));
+            drop(guard);
             a
         };
         Ok(a)

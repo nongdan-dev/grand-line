@@ -6,13 +6,13 @@ use prelude::*;
 async fn t() -> Res<()> {
     let d = prepare().await?;
 
-    let q = r#"
+    let q = "
     mutation test($id: ID!) {
         userDelete(id: $id, permanent: true) {
             id
         }
     }
-    "#;
+    ";
     let v = value!({
         "id": d.id1,
     });
@@ -23,13 +23,8 @@ async fn t() -> Res<()> {
     });
     exec_assert(&d.s, q, Some(v), &expected).await;
 
-    match User::find_by_id(&d.id1).count(&d.tmp.db).await? {
-        count => assert!(
-            count == 0,
-            "it should delete permanently in db, found count={}",
-            count,
-        ),
-    }
+    let count = User::find_by_id(&d.id1).count(&d.tmp.db).await?;
+    assert!(count == 0, "it should delete permanently in db, found count={count}");
 
     d.tmp.drop().await
 }

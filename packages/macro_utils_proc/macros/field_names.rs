@@ -11,19 +11,18 @@ fn try_gen_field_names(mut item: ItemStruct) -> SynRes<TokenStream> {
     let mut fields = vec![];
     let mut idents = vec![];
 
-    for mut f in match item.fields {
-        Fields::Named(f) => f.named,
-        _ => {
-            let err = format!("{name} struct should be named fields");
-            return Err(SynErr::new(name_span, err));
-        }
+    for mut f in if let Fields::Named(f) = item.fields {
+        f.named
+    } else {
+        let err = format!("{name} struct should be named fields");
+        return Err(SynErr::new(name_span, err));
     } {
         let attrs = Attr::from_field(&name.to_string(), &f, &|_| false)?;
         if let Some(a) = attrs.iter().find(|a| a.is("field_names")) {
             f.attrs = attrs
                 .iter()
                 .filter(|b| b.attr != a.attr)
-                .map(|a| a.field_attr())
+                .map(|b| b.field_attr())
                 .collect::<SynRes<Vec<_>>>()?;
             let a = a.clone().try_into_with_validate::<FieldNamesAttr>()?;
             if a.virt {
@@ -35,7 +34,7 @@ fn try_gen_field_names(mut item: ItemStruct) -> SynRes<TokenStream> {
                 }
             }
             if !a.skip {
-                idents.push(f.ident.to_token_stream())
+                idents.push(f.ident.to_token_stream());
             }
             if !a.virt {
                 fields.push(f);

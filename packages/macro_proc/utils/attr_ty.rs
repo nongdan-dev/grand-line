@@ -29,12 +29,12 @@ pub enum AttrTy {
     Virtual(VirtualTy),
 }
 impl AttrTy {
-    pub fn all() -> Vec<AttrTy> {
+    pub fn all() -> Vec<Self> {
         let mut all = VirtualTy::all()
             .iter()
-            .map(|r| AttrTy::Virtual(r.clone()))
+            .map(|r| Self::Virtual(r.clone()))
             .collect::<Vec<_>>();
-        all.push(AttrTy::Default);
+        all.push(Self::Default);
         all
     }
 }
@@ -48,13 +48,13 @@ pub enum VirtualTy {
     Resolver,
 }
 impl VirtualTy {
-    pub fn all() -> Vec<VirtualTy> {
+    pub fn all() -> Vec<Self> {
         let mut all = RelationTy::all()
             .iter()
-            .map(|r| VirtualTy::Relation(r.clone()))
+            .map(|r| Self::Relation(r.clone()))
             .collect::<Vec<_>>();
-        all.push(VirtualTy::SqlExpr);
-        all.push(VirtualTy::Resolver);
+        all.push(Self::SqlExpr);
+        all.push(Self::Resolver);
         all
     }
 }
@@ -68,12 +68,7 @@ pub enum RelationTy {
     ManyToMany,
 }
 impl RelationTy {
-    pub fn all() -> Vec<RelationTy> {
-        vec![
-            RelationTy::BelongsTo,
-            RelationTy::HasOne,
-            RelationTy::HasMany,
-            RelationTy::ManyToMany,
-        ]
+    pub fn all() -> Vec<Self> {
+        vec![Self::BelongsTo, Self::HasOne, Self::HasMany, Self::ManyToMany]
     }
 }

@@ -9,12 +9,8 @@ pub struct ModelFieldsAttr {
 }
 
 /// Parse macro attributes, extract and validate fields.
-pub fn model_fields_attr(
-    model: &str,
-    fields: &Punctuated<Field, Token![,]>,
-) -> SynRes<ModelFieldsAttr> {
-    let (mut defaults, mut virtuals, mut exprs, mut gql, mut sql) =
-        (vec![], vec![], vec![], vec![], vec![]);
+pub fn model_fields_attr(model: &str, fields: &Punctuated<Field, Token![,]>) -> SynRes<ModelFieldsAttr> {
+    let (mut defaults, mut virtuals, mut exprs, mut gql, mut sql) = (vec![], vec![], vec![], vec![], vec![]);
 
     for f in fields {
         let attrs = Attr::from_field(model, f, &|a| ATTR_RAW.contains(a))?;
@@ -56,6 +52,9 @@ pub fn model_fields_attr(
 
 /// Validate or return error.
 fn attr_validate(attrs: &[Attr]) -> SynRes<()> {
+    let Some(attr) = attrs.first() else {
+        return Ok(());
+    };
     // ensure it should not have more than one of our attributes
     let map = AttrTy::all()
         .iter()
@@ -68,15 +67,11 @@ fn attr_validate(attrs: &[Attr]) -> SynRes<()> {
         }
     }
     if matches.len() > 1 {
-        let model = attrs[0].field_model()?;
-        let field = attrs[0].field_name()?;
-        let matches = matches
-            .iter()
-            .map(|t| t.to_string())
-            .collect::<Vec<_>>()
-            .join(", ");
+        let model = attr.field_model()?;
+        let field = attr.field_name()?;
+        let matches = matches.iter().map(|f| f.to_string()).collect::<Vec<_>>().join(", ");
         let err = format!("{model}.{field} should have only one between: {matches}");
-        return Err(SynErr::new(attrs[0].span, err));
+        return Err(SynErr::new(attr.span, err));
     }
     Ok(())
 }
@@ -88,20 +83,13 @@ fn attr_is_virtual(attrs: &[Attr]) -> Option<VirtualTy> {
         .iter()
         .map(|t| (t.to_string(), t.clone()))
         .collect::<HashMap<_, _>>();
-    attrs
-        .iter()
-        .filter_map(|a| map.get(&a.attr))
-        .next()
-        .cloned()
+    attrs.iter().find_map(|a| map.get(&a.attr)).cloned()
 }
 
 /// Filter to only keep related attrs for the sql model.
 /// If any of these attributes matched, we should removed them out of the field.
 fn attr_sql(attrs: &[Attr]) -> SynRes<Vec<Attribute>> {
-    let mut tobe_removed = AttrTy::all()
-        .iter()
-        .map(|t| t.to_string())
-        .collect::<HashSet<_>>();
+    let mut tobe_removed = AttrTy::all().iter().map(|f| f.to_string()).collect::<HashSet<_>>();
     tobe_removed.insert(AttrTy::Graphql.to_string());
     attrs
         .iter()

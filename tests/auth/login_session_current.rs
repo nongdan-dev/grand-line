@@ -11,13 +11,13 @@ async fn t() -> Res<()> {
 
     let s = d.s.data(h).finish();
 
-    let q = r#"
+    let q = "
     query test {
         loginSessionCurrent {
             userId
         }
     }
-    "#;
+    ";
     let expected = value!({
         "loginSessionCurrent": {
             "userId": d.user_id,

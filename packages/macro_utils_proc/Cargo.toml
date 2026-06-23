@@ -10,3 +10,6 @@ proc-macro = true
 
 [dependencies]
 _utils = { path = "../macro_utils", default-features = false }
+
+[lints]
+workspace = true

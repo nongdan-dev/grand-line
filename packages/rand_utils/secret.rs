@@ -1,6 +1,6 @@
 use crate::prelude::*;
-use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD as B64};
-use sha2::{Digest, Sha256};
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD as B64};
+use sha2::{Digest as _, Sha256};
 
 pub fn secret() -> String {
     b64_random(32)

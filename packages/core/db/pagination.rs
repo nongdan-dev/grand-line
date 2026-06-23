@@ -26,7 +26,13 @@ impl ToPaginationInner for Pagination {
             offset: self.offset.unwrap_or_default(),
             limit: self
                 .limit
-                .map(|l| if l > c.limit_max { c.limit_max } else { l })
+                .map(|l| {
+                    if l > c.limit_max {
+                        c.limit_max
+                    } else {
+                        l
+                    }
+                })
                 .unwrap_or(c.limit_default),
         }
     }

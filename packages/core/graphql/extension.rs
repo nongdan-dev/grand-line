@@ -21,10 +21,8 @@ impl Extension for GrandLineExtensionImpl {
         request: Request,
         next: NextPrepareRequest<'_>,
     ) -> ServerResult<Request> {
-        let db = ctx
-            .data_opt::<Arc<DatabaseConnection>>()
-            .ok_or(MyErr::CtxDb404)?;
-        let gl = GrandLineContextData::new(db.clone());
+        let db = ctx.data_opt::<Arc<DatabaseConnection>>().ok_or(MyErr::CtxDb404)?;
+        let gl = GrandLineContextData::new(Arc::clone(db));
         next.run(ctx, request.data(Arc::new(gl))).await
     }
 
@@ -45,15 +43,12 @@ impl Extension for GrandLineExtensionImpl {
             Err(e) => {
                 r.errors.push(e.into());
             }
-        };
+        }
         for e in &mut r.errors {
             if e.source.is_none() {
                 continue;
             }
-            let gl = e
-                .source
-                .as_deref()
-                .and_then(|e| e.downcast_ref::<GrandLineErr>());
+            let gl = e.source.as_deref().and_then(|e| e.downcast_ref::<GrandLineErr>());
             if let Some(GrandLineErr(gl)) = gl
                 && gl.client()
             {
@@ -69,12 +64,12 @@ impl Extension for GrandLineExtensionImpl {
                     .collect::<Vec<_>>()
                     .join(".");
                 if err_path.is_empty() {
-                    err_path = "<unknown>".to_owned()
+                    err_path = "<unknown>".to_owned();
                 }
                 eprintln!("{} {}", err_path, e.message);
                 e.message = MyErr::InternalServer.to_string();
                 e.source = None;
-                e.extensions = Some(MyErr::InternalServer.extensions())
+                e.extensions = Some(MyErr::InternalServer.extensions());
             }
         }
         r

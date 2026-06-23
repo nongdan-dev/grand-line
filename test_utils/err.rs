@@ -1,12 +1,14 @@
 use crate::prelude::*;
 
-pub fn check_err<E>(r: &Response, err: E)
+pub fn check_err<E>(r: &Response, err: &E)
 where
     E: GrandLineErrImpl,
 {
     assert!(r.errors.len() == 1, "response should have an error");
+    let Some(e) = &r.errors.first() else {
+        return;
+    };
 
-    let e = &r.errors[0];
     let expected_message = err.to_string();
     pretty_eq!(e.message, expected_message, "error message should match");
 

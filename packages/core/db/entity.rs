@@ -54,17 +54,16 @@ where
     /// Look ahead for sql columns and exprs, from requested fields in the gql context.
     fn gql_look_ahead(ctx: &Context<'_>) -> Res<Vec<LookaheadX<Self>>> {
         let f = ctx.look_ahead().selection_fields();
-        if f.len() != 1 {
-            Err(MyErr::GqlLookAhead)?;
-        }
 
         let gql_cols = Self::gql_cols();
         let gql_exprs = Self::gql_exprs();
         let gql_select = Self::gql_select();
 
-        let r = f[0]
+        let r = f
+            .first()
+            .ok_or(MyErr::GqlLookAhead)?
             .selection_set()
-            .filter_map(|f| gql_select.get(f.name().to_string().as_str()))
+            .filter_map(|f| gql_select.get(f.name().to_owned().as_str()))
             .flat_map(|c| c.iter().copied())
             .collect::<HashSet<_>>()
             .iter()
@@ -133,9 +132,7 @@ where
         D: ConnectionTrait,
     {
         let f = filter.combine(filter_extra);
-        let exclude_deleted = !include_deleted
-            .or_else(|| Some(f.has_deleted_at()))
-            .unwrap_or_default();
+        let exclude_deleted = !include_deleted.or_else(|| Some(f.has_deleted_at())).unwrap_or_default();
         let mut r = Self::find();
         if exclude_deleted {
             r = r.exclude_deleted();
@@ -162,9 +159,7 @@ where
         D: ConnectionTrait,
     {
         let f = filter.combine(filter_extra);
-        let exclude_deleted = !include_deleted
-            .or_else(|| Some(f.has_deleted_at()))
-            .unwrap_or_default();
+        let exclude_deleted = !include_deleted.or_else(|| Some(f.has_deleted_at())).unwrap_or_default();
         let mut r = Self::find();
         if exclude_deleted {
             r = r.exclude_deleted();
@@ -174,12 +169,7 @@ where
     }
 
     /// Helper to use in resolver body of the macro detail.
-    async fn gql_detail<D>(
-        ctx: &Context<'_>,
-        db: &D,
-        id: &str,
-        include_deleted: Option<bool>,
-    ) -> Res<Option<Self::G>>
+    async fn gql_detail<D>(ctx: &Context<'_>, db: &D, id: &str, include_deleted: Option<bool>) -> Res<Option<Self::G>>
     where
         D: ConnectionTrait,
     {

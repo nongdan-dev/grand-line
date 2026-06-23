@@ -19,7 +19,7 @@ pub struct ActiveModelWrapper<T, E, A> {
 }
 
 impl<T, E, A> ActiveModelWrapper<T, E, A> {
-    pub fn new(am: A) -> Self {
+    pub const fn new(am: A) -> Self {
         Self {
             am,
             _phantom: PhantomData,

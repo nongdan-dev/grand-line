@@ -20,11 +20,11 @@ impl AttrDebug for GenResolver {
 }
 
 impl ResolverFn for GenResolver {
-    fn no_tx(&self) -> bool {
-        self.a.ra.no_tx
+    fn tx(&self) -> bool {
+        self.a.ra.tx
     }
-    fn no_ctx(&self) -> bool {
-        self.a.ra.no_ctx
+    fn ctx(&self) -> bool {
+        self.a.ra.ctx
     }
     fn name(&self) -> SynRes<Ts2> {
         self.a.inner.field_name()?.ts2_or_err()
@@ -50,10 +50,10 @@ impl ResolverFn for GenResolver {
     }
     fn body(&self) -> SynRes<Ts2> {
         let f = self.a.call.ts2_or_err()?;
-        Ok(if self.no_ctx() {
-            quote!(#f(self).await?)
-        } else {
+        Ok(if self.ctx() {
             quote!(#f(self, ctx).await?)
+        } else {
+            quote!(#f(self).await?)
         })
     }
 }

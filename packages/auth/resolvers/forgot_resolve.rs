@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-pub(crate) async fn forgot_resolve_impl<U: AuthUser>(
+pub async fn forgot_resolve_impl<U: AuthUser>(
     ctx: &Context<'_>,
     data: AuthOtpResolve,
     password: String,
@@ -11,7 +11,7 @@ pub(crate) async fn forgot_resolve_impl<U: AuthUser>(
     h.password_validate(ctx, &password).await?;
     let lsd = login_session_data(ctx)?;
 
-    let t = otp_ensure_resolve(ctx, tx, AuthOtpTy::Forgot, data).await?;
+    let t = auth_otp_ensure_resolve(ctx, tx, AuthOtpTy::Forgot, data).await?;
     let d = AuthOtpDataForgot::from_json(t.data)?;
 
     let password_hashed = rand_utils::password_hash(&password)?;

@@ -30,10 +30,8 @@ impl CacheContext for Context<'_> {
                 Ok::<_, GrandLineErr>(arc as ArcAny)
             })
             .await?;
-        let v = arc
-            .clone()
-            .downcast::<T>()
-            .map_err(|_| MyErr::CacheDowncast)?;
+        let v = Arc::clone(arc).downcast::<T>().map_err(|_| MyErr::CacheDowncast)?;
+        drop(mutex);
         Ok(v)
     }
     async fn get_cache<T>(&self) -> Res<Option<Arc<T>>>
@@ -47,10 +45,8 @@ impl CacheContext for Context<'_> {
         let Some(arc) = cell.get() else {
             return Ok(None);
         };
-        let v = arc
-            .clone()
-            .downcast::<T>()
-            .map_err(|_| MyErr::CacheDowncast)?;
+        let v = Arc::clone(arc).downcast::<T>().map_err(|_| MyErr::CacheDowncast)?;
+        drop(mutex);
         Ok(Some(v))
     }
 }

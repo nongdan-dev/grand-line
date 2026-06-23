@@ -14,3 +14,6 @@ _http = { path = "../http", default-features = false }
 async-graphql = { version = "^7.2", default-features = false }
 serde = { version = "^1.0", default-features = false }
 thiserror = { version = "^2.0", default-features = false }
+
+[lints]
+workspace = true

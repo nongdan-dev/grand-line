@@ -52,12 +52,7 @@ pub struct UserInOrg {
 }
 
 #[derive(Default, MergedObject)]
-pub struct Query(
-    UserDetailQuery,
-    UserSearchQuery,
-    UserCountQuery,
-    PersonDetailQuery,
-);
+pub struct Query(UserDetailQuery, UserSearchQuery, UserCountQuery, PersonDetailQuery);
 #[derive(Default, MergedObject)]
 pub struct Mutation(UserDeleteMutation);
 
@@ -74,12 +69,16 @@ pub async fn prepare() -> Res<Prepare> {
     let tmp = tmp_db!(User, Person, Alias, Org, UserInOrg);
     let s = schema_qm::<Query, Mutation>(&tmp.db).finish();
 
-    let u1 = am_create!(User { name: "Olivia" })
-        .exec_without_ctx(&tmp.db)
-        .await?;
-    let u2 = am_create!(User { name: "Peter" })
-        .exec_without_ctx(&tmp.db)
-        .await?;
+    let u1 = am_create!(User {
+        name: "Olivia",
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
+    let u2 = am_create!(User {
+        name: "Peter",
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
     User::soft_delete_by_id(&u2.id)?.exec(&tmp.db).await?;
 
     let p1 = am_create!(Person {
@@ -110,12 +109,16 @@ pub async fn prepare() -> Res<Prepare> {
     .await?;
     Alias::soft_delete_by_id(&a.id)?.exec(&tmp.db).await?;
 
-    let o1 = am_create!(Org { name: "Fringe" })
-        .exec_without_ctx(&tmp.db)
-        .await?;
-    let o2 = am_create!(Org { name: "FBI" })
-        .exec_without_ctx(&tmp.db)
-        .await?;
+    let o1 = am_create!(Org {
+        name: "Fringe",
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
+    let o2 = am_create!(Org {
+        name: "FBI",
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
     Org::soft_delete_by_id(&o2.id)?.exec(&tmp.db).await?;
 
     am_create!(UserInOrg {

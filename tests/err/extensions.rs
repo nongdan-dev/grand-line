@@ -14,16 +14,13 @@ struct Query;
 #[Object]
 impl Query {
     async fn client(&self) -> Res<i64> {
-        Err(MyErr::Client)?;
-        Ok(0)
+        Err(MyErr::Client.into())
     }
     async fn server(&self) -> Res<i64> {
-        Err(MyErr::Server)?;
-        Ok(0)
+        Err(MyErr::Server.into())
     }
     async fn std(&self) -> Result<i64, Box<dyn Error + Send + Sync>> {
-        Err("any other error such as std should not be exposed to the client")?;
-        Ok(0)
+        Err("any other error such as std should not be exposed to the client".into())
     }
 }
 
@@ -44,5 +41,5 @@ where
     T: GrandLineErrImpl,
 {
     let r = s.execute(req).await;
-    check_err(&r, err);
+    check_err(&r, &err);
 }

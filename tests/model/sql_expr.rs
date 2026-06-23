@@ -26,16 +26,20 @@ async fn t() -> Res<()> {
     let tmp = tmp_db!(User);
     let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
-    let u = am_create!(User { a: 1 }).exec_without_ctx(&tmp.db).await?;
+    let u = am_create!(User {
+        a: 1,
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
 
-    let q = r#"
+    let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
             b
             c
         }
     }
-    "#;
+    ";
     let v = value!({
         "id": u.id,
     });

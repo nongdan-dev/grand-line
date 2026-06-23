@@ -7,7 +7,7 @@ async fn t() -> Res<()> {
     let d = prepare().await?;
     let s = d.s.data(d.h).finish();
 
-    let q = r#"
+    let q = "
     mutation test($data: Login!) {
         login(data: $data) {
             inner {
@@ -15,7 +15,7 @@ async fn t() -> Res<()> {
             }
         }
     }
-    "#;
+    ";
     let v = value!({
         "data": {
             "email": "olivia@example.com",

@@ -29,9 +29,7 @@ pub mod reexport {
 pub mod prelude {
     pub use crate::export::*;
     pub use crate::reexport::*;
-    pub use async_graphql::{
-        Error as GraphQLErr, MaybeUndefined as Undefined, Schema, Value, extensions::*, *,
-    };
+    pub use async_graphql::{Error as GraphQLErr, MaybeUndefined as Undefined, Schema, Value, extensions::*, *};
     pub use async_trait::async_trait;
     pub use sea_orm::{
         DbErr, Schema as DbSchema, Value as DbValue,

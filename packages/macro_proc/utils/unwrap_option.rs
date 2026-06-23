@@ -6,9 +6,9 @@ pub fn unwrap_option(ty: impl Display) -> SynRes<(bool, Ts2)> {
 }
 
 pub fn unwrap_option_str(ty: impl Display) -> (bool, String) {
-    let uw_str = ty.to_string().replace(" ", "");
+    let uw_str = ty.to_string().replace(' ', "");
     if uw_str.starts_with("Option<") {
-        return (true, uw_str[7..(uw_str.len() - 1)].to_owned());
+        return (true, uw_str[7..uw_str.len() - 1].to_owned());
     }
     (false, uw_str)
 }

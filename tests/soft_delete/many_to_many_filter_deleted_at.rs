@@ -6,7 +6,7 @@ use prelude::*;
 async fn t() -> Res<()> {
     let d = prepare().await?;
 
-    let q = r#"
+    let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
             orgs(filter: { deletedAt_ne: null }) {
@@ -14,7 +14,7 @@ async fn t() -> Res<()> {
             }
         }
     }
-    "#;
+    ";
     let v = value!({
         "id": d.id1,
     });
@@ -27,7 +27,7 @@ async fn t() -> Res<()> {
     });
     exec_assert(&d.s, q, Some(v), &expected).await;
 
-    let q = r#"
+    let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
             orgs(
@@ -43,7 +43,7 @@ async fn t() -> Res<()> {
             }
         }
     }
-    "#;
+    ";
     let v = value!({
         "id": d.id1,
     });

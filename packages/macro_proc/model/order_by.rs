@@ -7,15 +7,8 @@ pub fn order_by(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) -> SynRes
 }
 fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, direction_str: &str) -> SynRes<()> {
     // sea_orm generated order_by_#direction(Column::Name)
-    let column = f
-        .ident
-        .to_token_stream()
-        .to_string()
-        .to_pascal_case()
-        .ts2_or_err()?;
-    let direction_fn = format!("order_by_{direction_str}")
-        .to_snake_case()
-        .ts2_or_err()?;
+    let column = f.ident.to_token_stream().to_string().to_pascal_case().ts2_or_err()?;
+    let direction_fn = format!("order_by_{direction_str}").to_snake_case().ts2_or_err()?;
     // enum EnumField
     // graphql EnumField
     let gql_name = format!("{column}_{direction_str}").to_pascal_case();

@@ -31,7 +31,7 @@ where
 {
     fn chain_select(self, mut q: Select<E>) -> Select<E> {
         for c in self {
-            q = c.chain_select(q)
+            q = c.chain_select(q);
         }
         q
     }

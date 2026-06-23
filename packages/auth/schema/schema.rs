@@ -15,11 +15,7 @@ impl<U: AuthUser> AuthMergedMutation<U> {
         register_impl::<U>(ctx, data).await
     }
 
-    async fn register_resolve(
-        &self,
-        ctx: &Context<'_>,
-        data: AuthOtpResolve,
-    ) -> Res<LoginSessionWithSecret> {
+    async fn register_resolve(&self, ctx: &Context<'_>, data: AuthOtpResolve) -> Res<LoginSessionWithSecret> {
         ctx.auth_ensure_not_authenticated().await?;
         register_resolve_impl::<U>(ctx, data).await
     }
@@ -44,12 +40,7 @@ impl<U: AuthUser> AuthMergedMutation<U> {
         forgot_resolve_impl::<U>(ctx, data, password).await
     }
 
-    async fn auth_otp_resolve(
-        &self,
-        ctx: &Context<'_>,
-        ty: AuthOtpTy,
-        data: AuthOtpResolve,
-    ) -> Res<AuthOtpGql> {
+    async fn auth_otp_resolve(&self, ctx: &Context<'_>, ty: AuthOtpTy, data: AuthOtpResolve) -> Res<AuthOtpGql> {
         ctx.auth_ensure_not_authenticated().await?;
         auth_otp_resolve_impl(ctx, ty, data).await
     }
@@ -94,11 +85,7 @@ impl AuthMergedQuery {
         login_session_search_impl(ctx, filter, order_by, page).await
     }
 
-    async fn login_session_count(
-        &self,
-        ctx: &Context<'_>,
-        filter: Option<LoginSessionFilter>,
-    ) -> Res<u64> {
+    async fn login_session_count(&self, ctx: &Context<'_>, filter: Option<LoginSessionFilter>) -> Res<u64> {
         login_session_count_impl(ctx, filter).await
     }
 }

@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[model(no_updated_at, no_deleted_at, no_by_id)]
+#[model(updated_at = false, deleted_at = false, by_id = false)]
 pub struct AuthOtp {
     pub email: String,
 

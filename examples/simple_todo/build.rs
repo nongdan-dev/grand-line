@@ -1,3 +1,5 @@
+use grand_line_build::generate_schema;
+
 fn main() {
-    grand_line_build::generate_schema();
+    generate_schema();
 }

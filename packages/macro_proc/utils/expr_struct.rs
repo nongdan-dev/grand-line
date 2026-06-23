@@ -2,41 +2,41 @@ use crate::prelude::*;
 
 pub fn expr_struct(item: TokenStream, suf: &str, wrap: &str, method: &str) -> TokenStream {
     let item2 = Into::<Ts2>::into(item.clone());
-    let item = if !item2.to_string().trim().ends_with('}') {
-        Into::<TokenStream>::into(quote!(#item2{}))
-    } else {
+    let item = if item2.to_string().trim().ends_with('}') {
         item
+    } else {
+        Into::<TokenStream>::into(quote!(#item2{}))
     };
     let item = parse_macro_input!(item as ExprStruct);
-    try_expr_struct(item, suf, wrap, method).unwrap_or_else(|e| e.to_compile_error().into())
+    try_expr_struct(&item, suf, wrap, method).unwrap_or_else(|e| e.to_compile_error().into())
 }
 
-fn try_expr_struct(item: ExprStruct, suf: &str, wrap: &str, method: &str) -> SynRes<TokenStream> {
-    let r = build_expr_struct(&item, suf, wrap)?;
+fn try_expr_struct(item: &ExprStruct, suf: &str, wrap: &str, method: &str) -> SynRes<TokenStream> {
+    let r = build_expr_struct(item, suf, wrap)?;
 
-    Ok(if !method.is_empty() {
+    Ok(if method.is_empty() {
+        r
+    } else {
         let method = method.ts2_or_err()?;
         quote!(#r.#method())
-    } else {
-        r
     }
     .into())
 }
 
 pub fn expr_struct_am_wrapper(item: TokenStream, suf: &str, op_ty: &str) -> TokenStream {
     let item2 = Into::<Ts2>::into(item.clone());
-    let item = if !item2.to_string().trim().ends_with('}') {
-        Into::<TokenStream>::into(quote!(#item2{}))
-    } else {
+    let item = if item2.to_string().trim().ends_with('}') {
         item
+    } else {
+        Into::<TokenStream>::into(quote!(#item2{}))
     };
     let item = parse_macro_input!(item as ExprStruct);
-    try_expr_struct_am_wrapper(item, suf, op_ty).unwrap_or_else(|e| e.to_compile_error().into())
+    try_expr_struct_am_wrapper(&item, suf, op_ty).unwrap_or_else(|e| e.to_compile_error().into())
 }
 
-fn try_expr_struct_am_wrapper(item: ExprStruct, suf: &str, op_ty: &str) -> SynRes<TokenStream> {
+fn try_expr_struct_am_wrapper(item: &ExprStruct, suf: &str, op_ty: &str) -> SynRes<TokenStream> {
     let entity = item.path.get_ident().to_token_stream();
-    let r = build_expr_struct(&item, suf, "Set")?;
+    let r = build_expr_struct(item, suf, "Set")?;
     let op_ty = op_ty.ts2_or_err()?;
     Ok(quote!(ActiveModelWrapper::<#op_ty, #entity, _>::new(#r)).into())
 }
@@ -53,7 +53,7 @@ fn build_expr_struct(item: &ExprStruct, suf: &str, wrap: &str) -> SynRes<Ts2> {
     };
 
     let mut fields = vec![];
-    for f in item.fields.iter() {
+    for f in &item.fields {
         let v = if let Expr::Lit(l) = &f.expr {
             if let Lit::Str(s) = &l.lit {
                 let v = s.value();

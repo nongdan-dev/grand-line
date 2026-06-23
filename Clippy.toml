@@ -1,2 +1,1 @@
-allow-private-module-inception = true
-too-many-arguments-threshold = 999
+absolute-paths-max-segments = 0

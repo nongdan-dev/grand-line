@@ -6,11 +6,11 @@ use prelude::*;
 async fn t() -> Res<()> {
     let d = prepare().await?;
 
-    let q = r#"
+    let q = "
     query test {
         userCount
     }
-    "#;
+    ";
     let expected = value!({
         "userCount": 1,
     });

@@ -1,9 +1,6 @@
 use crate::prelude::*;
 
-pub(crate) async fn login_session_delete_impl(
-    ctx: &Context<'_>,
-    id: String,
-) -> Res<LoginSessionGql> {
+pub async fn login_session_delete_impl(ctx: &Context<'_>, id: String) -> Res<LoginSessionGql> {
     let tx = &*ctx.tx().await?;
     let arc = ctx.auth_with_cache().await?;
     let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;
@@ -16,7 +13,7 @@ pub(crate) async fn login_session_delete_impl(
     Ok(LoginSessionGql::from_id(&id))
 }
 
-pub(crate) async fn login_session_delete_all_impl(ctx: &Context<'_>) -> Res<Vec<LoginSessionGql>> {
+pub async fn login_session_delete_all_impl(ctx: &Context<'_>) -> Res<Vec<LoginSessionGql>> {
     let tx = &*ctx.tx().await?;
     let arc = ctx.auth_with_cache().await?;
     let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;

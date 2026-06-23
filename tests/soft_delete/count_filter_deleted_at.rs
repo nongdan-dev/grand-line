@@ -6,17 +6,17 @@ use prelude::*;
 async fn t() -> Res<()> {
     let d = prepare().await?;
 
-    let q = r#"
+    let q = "
     query test {
         userCount(filter: { deletedAt_ne: null })
     }
-    "#;
+    ";
     let expected = value!({
         "userCount": 1,
     });
     exec_assert(&d.s, q, None, &expected).await;
 
-    let q = r#"
+    let q = "
     query test {
         userCount(
             filter: {
@@ -27,7 +27,7 @@ async fn t() -> Res<()> {
             },
         )
     }
-    "#;
+    ";
     let expected = value!({
         "userCount": 2,
     });

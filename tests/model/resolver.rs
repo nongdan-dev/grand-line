@@ -15,7 +15,7 @@ async fn sql_dep_cols() -> Res<()> {
         }
 
         async fn resolve_full_name(u: &UserGql, _: &Context<'_>) -> Res<String> {
-            let full_name = vec![
+            let full_name = [
                 u.first_name.clone().ok_or(CoreDbErr::GqlResolverNone)?,
                 u.last_name.clone().ok_or(CoreDbErr::GqlResolverNone)?,
             ]
@@ -38,13 +38,13 @@ async fn sql_dep_cols() -> Res<()> {
     .exec_without_ctx(&tmp.db)
     .await?;
 
-    let q = r#"
+    let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
             fullName
         }
     }
-    "#;
+    ";
     let v = value!({
         "id": u.id,
     });
@@ -86,15 +86,19 @@ async fn sql_dep_exprs() -> Res<()> {
     let tmp = tmp_db!(User);
     let s = schema_q::<UserDetailQuery>(&tmp.db).finish();
 
-    let u = am_create!(User { a: 1 }).exec_without_ctx(&tmp.db).await?;
+    let u = am_create!(User {
+        a: 1,
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
 
-    let q = r#"
+    let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
             c
         }
     }
-    "#;
+    ";
     let v = value!({
         "id": u.id,
     });

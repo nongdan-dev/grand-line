@@ -23,7 +23,7 @@ impl AttrParse {
     {
         Attr::from_proc_macro(macro_name, self)?.try_into_with_validate()
     }
-    pub fn from_meta_list_token_stream(ts: Ts2) -> SynRes<Self> {
+    pub fn from_meta_list_token_stream(ts: &Ts2) -> SynRes<Self> {
         if ts.to_string().trim().is_empty() {
             let err = "empty meta list ()";
             return Err(SynErr::new(Span::call_site(), err));
@@ -36,7 +36,7 @@ impl AttrParse {
             })?
             .into_iter()
             .collect();
-        Ok(AttrParse::from_meta_list(metas))
+        Ok(Self::from_meta_list(metas))
     }
     pub fn from_meta_list(metas: Vec<Meta>) -> Self {
         let mut args = Vec::new();
@@ -47,7 +47,7 @@ impl AttrParse {
             match m {
                 Meta::Path(m) => {
                     k = m.get_ident().to_token_stream().to_string();
-                    v = "".to_owned();
+                    v = String::new();
                     ty = AttrParseTy::Path;
                 }
                 Meta::NameValue(m) => {
@@ -67,13 +67,16 @@ impl AttrParse {
             args.push((k, (v, ty)));
             first = false;
         }
-        Self { args, first_path }
+        Self {
+            args,
+            first_path,
+        }
     }
 }
 
 impl Parse for AttrParse {
-    fn parse(s: ParseStream) -> Result<Self> {
-        let metas = Punctuated::<Meta, Token![,]>::parse_terminated(s)?
+    fn parse(input: ParseStream) -> Result<Self> {
+        let metas = Punctuated::<Meta, Token![,]>::parse_terminated(input)?
             .into_iter()
             .collect();
         let a = Self::from_meta_list(metas);

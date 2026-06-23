@@ -29,19 +29,14 @@ pub fn filter(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) -> SynRes<(
     {
         push(f, struk, query, "ilike")?;
         push(f, struk, query, "not_ilike")?;
-    }
+    };
     push(f, struk, query, "starts_with")?;
     push(f, struk, query, "ends_with")?;
     Ok(())
 }
 
 fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) -> SynRes<()> {
-    let col = f
-        .ident
-        .to_token_stream()
-        .to_string()
-        .to_pascal_case()
-        .ts2_or_err()?;
+    let col = f.ident.to_token_stream().to_string().to_pascal_case().ts2_or_err()?;
     let op = op_str.ts2_or_err()?;
     let mut gql_op = op_str.to_owned();
     // unwrap Option<type>
@@ -65,7 +60,7 @@ fn push(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) -> 
         let gql_op_camel = pg
             .get(op_str)
             .copied()
-            .map(|v| v.to_owned())
+            .map(|f| f.to_owned())
             .unwrap_or_else(|| gql_op.to_lower_camel_case());
         gql_name = format!("{gql_name}_{gql_op_camel}");
     }

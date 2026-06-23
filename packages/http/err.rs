@@ -7,7 +7,9 @@ pub enum MyErr {
     //
     #[error("request header {k} has more than 1 value")]
     #[client]
-    HeaderMultipleValues { k: String },
+    HeaderMultipleValues {
+        k: String,
+    },
     #[error("ip address is missing in the request headers")]
     #[client]
     HeaderIp404,

@@ -1,4 +1,4 @@
-/// Shortcut for `ulid::Ulid::new().to_string().to_lowercase()`.
+use ulid::Ulid;
 pub fn ulid() -> String {
-    ulid::Ulid::new().to_string().to_lowercase()
+    Ulid::new().to_string().to_lowercase()
 }

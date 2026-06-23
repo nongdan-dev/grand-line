@@ -15,7 +15,7 @@ fn try_gen_detail(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
         r.inputs = quote! {
             id: String,
         };
-        r.inputs = push_include_deleted(r.inputs, !a.ra.no_include_deleted);
+        r.inputs = push_include_deleted(r.inputs, a.ra.include_deleted);
     }
 
     if !a.resolver_output {
@@ -24,7 +24,7 @@ fn try_gen_detail(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
 
         let body = r.body;
         let model = a.model.ts2_or_err()?;
-        let include_deleted = get_include_deleted(!a.resolver_inputs && !a.ra.no_include_deleted);
+        let include_deleted = get_include_deleted(!a.resolver_inputs && a.ra.include_deleted);
         r.body = quote! {
             #body
             #model::gql_detail(ctx, tx, &id, #include_deleted).await?

@@ -29,10 +29,13 @@ where
 {
     fn combine(self, order_by_default: Self) -> Vec<O> {
         match self {
-            Some(o) => match o.is_empty() {
-                true => combine_option(order_by_default, O::conf_default()),
-                false => o,
-            },
+            Some(o) => {
+                if o.is_empty() {
+                    combine_option(order_by_default, O::conf_default())
+                } else {
+                    o
+                }
+            }
             None => combine_option(order_by_default, O::conf_default()),
         }
     }
@@ -45,8 +48,9 @@ fn combine_option<O>(o: Option<Vec<O>>, order_by_default: O) -> Vec<O> {
     }
 }
 fn combine_vec<O>(o: Vec<O>, order_by_default: O) -> Vec<O> {
-    match o.is_empty() {
-        true => vec![order_by_default],
-        false => o,
+    if o.is_empty() {
+        vec![order_by_default]
+    } else {
+        o
     }
 }

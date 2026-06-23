@@ -15,7 +15,7 @@ fn try_gen_delete(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
         r.inputs = quote! {
             id: String,
         };
-        if !a.no_permanent_delete {
+        if a.permanent_delete {
             let inputs = r.inputs;
             r.inputs = quote! {
                 #inputs
@@ -28,7 +28,7 @@ fn try_gen_delete(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
         let output = ty_gql(&a.model)?;
         r.output = quote!(#output);
 
-        let permanent = if !a.resolver_inputs && !a.no_permanent_delete {
+        let permanent = if !a.resolver_inputs && a.permanent_delete {
             quote!(permanent)
         } else {
             quote!(None)

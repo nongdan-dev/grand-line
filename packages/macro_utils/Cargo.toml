@@ -16,3 +16,6 @@ serde = { version = "^1.0", default-features = false }
 strum = { version = "^0.28", default-features = false }
 strum_macros = { version = "^0.28", default-features = false }
 syn = { version = "^2.0", default-features = false, features = ["full", "clone-impls", "parsing", "printing"] }
+
+[lints]
+workspace = true

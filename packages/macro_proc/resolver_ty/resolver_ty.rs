@@ -9,7 +9,12 @@ pub struct ResolverTy {
 
 impl ResolverTy {
     pub fn g(ty: Ts2, name: Ts2, ra: ResolverTyAttr, item: ResolverTyItem) -> SynRes<TokenStream> {
-        let g = Self { ty, name, ra, item };
+        let g = Self {
+            ty,
+            name,
+            ra,
+            item,
+        };
 
         let ty = &g.ty;
         let resolver = g.resolver_fn()?;
@@ -30,7 +35,7 @@ impl ResolverTy {
         };
 
         #[cfg(feature = "debug_macro")]
-        debug_macro(&g.item.gql_name, r.clone());
+        debug_macro(&g.item.gql_name, &r);
 
         Ok(r.into())
     }
@@ -78,11 +83,11 @@ impl ResolverFn for ResolverTy {
         Ok(operation)
     }
 
-    fn no_tx(&self) -> bool {
-        self.ra.no_tx
+    fn tx(&self) -> bool {
+        self.ra.tx
     }
-    fn no_ctx(&self) -> bool {
-        self.ra.no_ctx
+    fn ctx(&self) -> bool {
+        self.ra.ctx
     }
     fn auth(&self) -> Option<AuthAttr> {
         self.ra.auth.clone()

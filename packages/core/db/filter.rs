@@ -28,12 +28,12 @@ where
             return true;
         }
         if let Some(and) = self.get_and()
-            && and.iter().any(|f| f.has_deleted_at())
+            && and.iter().any(Self::has_deleted_at)
         {
             return true;
         }
         if let Some(or) = self.get_or()
-            && or.iter().any(|f| f.has_deleted_at())
+            && or.iter().any(Self::has_deleted_at)
         {
             return true;
         }
@@ -72,8 +72,6 @@ where
         }
     }
     fn has_deleted_at(&self) -> bool {
-        self.as_ref()
-            .map(|f| f.has_deleted_at())
-            .unwrap_or_default()
+        self.as_ref().is_some_and(Filter::has_deleted_at)
     }
 }

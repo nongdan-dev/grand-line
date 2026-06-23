@@ -15,21 +15,12 @@ where
         C: ChainSelect<E>;
 
     /// Select only columns from requested fields in the graphql context.
-    fn gql_select_with_look_ahead(
-        self,
-        look_ahead: &[LookaheadX<E>],
-        col: E::C,
-    ) -> Res<Selector<SelectModel<E::G>>>;
+    fn gql_select_with_look_ahead(self, look_ahead: &[LookaheadX<E>], col: E::C) -> Res<Selector<SelectModel<E::G>>>;
     /// Select only columns from requested fields in the graphql context.
     fn gql_select(self, ctx: &Context<'_>) -> Res<Selector<SelectModel<E::G>>>;
 
     /// Select only id for the graphql delete response.
     fn gql_select_id(self) -> Selector<SelectModel<E::G>>;
-
-    /// Helper to check if exists.
-    async fn exists<D>(self, db: &D) -> Res<bool>
-    where
-        D: ConnectionTrait;
 
     /// Helper to check if exists and return error if not.
     async fn exists_or_404<D>(self, db: &D) -> Res<()>
@@ -57,11 +48,7 @@ where
         c.chain_select(self)
     }
 
-    fn gql_select_with_look_ahead(
-        self,
-        look_ahead: &[LookaheadX<E>],
-        col: E::C,
-    ) -> Res<Selector<SelectModel<E::G>>> {
+    fn gql_select_with_look_ahead(self, look_ahead: &[LookaheadX<E>], col: E::C) -> Res<Selector<SelectModel<E::G>>> {
         let mut q = self;
         q = q.select_only();
         q = q.select_column(col);
@@ -69,10 +56,10 @@ where
             if let Some(c) = l.col
                 && c.as_str() != col.as_str()
             {
-                q = q.select_column(c)
+                q = q.select_column(c);
             }
             if let Some(expr) = l.expr.clone() {
-                q = q.column_as(expr, l.c)
+                q = q.column_as(expr, l.c);
             }
         }
         let r = q.into_model::<E::G>();
@@ -87,26 +74,12 @@ where
         self.select_only().column(E::col_id()).into_model::<E::G>()
     }
 
-    async fn exists<D>(self, db: &D) -> Res<bool>
-    where
-        D: ConnectionTrait,
-    {
-        let v = self
-            .select()
-            .expr(Expr::value(1))
-            .limit(1)
-            .one(db)
-            .await?
-            .is_some();
-        Ok(v)
-    }
-
     async fn exists_or_404<D>(self, db: &D) -> Res<()>
     where
         D: ConnectionTrait,
     {
-        if !self.exists(db).await? {
-            Err(MyErr::Db404)?;
+        if !PaginatorTrait::exists(self, db).await? {
+            return Err(MyErr::Db404.into());
         }
         Ok(())
     }

@@ -10,7 +10,7 @@ impl AuthzEnsureContext for Context<'_> {
     async fn authz_ensure_in_macro(&self, check: AuthzDirectiveEnsure) -> Res<()> {
         let v = self.authz_with_cache(check).await?;
         if v.is_none() {
-            Err(MyErr::Unauthorized)?;
+            return Err(MyErr::Unauthorized.into());
         }
         Ok(())
     }

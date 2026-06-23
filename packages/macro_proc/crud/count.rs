@@ -17,7 +17,7 @@ fn try_gen_count(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
         r.inputs = quote! {
             filter: Option<#filter>,
         };
-        r.inputs = push_include_deleted(r.inputs, !a.ra.no_include_deleted);
+        r.inputs = push_include_deleted(r.inputs, a.ra.include_deleted);
     }
 
     if !a.resolver_output {
@@ -25,7 +25,7 @@ fn try_gen_count(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
 
         let body = r.body;
         let model = a.model.ts2_or_err()?;
-        let include_deleted = get_include_deleted(!a.resolver_inputs && !a.ra.no_include_deleted);
+        let include_deleted = get_include_deleted(!a.resolver_inputs && a.ra.include_deleted);
         r.body = quote! {
             let filter_extra: Option<#filter> = {
                 #body

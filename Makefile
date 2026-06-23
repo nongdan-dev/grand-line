@@ -1,39 +1,35 @@
 fmt:
-	@cargo fmt \
-	&& cargo fix --allow-dirty \
+	@cargo fmt --all \
 	&& doctoc --loglevel warn --github README.md \
 	&& dprint fmt;
 
 check:
 	@make fmt \
-	&& cargo clippy --fix --allow-dirty;
+	&& cargo clippy --workspace --all-targets --all-features --fix --allow-dirty;
 
 test:
-	@make check \
+	@make fmt \
 	&& cargo test --features test_utils;
 
 test_mysql:
-	@make check \
+	@make fmt \
 	&& cargo test --no-default-features --features test_utils,default_without_db,mysql;
 
 test_sqlite:
-	@make check \
-	&& bash ./tests/all.sh;
+	@make fmt \
+	&& cargo test --no-default-features --features test_utils,default_without_db,sqlite;
+
+test_sqlite_independently:
+	@make fmt \
+	&& bash ./tests/independently.sh;
 
 update:
-	@cargo update --dry-run \
+	@make fmt \
+	&& cargo update --dry-run \
 	&& cargo install-update -a \
 	&& cargo upgrade --incompatible \
 	&& dprint upgrade \
 	&& dprint config update;
-
-push:
-	@git add -A \
-	&& make fmt \
-	&& make imagemin \
-	&& git add -A \
-	&& git commit -m "Update" \
-	&& git push;
 
 imagemin:
 	@export EXT="png|jpg|gif|ico" \
@@ -44,4 +40,5 @@ git-ls:
 	| egrep -h '\.($(EXT))$$';
 
 # missing trailing comma
-# ([^,\s.*])([\s\n]+\))
+# [^,\s.*][\s\n]+[\)\]]
+# ,[)\]]

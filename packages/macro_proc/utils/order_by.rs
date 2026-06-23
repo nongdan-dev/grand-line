@@ -6,12 +6,15 @@ struct Item {
 }
 
 impl Parse for Item {
-    fn parse(s: ParseStream) -> SynRes<Self> {
-        let model = s.parse::<Ident>()?;
+    fn parse(input: ParseStream) -> SynRes<Self> {
+        let model = input.parse::<Ident>()?;
         let c;
-        bracketed!(c in s);
+        bracketed!(c in input);
         let fields = c.parse_terminated(Ident::parse, Token![,])?;
-        Ok(Item { model, fields })
+        Ok(Self {
+            model,
+            fields,
+        })
     }
 }
 

@@ -6,13 +6,13 @@ use prelude::*;
 async fn t() -> Res<()> {
     let d = prepare().await?;
 
-    let q = r#"
+    let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
             name
         }
     }
-    "#;
+    ";
     let v = value!({
         "id": d.id2,
     });

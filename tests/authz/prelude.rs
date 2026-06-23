@@ -3,13 +3,13 @@
 use axum::http::HeaderMap;
 pub use grand_line::prelude::*;
 
-#[path = "../fixture_user.rs"]
-mod fixture_user;
-pub use fixture_user::*;
+#[path = "../_fixtures/user.rs"]
+mod user;
+pub use user::*;
 
-#[path = "../fixture_org.rs"]
-mod fixture_org;
-pub use fixture_org::*;
+#[path = "../_fixtures/org.rs"]
+mod org;
+pub use org::*;
 
 #[query(authz(realm = "org"))]
 fn org_primitive() -> i64 {
@@ -43,12 +43,7 @@ fn system(org_id: String) -> OrgGql {
 }
 
 #[derive(Default, MergedObject)]
-pub struct Query(
-    OrgPrimitiveQuery,
-    OrgQuery,
-    SystemPrimitiveQuery,
-    SystemQuery,
-);
+pub struct Query(OrgPrimitiveQuery, OrgQuery, SystemPrimitiveQuery, SystemQuery);
 
 pub struct Prepare {
     pub tmp: TmpDb,
@@ -108,12 +103,16 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
     .await?;
     let token2 = rand_utils::qs_token(&ls2.id, &secret2)?;
 
-    let o1 = am_create!(Org { name: "Fringe" })
-        .exec_without_ctx(&tmp.db)
-        .await?;
-    let o2 = am_create!(Org { name: "FBI" })
-        .exec_without_ctx(&tmp.db)
-        .await?;
+    let o1 = am_create!(Org {
+        name: "Fringe",
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
+    let o2 = am_create!(Org {
+        name: "FBI",
+    })
+    .exec_without_ctx(&tmp.db)
+    .await?;
 
     let r1 = am_create!(Role {
         name: "Org Admin",
@@ -174,13 +173,13 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
     })
 }
 
-pub fn field(children: PolicyFields) -> PolicyField {
+pub const fn field(children: PolicyFields) -> PolicyField {
     PolicyField {
         allow: true,
         children: Some(children),
     }
 }
-pub fn field_no_children() -> PolicyField {
+pub const fn field_no_children() -> PolicyField {
     PolicyField {
         allow: true,
         children: None,
@@ -205,8 +204,11 @@ pub fn fields_wildcard_nested() -> PolicyFields {
     fields_no_children("**".to_owned())
 }
 
-pub fn operation(inputs: PolicyField, output: PolicyField) -> PolicyOperation {
-    PolicyOperation { inputs, output }
+pub const fn operation(inputs: PolicyField, output: PolicyField) -> PolicyOperation {
+    PolicyOperation {
+        inputs,
+        output,
+    }
 }
 pub fn operations(k: String, inputs: PolicyField, output: PolicyField) -> PolicyOperations {
     hashmap! {

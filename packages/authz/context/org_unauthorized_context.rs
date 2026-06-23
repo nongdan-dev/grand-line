@@ -17,7 +17,7 @@ impl OrgUnauthorizedContext for Context<'_> {
         let k = self.authz_config().org_id_header_key;
         let v = self.get_header(k)?.trim().to_owned();
         if v.is_empty() {
-            Err(MyErr::HeaderOrgId404)?;
+            return Err(MyErr::HeaderOrgId404.into());
         }
 
         let lookup = self
@@ -28,6 +28,6 @@ impl OrgUnauthorizedContext for Context<'_> {
         lookup
             .find_by_id(&v, tx)
             .await?
-            .ok_or(MyErr::Unauthorized.into())
+            .ok_or_else(|| MyErr::Unauthorized.into())
     }
 }

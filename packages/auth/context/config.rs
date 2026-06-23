@@ -62,30 +62,15 @@ impl<U: AuthUser> Default for AuthUserConfig<U> {
 #[allow(unused_variables)]
 #[async_trait]
 pub trait AuthUserHandlers<U: AuthUser>: Send + Sync {
-    async fn on_register_resolve(
-        &self,
-        ctx: &Context<'_>,
-        user: &U::M,
-        ls: &LoginSessionSql,
-    ) -> Res<()> {
+    async fn on_register_resolve(&self, ctx: &Context<'_>, user: &U::M, ls: &LoginSessionSql) -> Res<()> {
         Ok(())
     }
 
-    async fn on_login_resolve(
-        &self,
-        ctx: &Context<'_>,
-        user: &U::M,
-        ls: &LoginSessionSql,
-    ) -> Res<()> {
+    async fn on_login_resolve(&self, ctx: &Context<'_>, user: &U::M, ls: &LoginSessionSql) -> Res<()> {
         Ok(())
     }
 
-    async fn on_forgot_resolve(
-        &self,
-        ctx: &Context<'_>,
-        user: &U::M,
-        ls: &LoginSessionSql,
-    ) -> Res<()> {
+    async fn on_forgot_resolve(&self, ctx: &Context<'_>, user: &U::M, ls: &LoginSessionSql) -> Res<()> {
         Ok(())
     }
 }

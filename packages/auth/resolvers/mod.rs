@@ -1,5 +1,3 @@
-#![allow(unused_imports)]
-
 mod forgot;
 mod forgot_resolve;
 mod login;

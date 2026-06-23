@@ -16,17 +16,15 @@ postgres = ["sea-orm/sqlx-postgres", "sqlx/postgres", "_proc/postgres"]
 debug_macro_cli = ["_proc/debug_macro_cli"]
 debug_macro_file = ["_proc/debug_macro_file"]
 # model flags
-no_created_at = ["_proc/no_created_at"]
-no_updated_at = ["_proc/no_updated_at"]
-no_deleted_at = ["_proc/no_deleted_at"]
-no_by_id = ["_proc/no_by_id"]
+model_created_at = ["_proc/model_created_at"]
+model_updated_at = ["_proc/model_updated_at"]
+model_deleted_at = ["_proc/model_deleted_at"]
+model_by_id = ["_proc/model_by_id"]
 # resolver flags
-resolver_inputs = ["_proc/resolver_inputs"]
-resolver_output = ["_proc/resolver_output"]
-no_tx = ["_proc/no_tx"]
-no_ctx = ["_proc/no_ctx"]
-no_include_deleted = ["_proc/no_include_deleted"]
-no_permanent_delete = ["_proc/no_permanent_delete"]
+resolver_tx = ["_proc/resolver_tx"]
+resolver_ctx = ["_proc/resolver_ctx"]
+resolver_include_deleted = ["_proc/resolver_include_deleted"]
+resolver_permanent_delete = ["_proc/resolver_permanent_delete"]
 # packages
 tracing = ["async-graphql/tracing"]
 auth = ["_proc/auth"]
@@ -47,3 +45,6 @@ sqlx = { version = "^0.9", default-features = false, features = ["chrono", "json
 thiserror = { version = "^2.0", default-features = false }
 tokio = { version = "^1.52", default-features = false, features = ["full"] }
 ulid = { version = "^1.2", default-features = false, features = ["std"] }
+
+[lints]
+workspace = true

@@ -20,9 +20,7 @@ impl AuthCacheContext for Context<'_> {
         }
 
         let t = rand_utils::qs_token_parse(&token);
-        let t = if let Some(t) = t {
-            t
-        } else {
+        let Some(t) = t else {
             return Ok(None);
         };
 
@@ -34,9 +32,7 @@ impl AuthCacheContext for Context<'_> {
             .filter_by_id(&t.id)
             .one(tx)
             .await?;
-        let ls = if let Some(ls) = ls {
-            ls
-        } else {
+        let Some(ls) = ls else {
             return Ok(None);
         };
 

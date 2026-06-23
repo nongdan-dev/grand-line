@@ -1,11 +1,11 @@
 use crate::prelude::*;
-use std::time::Duration;
+use core::time::Duration;
 
 pub async fn tmp_db() -> Res<TmpDb> {
     let tmp = TmpDb::new(db_uri()).await?;
     Ok(tmp)
 }
-fn db_uri() -> &'static str {
+const fn db_uri() -> &'static str {
     if cfg!(feature = "postgres") {
         return "postgres://postgres:test_pwd@localhost:5432/test_db";
     }
@@ -27,7 +27,9 @@ pub struct TmpDb {
 
 enum TmpDbTy {
     Postgres,
-    MySql { admin: DatabaseConnection },
+    MySql {
+        admin: DatabaseConnection,
+    },
     Sqlite,
 }
 
@@ -37,7 +39,8 @@ impl TmpDb {
             "postgres" => Self::new_postgres(uri).await,
             "mysql" => Self::new_mysql(uri).await,
             "sqlite" => Self::new_sqlite(uri).await,
-            scheme => panic!("TmpDb::new expect postgres or mysql or sqlite, found {scheme}"),
+            #[allow(clippy::panic)]
+            _ => panic!("TmpDb::new expect postgres|mysql|sqlite: {uri}"),
         }
     }
 
@@ -71,7 +74,9 @@ impl TmpDb {
         Ok(Self {
             name,
             db,
-            ty: TmpDbTy::MySql { admin },
+            ty: TmpDbTy::MySql {
+                admin,
+            },
         })
     }
 
@@ -87,16 +92,18 @@ impl TmpDb {
     }
 
     pub async fn drop(&self) -> Res<()> {
-        Ok(match &self.ty {
+        match &self.ty {
             TmpDbTy::Postgres => {
                 let stmt = "SET search_path TO public;";
-                exec(&self.db, DbBackend::Postgres, &stmt).await?;
+                exec(&self.db, DbBackend::Postgres, stmt).await?;
                 let name = &self.name;
                 let stmt = format!("DROP SCHEMA IF EXISTS {name} CASCADE;");
                 exec(&self.db, DbBackend::Postgres, &stmt).await?;
                 self.db.clone().close().await?;
             }
-            TmpDbTy::MySql { admin } => {
+            TmpDbTy::MySql {
+                admin,
+            } => {
                 self.db.clone().close().await?;
                 let name = &self.name;
                 let stmt = format!("DROP DATABASE IF EXISTS {name};");
@@ -105,7 +112,8 @@ impl TmpDb {
             TmpDbTy::Sqlite => {
                 self.db.clone().close().await?;
             }
-        })
+        }
+        Ok(())
     }
 }
 
