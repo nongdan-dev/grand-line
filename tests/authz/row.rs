@@ -1,18 +1,6 @@
-// Integration tests for row-level authorization via authz_row.
-//
-// Each test creates a schema with a single `rowResult` resolver that calls
-// ctx.authz_row::<RowFilter>(). The row_policy on the role is set per test.
-// execute_script is mocked via a custom AuthzHandlers implementation.
-
-use grand_line::prelude::*;
-
-#[path = "../_fixtures/user.rs"]
-mod user;
-use user::*;
-
-#[path = "../_fixtures/org.rs"]
-mod org;
-use org::*;
+#[path = "./prelude.rs"]
+mod prelude;
+use prelude::*;
 
 // ---------------------------------------------------------------------------
 // Filter type deserialized from the execute_script result.
@@ -120,20 +108,18 @@ async fn prepare_inner(col_op_key: &str, row_script: Option<&str>, cfg: Option<A
             output: wc_field.clone(),
         }
     };
-    // row_policy is a flat map: { "rowResult": "script_string" }
-    // The key is the field path resolved by authz_field_path (always "rowResult" here).
-    let row_p: JsonValue = match row_script {
-        Some(s) => json!({
-            "rowResult": s,
-        }),
-        None => json!(null),
+    let row_p: RowPolicy = match row_script {
+        Some(s) => hashmap! {
+            "rowResult".to_owned() => RowPolicyField { script: s.to_owned() }
+        },
+        None => RowPolicy::default(),
     };
 
     let r = am_create!(Role {
         name: "Tester",
         realm: "org",
         col_policy: col_p.to_json()?,
-        row_policy: row_p,
+        row_policy: row_p.to_json()?,
         org_id: Some(o.id.clone()),
     })
     .exec_without_ctx(&tmp.db)

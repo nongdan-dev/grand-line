@@ -4,7 +4,7 @@ use prelude::*;
 
 #[tokio::test]
 async fn ok_org_realm() -> Res<()> {
-    let d = prepare_wildcard().await?;
+    let d = prepare_with_col_wildcard().await?;
 
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));
@@ -39,7 +39,7 @@ async fn ok_org_realm() -> Res<()> {
 
 #[tokio::test]
 async fn ok_system_realm() -> Res<()> {
-    let d = prepare_wildcard().await?;
+    let d = prepare_with_col_wildcard().await?;
 
     let mut h = d.h;
     h.insert(H_AUTHORIZATION, h_bearer(&d.token1));
@@ -76,7 +76,7 @@ async fn ok_system_realm() -> Res<()> {
 
 #[tokio::test]
 async fn err() -> Res<()> {
-    let d = prepare_wildcard().await?;
+    let d = prepare_with_col_wildcard().await?;
 
     // user2's role (role_id2) belongs to org2. Sending org1 header -> role not found
     // (role's OrgId != org1) -> Unauthorized.

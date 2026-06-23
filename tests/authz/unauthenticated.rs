@@ -8,7 +8,7 @@ use prelude::*;
 // A request with no Authorization header to an org-realm resolver returns Unauthenticated.
 #[tokio::test]
 async fn no_token_org_realm() -> Res<()> {
-    let d = prepare_wildcard().await?;
+    let d = prepare_with_col_wildcard().await?;
 
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));
@@ -29,7 +29,7 @@ async fn no_token_org_realm() -> Res<()> {
 // A request with no Authorization header to a system-realm resolver returns Unauthenticated.
 #[tokio::test]
 async fn no_token_system_realm() -> Res<()> {
-    let d = prepare_wildcard().await?;
+    let d = prepare_with_col_wildcard().await?;
 
     let mut h = d.h;
     h.insert(H_ROLE_ID, h_str(&d.role_id1_system));
