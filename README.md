@@ -47,7 +47,12 @@ Rust macro framework for building GraphQL APIs on top of `sea-orm` and `async-gr
   - [Setup](#setup-1)
   - [Defining your Org model](#defining-your-org-model)
   - [`authz` attribute](#authz-attribute)
-  - [Policy structure](#policy-structure)
+  - [Col policy structure](#col-policy-structure)
+  - [Row policy and `authz_row`](#row-policy-and-authz_row)
+- [SeaORM helpers](#seaorm-helpers)
+  - [Query helpers](#query-helpers)
+  - [Soft-delete helpers](#soft-delete-helpers)
+  - [Active model helpers](#active-model-helpers-1)
 - [Debug macro outputs](#debug-macro-outputs)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -398,11 +403,12 @@ ctx.cache(|| async { ... }).await?    // Arc<T> - per-request memoize by type
 
 **Authz (`grand_line_authz`)**
 
-| Method                       | Returns           | Description                              |
-| ---------------------------- | ----------------- | ---------------------------------------- |
-| `ctx.authz().await?`         | `String`          | Verified `org_id` from `X-Org-Id` header |
-| `ctx.authz_role().await?`    | `RoleSql`         | The matched `Role` row                   |
-| `ctx.org_unchecked().await?` | `Arc<OrgMinimal>` | Org from `X-Org-Id` without auth check   |
+| Method                        | Returns           | Description                                          |
+| ----------------------------- | ----------------- | ---------------------------------------------------- |
+| `ctx.authz().await?`          | `String`          | Verified `org_id` from `X-Org-Id` header             |
+| `ctx.authz_role().await?`     | `RoleSql`         | The matched `Role` row                               |
+| `ctx.authz_row::<F>().await?` | `Option<F>`       | Row-level filter from the role's `row_policy` script |
+| `ctx.org_unchecked().await?`  | `Arc<OrgMinimal>` | Org from `X-Org-Id` without auth check               |
 
 ---
 
@@ -725,7 +731,7 @@ AuthUserImpl::<User> { handlers: Arc::new(MyUserHandlers) }
 
 ### Authorization
 
-`grand_line_authz` provides role-based access control with org scoping and field-level policy checks.
+`grand_line_authz` provides role-based access control with org scoping, field-level policy checks, and row-level filtering.
 
 #### Setup
 
@@ -752,11 +758,14 @@ Roles use a `realm` string to categorize scope. Common patterns:
 | `system` | `#[authz(realm = "system", skip_org)]`            | user only  |
 | `public` | `#[authz(realm = "public", skip_user, skip_org)]` | none       |
 
+Each request must include the `X-Role-Id` header with the UUID of the role being used. The framework verifies the role exists, matches the required realm and org, and that the authenticated user is listed in `UserInRole` for that role.
+
 ```rs
 am_create!(Role {
     name: "Org Admin", realm: "org",
+    col_policy: col_policy.to_json()?,
+    row_policy: RowPolicy::default().to_json()?,
     org_id: Some(org_id.clone()),
-    operations: operations.to_json()?,
 })
 .exec(ctx).await?;
 
@@ -790,43 +799,44 @@ The framework looks up orgs via `authz_org_impl::<Org>()` using the `id` from th
 #### `authz` attribute
 
 ```rs
-// Org-scoped: requires Authorization + X-Org-Id headers
+// Org-scoped: requires Authorization + X-Org-Id + X-Role-Id headers
 #[query(authz(realm = "org"))]
 fn org_dashboard() -> OrgGql {
     let org_id = ctx.authz().await?;
     Org::find_by_id(&org_id).gql_select(ctx)?.one_or_404(tx).await?
 }
 
-// System-wide: requires Authorization only
+// System-wide: requires Authorization + X-Role-Id (no X-Org-Id)
 #[query(authz(realm = "system", skip_org))]
 fn system_dashboard() -> String {
     "ok".to_string()
 }
 
-// Works on all CRUD macros
-#[search(Todo, authz(realm = "org"))]
+// Works on all CRUD macros - use authz_row for row-level filtering
+#[search(Task, authz(realm = "org"))]
 fn resolver() {
-    (None, None)
+    let row_filter = ctx.authz_row::<TaskFilter>().await?;
+    (row_filter.map(|f| f.into_condition()), None)
 }
 ```
 
 Use `ctx.authz_role().await?` to get the matched `Role` row inside any authz-guarded resolver.
 
-#### Policy structure
+#### Col policy structure
 
-Each `Role.operations` is a JSON-encoded `PolicyOperations` map that controls allowed GraphQL inputs and output fields:
+`Role.col_policy` is a JSON-encoded `ColPolicy` map that controls which GraphQL operations and fields are allowed:
 
 ```rs
-pub type PolicyOperations = HashMap<String, PolicyOperation>;
+pub type ColPolicy = HashMap<String, ColPolicyOperation>;
 
-pub struct PolicyOperation {
-    pub inputs: PolicyField, // allowed GraphQL arguments
-    pub output: PolicyField, // allowed response fields
+pub struct ColPolicyOperation {
+    pub inputs: ColPolicyField, // allowed GraphQL arguments
+    pub output: ColPolicyField, // allowed response fields
 }
 
-pub struct PolicyField {
+pub struct ColPolicyField {
     pub allow: bool,
-    pub children: Option<PolicyFields>, // HashMap<String, PolicyField>
+    pub children: Option<ColPolicyFields>, // HashMap<String, ColPolicyField>
 }
 ```
 
@@ -840,30 +850,182 @@ Key is the GraphQL operation name, or `"*"` for all. Wildcards in children:
 **Allow everything:**
 
 ```rs
-let all = PolicyField { allow: true, children: Some(hashmap! {
-    "**".to_owned() => PolicyField { allow: true, children: None },
-}) };
-let ops: PolicyOperations = hashmap! {
-    "*".to_owned() => PolicyOperation { inputs: all.clone(), output: all },
+let all = ColPolicyField {
+    allow: true,
+    children: Some(hashmap! {
+        "**".to_owned() => ColPolicyField {
+            allow: true,
+            children: None,
+        },
+    }),
+};
+let col: ColPolicy = hashmap! {
+    "*".to_owned() => ColPolicyOperation {
+        inputs: all.clone(),
+        output: all,
+    },
 };
 ```
 
 **Restrict to specific fields:**
 
 ```rs
-let ops: PolicyOperations = hashmap! {
-    "todoSearch".to_owned() => PolicyOperation {
-        inputs: PolicyField { allow: true, children: Some(hashmap! {
-            "filter".to_owned() => PolicyField { allow: true, children: Some(hashmap! {
-                "**".to_owned() => PolicyField { allow: true, children: None },
-            }) },
-        }) },
-        output: PolicyField { allow: true, children: Some(hashmap! {
-            "id".to_owned()      => PolicyField { allow: true, children: None },
-            "content".to_owned() => PolicyField { allow: true, children: None },
-        }) },
+let col: ColPolicy = hashmap! {
+    "taskSearch".to_owned() => ColPolicyOperation {
+        inputs: ColPolicyField {
+            allow: true,
+            children: Some(hashmap! {
+                "filter".to_owned() => ColPolicyField {
+                    allow: true,
+                    children: Some(hashmap! {
+                        "**".to_owned() => ColPolicyField {
+                            allow: true,
+                            children: None,
+                        },
+                    }),
+                },
+            }),
+        },
+        output: ColPolicyField {
+            allow: true,
+            children: Some(hashmap! {
+                "id".to_owned() => ColPolicyField {
+                      allow: true,
+                      children: None,
+                  },
+                "title".to_owned() => ColPolicyField {
+                      allow: true,
+                      children: None,
+                },
+            }),
+        },
     },
 };
+```
+
+#### Row policy and `authz_row`
+
+`Role.row_policy` is a JSON-encoded `RowPolicy` map from field path to a script string. The script is forwarded verbatim to `AuthzHandlers::execute_script` so your app can produce a filter for that resolver.
+
+```rs
+pub type RowPolicy = HashMap<String, String>;
+```
+
+Key is the GraphQL field path (e.g. `"tasks"` or `"users.posts"`). Value is an arbitrary string - the framework passes it to `execute_script` unchanged.
+
+```rs
+let row: RowPolicy = hashmap! {
+    "tasks".to_owned() => "filter_by_assignee".to_owned(),
+};
+am_create!(Role {
+    col_policy: col.to_json()?,
+    row_policy: row.to_json()?,
+    // ...
+})
+```
+
+Inside a resolver, call `ctx.authz_row::<F>()`. Authorize is already guaranteed from the macro. Returns `None` when no entry exists for this field (all rows accessible), or `Some(F)` when the script produced a filter:
+
+```rs
+#[search(Task, authz(realm = "org"))]
+fn resolver() {
+    let row_filter = ctx.authz_row::<TaskFilter>().await?;
+    (row_filter.map(|f| f.into_condition()), None)
+}
+```
+
+Implement `AuthzHandlers` to evaluate the script and return a JSON object that deserializes into your filter type:
+
+```rs
+struct MyHandlers;
+
+#[async_trait]
+impl AuthzHandlers for MyHandlers {
+    async fn execute_script(
+        &self,
+        ctx: &Context<'_>,
+        script: &str,
+    ) -> Res<Option<JsonValue>> {
+        let user_id = ctx.auth().await?;
+        let org_id = ctx.authz().await?;
+        // evaluate `script` (Rhai, hand-written match, etc.)
+        Ok(Some(serde_json::json!({
+            "assignee_id_eq": user_id,
+            "org_id_eq": org_id,
+        })))
+    }
+}
+
+AuthzConfig {
+    handlers: Arc::new(MyHandlers),
+    ..Default::default()
+}
+```
+
+---
+
+### SeaORM helpers
+
+The traits in `packages/core/db` extend sea-orm's `Select`, `Filter`, and `ActiveModel` types with convenience methods available throughout resolvers.
+
+#### Query helpers
+
+Available on `Select<E>`, `DeleteMany<E>`, and `UpdateMany<E>`:
+
+```rs
+Todo::find()
+    .filter_by_id(&id)      // WHERE id = ?
+    .exclude_deleted()       // WHERE deleted_at IS NULL (no-op if model has no deleted_at)
+```
+
+Available on `Select<E>`:
+
+```rs
+Todo::find()
+    .filter_opt(maybe_cond)           // filter only if Some
+    .chain(filter)                    // apply a TodoFilter
+    .chain(order_by)                  // apply a Vec<TodoOrderBy>
+    .gql_select(ctx)?                 // select only columns requested in the GQL look-ahead
+    .gql_select_id()                  // select only id (for delete response)
+    .exists_or_404(tx).await?         // error if no row matches
+
+Todo::find().one_or_404(tx).await?    // one() + error if None
+selector.one_or_404(tx).await?        // same on Selector<SelectModel<G>>
+```
+
+Available on `Filter` and `OrderBy` via `IntoSelect`:
+
+```rs
+filter.into_select()           // E::find().chain(filter)
+filter.gql_select(ctx)?        // shortcut for into_select().gql_select(ctx)
+filter.gql_select_id()         // shortcut for into_select().gql_select_id()
+```
+
+#### Soft-delete helpers
+
+```rs
+Todo::soft_delete_by_id(&id)?.exec(tx).await?;
+Todo::soft_delete_many()?.filter(condition).exec(tx).await?;
+
+// on an active model instance
+am.soft_delete(tx).await?;
+```
+
+#### Active model helpers
+
+```rs
+// auto id, created_at, field defaults
+am_create!(Todo { content: "hello" })
+
+// auto updated_at
+am_update!(Todo { id: id.clone(), content: "new" })
+
+// auto updated_at + deleted_at
+am_soft_delete!(Todo { id: id.clone() })
+
+am.exec(ctx).await?           // insert/update, sets *_by_id from ctx.auth()
+am.exec_without_ctx(db).await? // insert/update, no by_id fields
+am.into_active_model()         // unwrap to raw sea-orm ActiveModel (for insert_many etc.)
 ```
 
 ---
