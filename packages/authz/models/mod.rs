@@ -1,8 +1,10 @@
+mod col_policy;
 mod org;
-mod policy;
 mod role;
+mod row_policy;
 mod user_in_role;
+pub use col_policy::*;
 pub use org::*;
-pub use policy::*;
 pub use role::*;
+pub use row_policy::*;
 pub use user_in_role::*;

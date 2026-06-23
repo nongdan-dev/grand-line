@@ -17,12 +17,12 @@ impl<'a> AuthzConfigContext<'a> for Context<'a> {
 }
 
 pub trait AuthzOrgImplContext<'a> {
-    fn authz_org_impl(&self) -> Res<&'a AuthzOrgImpl>;
+    fn authz_org_impl(&self) -> Res<&'a Box<dyn AuthzOrgImpl>>;
 }
 
 impl<'a> AuthzOrgImplContext<'a> for Context<'a> {
-    fn authz_org_impl(&self) -> Res<&'a AuthzOrgImpl> {
-        self.data_opt::<AuthzOrgImpl>()
+    fn authz_org_impl(&self) -> Res<&'a Box<dyn AuthzOrgImpl>> {
+        self.data_opt::<Box<dyn AuthzOrgImpl>>()
             .ok_or_else(|| MyErr::OrgImplNotFound.into())
     }
 }

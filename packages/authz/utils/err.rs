@@ -11,6 +11,9 @@ pub enum MyErr {
     #[error("org id is missing in the request headers")]
     #[client]
     HeaderOrgId404,
+    #[error("role id is missing in the request headers")]
+    #[client]
+    HeaderRoleId404,
 
     // ========================================================================
     // server errors

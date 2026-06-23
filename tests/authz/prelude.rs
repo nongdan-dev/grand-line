@@ -61,7 +61,7 @@ pub async fn prepare_wildcard() -> Res<Prepare> {
     prepare_with_ops(operations_wildcard()).await
 }
 
-pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> {
+pub async fn prepare_with_ops(org1_admin_ops: ColPolicy) -> Res<Prepare> {
     let org_impl = authz_org_impl::<Org>();
 
     let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole);
@@ -176,57 +176,57 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
     })
 }
 
-pub const fn field(children: PolicyFields) -> PolicyField {
-    PolicyField {
+pub const fn field(children: ColPolicyFields) -> ColPolicyField {
+    ColPolicyField {
         allow: true,
         children: Some(children),
     }
 }
-pub const fn field_no_children() -> PolicyField {
-    PolicyField {
+pub const fn field_no_children() -> ColPolicyField {
+    ColPolicyField {
         allow: true,
         children: None,
     }
 }
 
-pub fn fields(k: String, children: PolicyFields) -> PolicyFields {
+pub fn fields(k: String, children: ColPolicyFields) -> ColPolicyFields {
     hashmap! {
         k => field(children),
     }
 }
-pub fn fields_no_children(k: String) -> PolicyFields {
+pub fn fields_no_children(k: String) -> ColPolicyFields {
     hashmap! {
         k => field_no_children(),
     }
 }
 
-pub fn fields_wildcard() -> PolicyFields {
+pub fn fields_wildcard() -> ColPolicyFields {
     fields_no_children("*".to_owned())
 }
-pub fn fields_wildcard_nested() -> PolicyFields {
+pub fn fields_wildcard_nested() -> ColPolicyFields {
     fields_no_children("**".to_owned())
 }
 
-pub const fn operation(inputs: PolicyField, output: PolicyField) -> PolicyOperation {
-    PolicyOperation {
+pub const fn operation(inputs: ColPolicyField, output: ColPolicyField) -> ColPolicyOperation {
+    ColPolicyOperation {
         inputs,
         output,
         row: None,
     }
 }
-pub fn operations(k: String, inputs: PolicyField, output: PolicyField) -> PolicyOperations {
+pub fn operations(k: String, inputs: ColPolicyField, output: ColPolicyField) -> ColPolicy {
     hashmap! {
         k => operation(inputs, output),
     }
 }
 
-pub fn operations_wildcard() -> PolicyOperations {
+pub fn operations_wildcard() -> ColPolicy {
     let children = fields_wildcard_nested();
     let field = field(children);
     operations("*".to_owned(), field.clone(), field)
 }
 
-pub fn operations_col_level_org_name() -> PolicyOperations {
+pub fn operations_col_level_org_name() -> ColPolicy {
     let inputs = field(fields_wildcard_nested());
     let output = field(fields_no_children("name".to_owned()));
     operations("org".to_owned(), inputs, output)

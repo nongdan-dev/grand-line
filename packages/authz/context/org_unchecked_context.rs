@@ -20,10 +20,10 @@ impl OrgUnauthorizedContext for Context<'_> {
             return Err(MyErr::HeaderOrgId404.into());
         }
 
-        let lookup = self.authz_org_impl()?.handlers;
-
+        let org_impl = self.authz_org_impl()?;
         let tx = &*self.tx().await?;
-        lookup
+
+        org_impl
             .find_by_id(&v, tx)
             .await?
             .ok_or_else(|| MyErr::Unauthorized.into())

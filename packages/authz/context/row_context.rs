@@ -32,40 +32,27 @@ impl AuthzRowContext for Context<'_> {
     where
         F: Sized + Serialize + DeserializeOwned,
     {
-        let cache_k = self.authz_cache_key().await?;
-        let cache_m = self.authz_cache_or_init().await?;
-        let guard = cache_m.lock().await;
-        let Some(cached) = guard.get(&cache_k).cloned() else {
-            return Err(MyErr::MissingMacro.into());
-        };
-        drop(guard);
+        let r = self.authz_role().await?;
+        let k = authz_field_path(self);
 
-        let Some(item) = cached.as_ref() else {
-            return Err(MyErr::Unauthorized.into());
-        };
-
-        let path = authz_field_path(self);
-        let field = self.field().name();
-        let map = PolicyOperations::from_json(item.role.operations.clone())?;
-        let Some(p) = map.get(&path).or_else(|| map.get(field)).or_else(|| map.get("*")) else {
-            return Err(MyErr::Unauthorized.into());
-        };
-
-        let Some(script) = &p.row else {
+        let Some(script) = r.row_policy.get(k) else {
             return Ok(None);
         };
+        if script.is_null() {
+            return Ok(None);
+        }
 
-        // auth/authz failures become None scope vars so scripts that don't
-        // reference current_user / current_org still work in those realms
-        let user_id = self.auth().await.ok();
-        let org_id = item.org.as_ref().map(|o| o.id.as_str());
+        let Some(script) = script.as_str() else {
+            let e = "script is not a string in db";
+            return Err(MyErr::RowScript(e.to_string()).into());
+        };
 
         let h = &self.authz_config().handlers;
-
-        let Some(json) = h.on_row_script(self).await? else {
+        let Some(json) = h.execute_script(self, script).await? else {
             return Ok(None);
         };
-        let filter = F::from_json(json).map_err(|e| MyErr::RowScript(e.to_string()))?;
-        Ok(Some(filter))
+
+        let f = F::from_json(json).map_err(|e| MyErr::RowScript(e.to_string()))?;
+        Ok(Some(f))
     }
 }

@@ -116,14 +116,14 @@ async fn prepare_inner(op_key: &str, row_script: Option<&str>, cfg: Option<Authz
     .exec_without_ctx(&tmp.db)
     .await?;
 
-    let wc_field = PolicyField {
+    let wc_field = ColPolicyField {
         allow: true,
         children: Some(hashmap! {
-            "**".to_owned() => PolicyField { allow: true, children: None }
+            "**".to_owned() => ColPolicyField { allow: true, children: None }
         }),
     };
-    let ops: PolicyOperations = hashmap! {
-        op_key.to_owned() => PolicyOperation {
+    let ops: ColPolicy = hashmap! {
+        op_key.to_owned() => ColPolicyOperation {
             inputs: wc_field.clone(),
             output: wc_field.clone(),
             row: row_script.map(|v| v.to_owned()),

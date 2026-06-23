@@ -27,51 +27,40 @@ impl AuthzCacheContext for Context<'_> {
     }
 
     async fn authz_without_cache(&self, check: AuthzDirectiveEnsure) -> Res<Option<AuthzCacheItem>> {
-        let mut q = Role::find()
-            .exclude_deleted()
-            .filter(RoleColumn::Realm.eq(&check.realm));
+        let k = self.authz_config().role_id_header_key;
+        let role_id = self.get_header(k)?.trim().to_owned();
+        if role_id.is_empty() {
+            return Err(MyErr::HeaderRoleId404.into());
+        }
 
-        let mut org = if check.org {
-            let o = self.org_unchecked().await?;
-            q = q.filter(RoleColumn::OrgId.eq(&o.id));
-            Some(o)
+        let org = if check.org {
+            Some(self.org_unchecked().await?)
         } else {
-            q = q.filter(RoleColumn::OrgId.is_null());
             None
         };
 
-        if check.user {
-            let user_id = self.auth().await?;
-            let mut sub = UserInRole::find()
-                .exclude_deleted()
-                .select_only()
-                .column(UserInRoleColumn::RoleId)
-                .filter(UserInRoleColumn::UserId.eq(user_id));
-            if check.org {
-                let o = self.org_unchecked().await?;
-                sub = sub.filter(UserInRoleColumn::OrgId.eq(&o.id));
-                org = Some(o);
-            } else {
-                sub = sub.filter(UserInRoleColumn::OrgId.is_null());
-            }
-            q = q.filter(RoleColumn::Id.in_subquery(sub.into_query()));
-        }
-
         let tx = &*self.tx().await?;
-        let roles = q.all(tx).await?;
-        let operation = self.field().name();
+        let role = Role::find()
+            .exclude_deleted()
+            .filter_by_id(&role_id)
+            .filter(RoleColumn::Realm.eq(&check.realm))
+            .one(tx)
+            .await?;
 
-        for role in roles {
-            let map = PolicyOperations::from_json(role.operations.clone())?;
-            if let Some(p) = map.get("*").or_else(|| map.get(operation))
-                && policy_check_inputs(self, &p.inputs)
-                && policy_check_output(self, &p.output)
-            {
-                return Ok(Some(AuthzCacheItem {
-                    role,
-                    org,
-                }));
-            }
+        let Some(role) = role else {
+            return Ok(None);
+        };
+
+        let operation = self.field().name();
+        let map = ColPolicy::from_json(role.col_policy.clone())?;
+        if let Some(p) = map.get("*").or_else(|| map.get(operation))
+            && col_policy_check_inputs(self, &p.inputs)
+            && col_policy_check_output(self, &p.output)
+        {
+            return Ok(Some(AuthzCacheItem {
+                role,
+                org,
+            }));
         }
 
         Ok(None)
