@@ -1,11 +1,11 @@
-#[path = "./prelude.rs"]
-mod prelude;
-use prelude::*;
+#[path = "./setup.rs"]
+mod setup;
+use setup::*;
 
 // Calling login while already authenticated returns AlreadyAuthenticated.
 #[tokio::test]
 async fn t() -> Res<()> {
-    let d = prepare().await?;
+    let d = setup().await?;
 
     let mut h = d.h;
     h.insert(H_AUTHORIZATION, h_bearer(&d.token));

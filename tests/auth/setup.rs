@@ -12,7 +12,7 @@ pub struct Query(AuthMergedQuery);
 #[derive(Default, MergedObject)]
 pub struct Mutation(AuthMergedMutation<User>);
 
-pub struct Prepare {
+pub struct Setup {
     pub tmp: TmpDb,
     pub s: SchemaBuilder<Query, Mutation, EmptySubscription>,
     pub h: HeaderMap,
@@ -20,7 +20,7 @@ pub struct Prepare {
     pub token: String,
 }
 
-pub async fn prepare() -> Res<Prepare> {
+pub async fn setup() -> Res<Setup> {
     let c = AuthConfig {
         handlers: Arc::new(MockAuthHandlers),
         ..Default::default()
@@ -51,7 +51,7 @@ pub async fn prepare() -> Res<Prepare> {
 
     let token = rand_utils::qs_token(&ls.id, &secret)?;
 
-    Ok(Prepare {
+    Ok(Setup {
         tmp,
         s,
         h,

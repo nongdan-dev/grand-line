@@ -1,11 +1,11 @@
-#[path = "./prelude.rs"]
-mod prelude;
-use prelude::*;
+#[path = "./setup.rs"]
+mod setup;
+use setup::*;
 
 // Submitting a wrong OTP during forgot-password resolve returns OtpResolveInvalid.
 #[tokio::test]
 async fn t() -> Res<()> {
-    let d = prepare().await?;
+    let d = setup().await?;
     let s = d.s.data(d.h).finish();
 
     // Start a forgot-password flow to create an AuthOtp row.

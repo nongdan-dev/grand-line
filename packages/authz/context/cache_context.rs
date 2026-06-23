@@ -95,10 +95,17 @@ impl AuthzCacheContext for Context<'_> {
         let Some(operation_ty) = operation_ty else {
             return Err(MyErr::MissingMacro.into());
         };
+        // On first call (root resolver), compute and store the key so that nested
+        // resolvers (e.g. relations) return the same key instead of their own field name.
+        if let Some(cached_key) = self.get_cache::<AuthzCachedKey>().await? {
+            return Ok(cached_key.0.clone());
+        }
         let field = self.field();
         let operation = field.name();
         let alias = field.alias().unwrap_or_default();
         let k = format!("{operation_ty}:{operation}:{alias}");
+        let store = k.clone();
+        self.cache(async move || Ok(AuthzCachedKey(store))).await?;
         Ok(k)
     }
 }

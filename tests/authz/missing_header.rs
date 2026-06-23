@@ -1,10 +1,10 @@
-#[path = "./prelude.rs"]
-mod prelude;
-use prelude::*;
+#[path = "./setup.rs"]
+mod setup;
+use setup::*;
 
 #[tokio::test]
 async fn err_on_missing_role_id() -> Res<()> {
-    let d = prepare_with_col_wildcard().await?;
+    let d = setup_with_col_wildcard().await?;
 
     let mut h = d.h;
     h.insert(H_AUTHORIZATION, h_bearer(&d.token1));
@@ -23,7 +23,7 @@ async fn err_on_missing_role_id() -> Res<()> {
 
 #[tokio::test]
 async fn err_on_missing_org_id() -> Res<()> {
-    let d = prepare_with_col_wildcard().await?;
+    let d = setup_with_col_wildcard().await?;
 
     let mut h = d.h;
     h.insert(H_AUTHORIZATION, h_bearer(&d.token1));

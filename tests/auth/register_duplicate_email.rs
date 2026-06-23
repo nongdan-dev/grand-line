@@ -1,11 +1,11 @@
-#[path = "./prelude.rs"]
-mod prelude;
-use prelude::*;
+#[path = "./setup.rs"]
+mod setup;
+use setup::*;
 
 // Registering with an email that is already in use returns RegisterEmailExists.
 #[tokio::test]
 async fn t() -> Res<()> {
-    let d = prepare().await?;
+    let d = setup().await?;
     let s = d.s.data(d.h).finish();
 
     let q = "
@@ -15,7 +15,7 @@ async fn t() -> Res<()> {
         }
     }
     ";
-    // olivia@example.com is already seeded in prepare().
+    // olivia@example.com is already seeded in setup().
     let v = value!({
         "data": {
             "email": "olivia@example.com",

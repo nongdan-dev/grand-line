@@ -24,6 +24,12 @@ pub trait AuthzRowContext {
     async fn authz_row<F>(&self) -> Res<Option<F>>
     where
         F: Sized + Serialize + DeserializeOwned;
+
+    // Like authz_row but returns None when there is no authz context (MissingMacro).
+    // Used in relation resolvers where authz was checked by the parent root resolver.
+    async fn authz_row_graceful<F>(&self) -> Res<Option<F>>
+    where
+        F: Sized + Serialize + DeserializeOwned;
 }
 
 #[async_trait]
@@ -43,8 +49,7 @@ impl AuthzRowContext for Context<'_> {
         }
 
         let Some(script) = script.as_str() else {
-            let e = "script is not a string in db";
-            return Err(MyErr::RowScript(e.to_owned()).into());
+            return Err(MyErr::RowScript404.into());
         };
 
         let h = &self.authz_config().handlers;
@@ -52,7 +57,17 @@ impl AuthzRowContext for Context<'_> {
             return Ok(None);
         };
 
-        let f = F::from_json(json).map_err(|e| MyErr::RowScript(e.to_string()))?;
+        let f = F::from_json(json)?;
         Ok(Some(f))
+    }
+
+    async fn authz_row_graceful<F>(&self) -> Res<Option<F>>
+    where
+        F: Sized + Serialize + DeserializeOwned,
+    {
+        match self.authz_row::<F>().await {
+            Err(e) if e.0.code() == MyErr::MissingMacro.code() => Ok(None),
+            f => f,
+        }
     }
 }

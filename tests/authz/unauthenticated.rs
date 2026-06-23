@@ -1,14 +1,14 @@
 // Tests that authz-protected resolvers reject requests with no auth token.
 // role_id must be provided so the authz check reaches the user verification step.
 
-#[path = "./prelude.rs"]
-mod prelude;
-use prelude::*;
+#[path = "./setup.rs"]
+mod setup;
+use setup::*;
 
 // A request with no Authorization header to an org-realm resolver returns Unauthenticated.
 #[tokio::test]
 async fn no_token_org_realm() -> Res<()> {
-    let d = prepare_with_col_wildcard().await?;
+    let d = setup_with_col_wildcard().await?;
 
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));
@@ -29,7 +29,7 @@ async fn no_token_org_realm() -> Res<()> {
 // A request with no Authorization header to a system-realm resolver returns Unauthenticated.
 #[tokio::test]
 async fn no_token_system_realm() -> Res<()> {
-    let d = prepare_with_col_wildcard().await?;
+    let d = setup_with_col_wildcard().await?;
 
     let mut h = d.h;
     h.insert(H_ROLE_ID, h_str(&d.role_id1_system));

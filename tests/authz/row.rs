@@ -1,62 +1,6 @@
-#[path = "./prelude.rs"]
-mod prelude;
-use prelude::*;
-#[path = "./row_handlers.rs"]
-mod row_handlers;
-pub use row_handlers::*;
-
-// ---------------------------------------------------------------------------
-// Test setup
-// ---------------------------------------------------------------------------
-
-struct Setup {
-    tmp: TmpDb,
-    schema: GraphQLSchema<Query, EmptyMutation, EmptySubscription>,
-}
-
-async fn setup(row_script: Option<&str>, cfg: Option<AuthzConfig>) -> Res<Setup> {
-    setup_inner("tasks", row_script, cfg).await
-}
-
-async fn setup_inner(col_key: &str, row_script: Option<&str>, cfg: Option<AuthzConfig>) -> Res<Setup> {
-    let wc = col_policy_field(col_policy_fields_wildcard_nested());
-    let col = col_policy(col_key.to_owned(), wc.clone(), wc);
-    let row = row_script
-        .map(|s| row_policy("tasks".to_owned(), s.to_owned()))
-        .unwrap_or_default();
-    let d = prepare_with_policy(col, row).await?;
-
-    // task1: assigned to user1, belongs to org1
-    am_create!(Task {
-        title: "Alpha task",
-        assignee_id: d.user_id1.clone(),
-        org_id: d.org_id1.clone(),
-    })
-    .exec_without_ctx(&d.tmp.db)
-    .await?;
-
-    // task2: assigned to user2, belongs to org2
-    am_create!(Task {
-        title: "Beta task",
-        assignee_id: d.user_id2.clone(),
-        org_id: d.org_id2.clone(),
-    })
-    .exec_without_ctx(&d.tmp.db)
-    .await?;
-
-    let mut h = d.h;
-    h.append(H_ORG_ID, h_str(&d.org_id1));
-    h.insert(H_AUTHORIZATION, h_bearer(&d.token1));
-    h.insert(H_ROLE_ID, h_str(&d.role_id1));
-    let mut b = d.s;
-    if let Some(c) = cfg {
-        b = b.data(c);
-    }
-    Ok(Setup {
-        schema: b.data(h).finish(),
-        tmp: d.tmp,
-    })
-}
+#[path = "./row_setup.rs"]
+mod row_setup;
+use row_setup::*;
 
 const Q: &str = "
 query {
@@ -66,14 +10,10 @@ query {
 }
 ";
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
 // No row_policy entry for this resolver -> all tasks returned.
 #[tokio::test]
 async fn no_row_policy_returns_all() -> Res<()> {
-    let d = setup(None, None).await?;
+    let d = row_setup(None, None).await?;
 
     let expected = value!({
         "tasks": [{
@@ -94,7 +34,7 @@ async fn script_none_returns_all() -> Res<()> {
         handlers: Arc::new(NoneHandler),
         ..Default::default()
     };
-    let d = setup(Some("any"), Some(c)).await?;
+    let d = row_setup(Some("any"), Some(c)).await?;
 
     let expected = value!({
         "tasks": [{
@@ -115,7 +55,7 @@ async fn script_filters_tasks_by_assignee() -> Res<()> {
         handlers: Arc::new(AssigneeHandler),
         ..Default::default()
     };
-    let d = setup(Some("any"), Some(c)).await?;
+    let d = row_setup(Some("any"), Some(c)).await?;
 
     // user1 is logged in, so only user1's task is returned.
     let expected = value!({
@@ -135,7 +75,7 @@ async fn script_filters_tasks_by_org() -> Res<()> {
         handlers: Arc::new(OrgHandler),
         ..Default::default()
     };
-    let d = setup(Some("any"), Some(c)).await?;
+    let d = row_setup(Some("any"), Some(c)).await?;
 
     // org1 is the request context, only task belonging to org1 is returned.
     let expected = value!({
@@ -155,7 +95,7 @@ async fn script_filters_tasks_by_assignee_and_org() -> Res<()> {
         handlers: Arc::new(BothHandler),
         ..Default::default()
     };
-    let d = setup(Some("any"), Some(c)).await?;
+    let d = row_setup(Some("any"), Some(c)).await?;
 
     let expected = value!({
         "tasks": [{
@@ -174,7 +114,7 @@ async fn script_string_forwarded_verbatim() -> Res<()> {
         handlers: Arc::new(ScriptCheckHandler),
         ..Default::default()
     };
-    let d = setup(Some(SCRIPT_ALPHA), Some(c)).await?;
+    let d = row_setup(Some(SCRIPT_ALPHA), Some(c)).await?;
 
     let expected = value!({
         "tasks": [{
@@ -193,7 +133,7 @@ async fn script_error_masked_as_internal_server() -> Res<()> {
         handlers: Arc::new(ErrorHandler),
         ..Default::default()
     };
-    let d = setup(Some("any"), Some(c)).await?;
+    let d = row_setup(Some("any"), Some(c)).await?;
 
     exec_assert_err(&d.schema, Q, None, &CoreGraphQLErr::InternalServer).await;
 
@@ -207,7 +147,7 @@ async fn wildcard_col_key_with_row_filter() -> Res<()> {
         handlers: Arc::new(AssigneeHandler),
         ..Default::default()
     };
-    let d = setup_inner("*", Some("any"), Some(c)).await?;
+    let d = row_setup_with_col("*", Some("any"), Some(c)).await?;
 
     let expected = value!({
         "tasks": [{

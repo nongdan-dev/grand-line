@@ -59,7 +59,7 @@ pub struct Query(UserDetailQuery, UserSearchQuery, UserCountQuery, PersonDetailQ
 #[derive(Default, MergedObject)]
 pub struct Mutation(UserDeleteMutation);
 
-pub struct Prepare {
+pub struct Setup {
     pub tmp: TmpDb,
     pub s: GraphQLSchema<Query, Mutation, EmptySubscription>,
     pub id1: String,
@@ -68,7 +68,7 @@ pub struct Prepare {
     pub pid2: String,
 }
 
-pub async fn prepare() -> Res<Prepare> {
+pub async fn setup() -> Res<Setup> {
     let tmp = tmp_db!(User, Person, Alias, Org, UserInOrg);
     let s = schema_qm::<Query, Mutation>(&tmp.db).finish();
 
@@ -137,7 +137,7 @@ pub async fn prepare() -> Res<Prepare> {
     .exec_without_ctx(&tmp.db)
     .await?;
 
-    Ok(Prepare {
+    Ok(Setup {
         tmp,
         s,
         id1: u1.id,

@@ -59,7 +59,7 @@ pub struct Query(
     SystemQuery,
 );
 
-pub struct Prepare {
+pub struct Setup {
     pub tmp: TmpDb,
     pub s: SchemaBuilder<Query, EmptyMutation, EmptySubscription>,
     pub h: HeaderMap,
@@ -74,15 +74,15 @@ pub struct Prepare {
     pub role_id2: String,
 }
 
-pub async fn prepare_with_col_wildcard() -> Res<Prepare> {
-    prepare_with_col_policy(col_policy_wildcard()).await
+pub async fn setup_with_col_wildcard() -> Res<Setup> {
+    setup_with_col_policy(col_policy_wildcard()).await
 }
 
-pub async fn prepare_with_col_policy(org1_admin: ColPolicy) -> Res<Prepare> {
-    prepare_with_policy(org1_admin, RowPolicy::default()).await
+pub async fn setup_with_col_policy(org1_admin: ColPolicy) -> Res<Setup> {
+    setup_with_policy(org1_admin, RowPolicy::default()).await
 }
 
-pub async fn prepare_with_policy(org1_admin: ColPolicy, org1_row: RowPolicy) -> Res<Prepare> {
+pub async fn setup_with_policy(org1_admin: ColPolicy, org1_row: RowPolicy) -> Res<Setup> {
     let org_impl = authz_org_impl::<Org>();
 
     let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole, Task);
@@ -187,7 +187,7 @@ pub async fn prepare_with_policy(org1_admin: ColPolicy, org1_row: RowPolicy) -> 
     .exec_without_ctx(&tmp.db)
     .await?;
 
-    Ok(Prepare {
+    Ok(Setup {
         tmp,
         s,
         h,

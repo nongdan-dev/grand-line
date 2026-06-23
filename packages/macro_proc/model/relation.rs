@@ -1,5 +1,14 @@
 use crate::prelude::*;
 
+#[cfg(feature = "authz")]
+fn gen_row_f(filter: &Ts2) -> Ts2 {
+    quote! { let _row_f = ctx.authz_row_graceful::<#filter>().await?; }
+}
+#[cfg(not(feature = "authz"))]
+fn gen_row_f(filter: &Ts2) -> Ts2 {
+    quote! { let _row_f: Option<#filter> = None; }
+}
+
 pub struct GenRelation {
     pub ty: RelationTy,
     pub a: RelationAttr,
@@ -74,23 +83,38 @@ impl GenRelation {
         let model = self.a.to()?;
         let column = self.column()?;
         let col = self.col()?;
+        let filter = ty_filter(&model)?;
         let include_deleted = get_include_deleted(self.a.include_deleted);
+        let row_f = gen_row_f(&filter);
         let r = quote! {
-            #model::gql_load(ctx, #column::#col, id, #include_deleted).await?
+            #row_f
+            match _row_f {
+                Some(_f) => {
+                    let mut _q = #model::find().filter(#column::#col.eq(id.clone()));
+                    if !#include_deleted.unwrap_or_default() {
+                        _q = _q.exclude_deleted();
+                    }
+                    _q.chain(_f).gql_select(ctx)?.one(tx).await?
+                }
+                None => #model::gql_load(ctx, #column::#col, id, #include_deleted).await?,
+            }
         };
         self.body_utils(&r, false)
     }
     fn body_has_many(&self) -> SynRes<Ts2> {
         let column = self.column()?;
         let col = self.col()?;
+        let model = self.a.to()?;
+        let filter = ty_filter(&model)?;
+        let include_deleted = get_include_deleted(self.a.include_deleted);
+        let row_f = gen_row_f(&filter);
         let extra_cond = quote! {
             let extra_cond = Condition::all().add(#column::#col.eq(id));
         };
-        let model = self.a.to()?;
-        let include_deleted = get_include_deleted(self.a.include_deleted);
         let r = quote! {
             #extra_cond
-            #model::gql_search(ctx, tx, Some(extra_cond), filter, None, order_by, None, page, #include_deleted).await?
+            #row_f
+            #model::gql_search(ctx, tx, Some(extra_cond), filter, _row_f, order_by, None, page, #include_deleted).await?
         };
         self.body_utils(&r, true)
     }
@@ -102,7 +126,9 @@ impl GenRelation {
         let through_key_col = self.a.key_str()?.to_pascal_case().ts2_or_err()?;
         let through_other_key_col = self.a.other_key()?.to_string().to_pascal_case().ts2_or_err()?;
         let model = self.a.to()?;
+        let filter = ty_filter(&model)?;
         let include_deleted = get_include_deleted(self.a.include_deleted);
+        let row_f = gen_row_f(&filter);
         let extra_cond = quote! {
             let sub = #through::find()
                 .select_only()
@@ -113,7 +139,8 @@ impl GenRelation {
         };
         let r = quote! {
             #extra_cond
-            #model::gql_search(ctx, tx, Some(extra_cond), filter, None, order_by, None, page, #include_deleted).await?
+            #row_f
+            #model::gql_search(ctx, tx, Some(extra_cond), filter, _row_f, order_by, None, page, #include_deleted).await?
         };
         self.body_utils(&r, true)
     }

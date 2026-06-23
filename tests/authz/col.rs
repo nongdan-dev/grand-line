@@ -1,10 +1,10 @@
-#[path = "./prelude.rs"]
-mod prelude;
-use prelude::*;
+#[path = "./setup.rs"]
+mod setup;
+use setup::*;
 
 #[tokio::test]
 async fn ok() -> Res<()> {
-    let d = prepare_with_col_policy(col_policy_with_children("org", "name")).await?;
+    let d = setup_with_col_policy(col_policy_with_children("org", "name")).await?;
 
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));
@@ -33,7 +33,7 @@ async fn ok() -> Res<()> {
 
 #[tokio::test]
 async fn err() -> Res<()> {
-    let d = prepare_with_col_policy(col_policy_with_children("org", "name")).await?;
+    let d = setup_with_col_policy(col_policy_with_children("org", "name")).await?;
 
     let mut h = d.h;
     h.append(H_ORG_ID, h_str(&d.org_id1));

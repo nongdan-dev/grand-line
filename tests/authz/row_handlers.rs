@@ -64,10 +64,16 @@ impl AuthzHandlers for ScriptCheckHandler {
     }
 }
 
+#[grand_line_err]
+pub enum ScriptErr {
+    #[error("evaluation failed")]
+    Failed,
+}
+
 pub struct ErrorHandler;
 #[async_trait]
 impl AuthzHandlers for ErrorHandler {
     async fn execute_script(&self, _ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
-        Err(AuthzErr::RowScript("evaluation failed".to_owned()).into())
+        Err(ScriptErr::Failed.into())
     }
 }
