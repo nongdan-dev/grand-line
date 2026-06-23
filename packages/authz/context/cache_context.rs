@@ -32,7 +32,7 @@ impl AuthzCacheContext for Context<'_> {
             .filter(RoleColumn::Realm.eq(&check.realm));
 
         let mut org = if check.org {
-            let o = self.org_unauthorized().await?;
+            let o = self.org_unchecked().await?;
             q = q.filter(RoleColumn::OrgId.eq(&o.id));
             Some(o)
         } else {
@@ -48,7 +48,7 @@ impl AuthzCacheContext for Context<'_> {
                 .column(UserInRoleColumn::RoleId)
                 .filter(UserInRoleColumn::UserId.eq(user_id));
             if check.org {
-                let o = self.org_unauthorized().await?;
+                let o = self.org_unchecked().await?;
                 sub = sub.filter(UserInRoleColumn::OrgId.eq(&o.id));
                 org = Some(o);
             } else {

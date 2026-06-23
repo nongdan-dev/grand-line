@@ -5,7 +5,12 @@ pub struct Forgot {
     pub email: Email,
 }
 
-pub async fn forgot_impl<U: AuthUser>(ctx: &Context<'_>, data: Forgot) -> Res<AuthOtpWithSecret> {
+pub async fn forgot_impl<U>(ctx: &Context<'_>, data: Forgot) -> Res<AuthOtpWithSecret>
+where
+    U: AuthUser,
+{
+    ctx.auth_ensure_not_authenticated().await?;
+
     let tx = &*ctx.tx().await?;
     let h = &ctx.auth_config().handlers;
 
@@ -26,7 +31,7 @@ pub async fn forgot_impl<U: AuthUser>(ctx: &Context<'_>, data: Forgot) -> Res<Au
         email: data.email.0,
         secret_hashed: rand_utils::secret_hash(&secret),
         data: AuthOtpDataForgot {
-            user_id: u.get_id().clone(),
+            user_id: u.get_id(),
         }
         .to_json()?,
         otp_salt,

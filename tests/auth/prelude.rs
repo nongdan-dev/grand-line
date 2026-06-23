@@ -21,14 +21,14 @@ pub struct Prepare {
 }
 
 pub async fn prepare() -> Res<Prepare> {
-    let tmp = tmp_db!(User, AuthOtp, LoginSession);
     let c = AuthConfig {
         handlers: Arc::new(MockAuthHandlers),
         ..Default::default()
     };
-    let s = schema_qm::<Query, Mutation>(&tmp.db)
-        .data(c)
-        .data(auth_user_impl(None));
+
+    let tmp = tmp_db!(User, AuthOtp, LoginSession);
+    let s = schema_qm::<Query, Mutation>(&tmp.db).data(c);
+
     let h = init_common_headers();
 
     let u = am_create!(User {

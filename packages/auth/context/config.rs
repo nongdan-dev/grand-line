@@ -45,57 +45,44 @@ struct DefaultHandlers;
 #[async_trait]
 impl AuthHandlers for DefaultHandlers {}
 
-/// Generic user config: callbacks with user's own model type.
-pub struct AuthUserImpl<U>
-where
-    U: AuthUser,
-{
-    pub handlers: Arc<dyn AuthUserImplHandlers<U>>,
+/// User lifecycle callbacks, non-generic: receives only user_id so the trait
+/// needs no type parameter and can be stored as a plain trait object.
+pub struct AuthUserImpl {
+    pub handlers: Arc<dyn AuthUserImplHandlers>,
 }
 
-impl<U> Default for AuthUserImpl<U>
-where
-    U: AuthUser,
-{
+impl AuthUserImpl {
+    pub fn new(handlers: impl AuthUserImplHandlers + 'static) -> Self {
+        Self {
+            handlers: Arc::new(handlers),
+        }
+    }
+}
+
+impl Default for AuthUserImpl {
     fn default() -> Self {
         Self {
-            handlers: Arc::new(DefaultUserImplHandlers(PhantomData)),
+            handlers: Arc::new(DefaultUserImplHandlers),
         }
     }
 }
 
 #[allow(unused_variables)]
 #[async_trait]
-pub trait AuthUserImplHandlers<U>
-where
-    U: AuthUser,
-    Self: Send + Sync,
-{
-    async fn on_register_resolve(&self, ctx: &Context<'_>, user: &U::M, ls: &LoginSessionSql) -> Res<()> {
+pub trait AuthUserImplHandlers: Send + Sync {
+    async fn on_register_resolve(&self, ctx: &Context<'_>, user_id: &str, ls: &LoginSessionSql) -> Res<()> {
         Ok(())
     }
 
-    async fn on_login_resolve(&self, ctx: &Context<'_>, user: &U::M, ls: &LoginSessionSql) -> Res<()> {
+    async fn on_login_resolve(&self, ctx: &Context<'_>, user_id: &str, ls: &LoginSessionSql) -> Res<()> {
         Ok(())
     }
 
-    async fn on_forgot_resolve(&self, ctx: &Context<'_>, user: &U::M, ls: &LoginSessionSql) -> Res<()> {
+    async fn on_forgot_resolve(&self, ctx: &Context<'_>, user_id: &str, ls: &LoginSessionSql) -> Res<()> {
         Ok(())
     }
 }
 
-struct DefaultUserImplHandlers<U>(PhantomData<U>);
+struct DefaultUserImplHandlers;
 #[async_trait]
-impl<U> AuthUserImplHandlers<U> for DefaultUserImplHandlers<U> where U: AuthUser {}
-
-pub fn auth_user_impl<U: AuthUser>(handlers: Option<impl AuthUserImplHandlers<U> + 'static>) -> AuthUserImpl<U> {
-    if let Some(h) = handlers {
-        AuthUserImpl {
-            handlers: Arc::new(h),
-        }
-    } else {
-        AuthUserImpl {
-            handlers: Arc::new(DefaultUserImplHandlers(PhantomData)),
-        }
-    }
-}
+impl AuthUserImplHandlers for DefaultUserImplHandlers {}

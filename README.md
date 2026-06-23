@@ -398,11 +398,11 @@ ctx.cache(|| async { ... }).await?    // Arc<T> - per-request memoize by type
 
 **Authz (`grand_line_authz`)**
 
-| Method                          | Returns           | Description                              |
-| ------------------------------- | ----------------- | ---------------------------------------- |
-| `ctx.authz().await?`            | `String`          | Verified `org_id` from `X-Org-Id` header |
-| `ctx.authz_role().await?`       | `RoleSql`         | The matched `Role` row                   |
-| `ctx.org_unauthorized().await?` | `Arc<OrgMinimal>` | Org from `X-Org-Id` without auth check   |
+| Method                       | Returns           | Description                              |
+| ---------------------------- | ----------------- | ---------------------------------------- |
+| `ctx.authz().await?`         | `String`          | Verified `org_id` from `X-Org-Id` header |
+| `ctx.authz_role().await?`    | `RoleSql`         | The matched `Role` row                   |
+| `ctx.org_unchecked().await?` | `Arc<OrgMinimal>` | Org from `X-Org-Id` without auth check   |
 
 ---
 
@@ -591,7 +591,7 @@ impl AuthUser for User {
     fn email_col() -> UserColumn {
         UserColumn::Email
     }
-    fn password_col() -> UserColumn {
+    fn hashed_password_col() -> UserColumn {
         UserColumn::PasswordHashed
     }
     fn get_email(m: &UserSql) -> &str {

@@ -13,7 +13,7 @@ impl AuthUser for User {
     fn email_col() -> UserColumn {
         UserColumn::Email
     }
-    fn password_col() -> UserColumn {
+    fn hashed_password_col() -> UserColumn {
         UserColumn::PasswordHashed
     }
     fn get_email(m: &UserSql) -> &str {

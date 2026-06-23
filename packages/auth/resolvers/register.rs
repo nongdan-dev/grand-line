@@ -6,7 +6,12 @@ pub struct Register {
     pub password: String,
 }
 
-pub async fn register_impl<U: AuthUser>(ctx: &Context<'_>, data: Register) -> Res<AuthOtpWithSecret> {
+pub async fn register_impl<U>(ctx: &Context<'_>, data: Register) -> Res<AuthOtpWithSecret>
+where
+    U: AuthUser,
+{
+    ctx.auth_ensure_not_authenticated().await?;
+
     let tx = &*ctx.tx().await?;
     let h = &ctx.auth_config().handlers;
 
@@ -40,7 +45,10 @@ pub async fn register_impl<U: AuthUser>(ctx: &Context<'_>, data: Register) -> Re
     })
 }
 
-pub async fn register_ensure_email_not_exists<U: AuthUser>(tx: &DatabaseTransaction, email: &str) -> Res<()> {
+pub async fn register_ensure_email_not_exists<U>(tx: &DatabaseTransaction, email: &str) -> Res<()>
+where
+    U: AuthUser,
+{
     let exists = U::find()
         .exclude_deleted()
         .filter(U::email_col().eq(email))

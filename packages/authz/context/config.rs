@@ -27,16 +27,46 @@ struct DefaultHandlers;
 #[async_trait]
 impl AuthzHandlers for DefaultHandlers {}
 
-/// Generic org config: callbacks with user's own model type.
-#[async_trait]
-pub trait AuthzOrgImpl: Send + Sync {
-    async fn find_by_id(&self, id: &str, tx: &DatabaseTransaction) -> Res<Option<OrgMinimal>>;
+/// Generic org config: callbacks that receive the org's own model type.
+/// Use `let org_impl = AuthzOrgImpl::<Org>::default()` for no-op handlers,
+/// or `let org_impl = AuthzOrgImpl::<Org>::new(MyHandlers)` to provide custom callbacks.
+/// Add this to your schema with `.data(org_impl)`.
+pub struct AuthzOrgImpl<O>
+where
+    O: AuthzOrg,
+{
+    pub handlers: Arc<dyn AuthzOrgImplHandlers<O>>,
 }
 
-struct DefaultOrgImpl<O: AuthzOrg>(PhantomData<O>);
+impl<O> AuthzOrgImpl<O>
+where
+    O: AuthzOrg,
+{
+    pub fn new(handlers: impl AuthzOrgImplHandlers<O> + 'static) -> Self {
+        Self {
+            handlers: Arc::new(handlers),
+        }
+    }
+}
 
+impl<O> Default for AuthzOrgImpl<O>
+where
+    O: AuthzOrg,
+{
+    fn default() -> Self {
+        Self {
+            handlers: Arc::new(DefaultUserImplHandlers(PhantomData)),
+        }
+    }
+}
+
+#[allow(unused_variables)]
 #[async_trait]
-impl<O: AuthzOrg> AuthzOrgImpl for DefaultOrgImpl<O> {
+pub trait AuthzOrgImplHandlers<O>
+where
+    O: AuthzOrg,
+    Self: Send + Sync,
+{
     async fn find_by_id(&self, id: &str, tx: &DatabaseTransaction) -> Res<Option<OrgMinimal>> {
         let r = O::find()
             .exclude_deleted()
@@ -50,7 +80,6 @@ impl<O: AuthzOrg> AuthzOrgImpl for DefaultOrgImpl<O> {
     }
 }
 
-/// Create an org lookup for use in `.data(authz_org_impl::<YourOrg>())`.
-pub fn authz_org_impl<O: AuthzOrg>() -> Arc<dyn AuthzOrgImpl> {
-    Arc::new(DefaultOrgImpl::<O>(PhantomData))
-}
+struct DefaultUserImplHandlers<O>(PhantomData<O>);
+#[async_trait]
+impl<O> AuthzOrgImplHandlers<O> for DefaultUserImplHandlers<O> where O: AuthzOrg {}
