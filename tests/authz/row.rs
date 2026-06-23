@@ -85,7 +85,7 @@ async fn prepare_with_config(row_script: Option<&str>, cfg: AuthzConfig) -> Res<
 
 async fn prepare_inner(op_key: &str, row_script: Option<&str>, cfg: Option<AuthzConfig>) -> Res<Setup> {
     let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole);
-    let mut builder = schema_q::<TestQuery>(&tmp.db).data(authz_org_config::<Org>());
+    let mut builder = schema_q::<TestQuery>(&tmp.db).data(authz_org_impl::<Org>());
     if let Some(c) = cfg {
         builder = builder.data(c);
     }

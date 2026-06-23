@@ -20,5 +20,5 @@ pub enum MyErr {
     #[error("authz org impl not found")]
     OrgImplNotFound,
     #[error("row script error: {0}")]
-    FormulaMissingConfig(String),
+    RowScript(String),
 }

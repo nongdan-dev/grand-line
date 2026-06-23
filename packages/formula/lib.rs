@@ -1,8 +1,8 @@
 #![allow(ambiguous_glob_reexports, dead_code, unused_imports)]
 
-mod context;
 mod accessor;
 mod cache;
+mod context;
 mod dep_graph;
 mod engine;
 mod err;
@@ -12,14 +12,14 @@ mod preprocess;
 mod resolver;
 
 pub mod export {
-    pub use crate::preprocess::*;
     pub use crate::accessor::*;
+    pub use crate::context::*;
     pub use crate::dep_graph::*;
     pub use crate::err::*;
     pub use crate::eval::*;
     pub use crate::opts::*;
+    pub use crate::preprocess::*;
     pub use crate::resolver::*;
-    pub use crate::context::*;
 }
 
 pub mod reexport {

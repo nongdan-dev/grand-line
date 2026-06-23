@@ -49,7 +49,7 @@ pub async fn auth_otp_ensure_resolve(
             .ok_or(MyErr::OtpResolveInvalid)?
     };
 
-    let c = &ctx.auth_config();
+    let c = ctx.auth_config();
     if !rand_utils::otp_eq(&t.otp_salt, &t.otp_hashed, &data.otp)?
         || !rand_utils::secret_eq(&t.secret_hashed, &data.secret)
         || t.total_attempt > c.otp_max_attempt
@@ -84,7 +84,7 @@ pub async fn auth_otp_ensure_re_request(
         return Ok(());
     };
 
-    let c = &ctx.auth_config();
+    let c = ctx.auth_config();
     if t.created_at + duration_ms(c.otp_re_request_ms) > now() {
         return Err(MyErr::OtpReRequestTooSoon.into());
     }

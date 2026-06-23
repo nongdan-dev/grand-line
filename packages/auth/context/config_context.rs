@@ -17,11 +17,11 @@ impl<'a> AuthConfigContext<'a> for Context<'a> {
 }
 
 pub trait AuthUserImplContext<'a> {
-    fn auth_user_config<U: AuthUser + 'static>(&self) -> Res<&'a AuthUserImpl<U>>;
+    fn auth_user_impl<U: AuthUser>(&self) -> Res<&'a AuthUserImpl<U>>;
 }
 
 impl<'a> AuthUserImplContext<'a> for Context<'a> {
-    fn auth_user_config<U: AuthUser + 'static>(&self) -> Res<&'a AuthUserImpl<U>> {
+    fn auth_user_impl<U: AuthUser>(&self) -> Res<&'a AuthUserImpl<U>> {
         self.data_opt::<AuthUserImpl<U>>()
             .ok_or_else(|| MyErr::UserImplNotFound.into())
     }

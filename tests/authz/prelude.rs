@@ -63,7 +63,7 @@ pub async fn prepare_wildcard() -> Res<Prepare> {
 
 pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> {
     let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole);
-    let s = schema_q::<Query>(&tmp.db).data(authz_org_config::<Org>());
+    let s = schema_q::<Query>(&tmp.db).data(authz_org_impl::<Org>());
     let h = init_common_headers();
 
     let u1 = am_create!(User {

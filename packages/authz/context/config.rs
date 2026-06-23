@@ -29,7 +29,7 @@ impl AuthzHandlers for DefaultHandlers {}
 
 /// Type-erased org lookup - stored in context so proc-macro resolvers can
 /// use it without needing to know the generic `O` type parameter.
-/// Register with `.data(authz_org_config::<YourOrg>())` when building your schema.
+/// Register with `.data(authz_org_impl::<YourOrg>())` when building your schema.
 #[async_trait]
 pub trait AuthzOrgImpl: Send + Sync {
     async fn find_by_id(&self, id: &str, tx: &DatabaseTransaction) -> Res<Option<OrgMinimal>>;
@@ -52,7 +52,7 @@ impl<O: AuthzOrg> AuthzOrgImpl for DefaultOrgImpl<O> {
     }
 }
 
-/// Create an org lookup for use in `.data(authz_org_config::<YourOrg>())`.
-pub fn authz_org_config<O: AuthzOrg>() -> Arc<dyn AuthzOrgImpl> {
+/// Create an org lookup for use in `.data(authz_org_impl::<YourOrg>())`.
+pub fn authz_org_impl<O: AuthzOrg>() -> Arc<dyn AuthzOrgImpl> {
     Arc::new(DefaultOrgImpl::<O>(PhantomData))
 }

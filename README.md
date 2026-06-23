@@ -738,7 +738,7 @@ GraphQLSchema::build(Query::default(), Mutation::default(), EmptySubscription)
     .data(AuthConfig::default())
     .data(AuthUserImpl::<User>::default())
     .data(AuthzConfig::default())
-    .data(authz_org_config::<Org>())
+    .data(authz_org_impl::<Org>())
     .finish()
 ```
 
@@ -785,7 +785,7 @@ pub struct Org {
 impl AuthzOrg for Org {}
 ```
 
-The framework looks up orgs via `authz_org_config::<Org>()` using the `id` from the `X-Org-Id` header. Your custom fields are accessible in your own resolvers via normal `Org::find()` queries.
+The framework looks up orgs via `authz_org_impl::<Org>()` using the `id` from the `X-Org-Id` header. Your custom fields are accessible in your own resolvers via normal `Org::find()` queries.
 
 #### `authz` attribute
 
