@@ -216,7 +216,7 @@ pub fn fields_wildcard_nested() -> ColPolicyFields {
     fields_no_children("**".to_owned())
 }
 
-pub fn operation(inputs: ColPolicyField, output: ColPolicyField) -> ColPolicyOperation {
+pub const fn operation(inputs: ColPolicyField, output: ColPolicyField) -> ColPolicyOperation {
     ColPolicyOperation {
         inputs,
         output,

@@ -5,7 +5,7 @@ use serde::de::DeserializeOwned;
 // skipping list indices so "users.0.posts" becomes "users.posts".
 fn authz_field_path(ctx: &Context<'_>) -> String {
     let Some(node) = ctx.path_node.as_ref() else {
-        return ctx.field().name().to_string();
+        return ctx.field().name().to_owned();
     };
     node.to_string_vec()
         .into_iter()
@@ -44,7 +44,7 @@ impl AuthzRowContext for Context<'_> {
 
         let Some(script) = script.as_str() else {
             let e = "script is not a string in db";
-            return Err(MyErr::RowScript(e.to_string()).into());
+            return Err(MyErr::RowScript(e.to_owned()).into());
         };
 
         let h = &self.authz_config().handlers;

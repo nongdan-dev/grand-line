@@ -123,7 +123,9 @@ async fn prepare_inner(col_op_key: &str, row_script: Option<&str>, cfg: Option<A
     // row_policy is a flat map: { "rowResult": "script_string" }
     // The key is the field path resolved by authz_field_path (always "rowResult" here).
     let row_p: JsonValue = match row_script {
-        Some(s) => json!({ "rowResult": s }),
+        Some(s) => json!({
+            "rowResult": s,
+        }),
         None => json!(null),
     };
 
@@ -212,7 +214,9 @@ async fn execute_script_reads_ctx_user() -> Res<()> {
     impl AuthzHandlers for UserHandler {
         async fn execute_script(&self, ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
             let user_id = ctx.auth().await?;
-            Ok(Some(json!({ "assigned_to_id_eq": user_id })))
+            Ok(Some(json!({
+                "assigned_to_id_eq": user_id,
+            })))
         }
     }
 
@@ -242,7 +246,9 @@ async fn execute_script_reads_ctx_org() -> Res<()> {
     impl AuthzHandlers for OrgHandler {
         async fn execute_script(&self, ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
             let org_id = ctx.authz().await?;
-            Ok(Some(json!({ "org_id_eq": org_id })))
+            Ok(Some(json!({
+                "org_id_eq": org_id,
+            })))
         }
     }
 
@@ -308,7 +314,9 @@ async fn execute_script_receives_script_string() -> Res<()> {
     impl AuthzHandlers for ScriptCaptureHandler {
         async fn execute_script(&self, _ctx: &Context<'_>, script: &str) -> Res<Option<JsonValue>> {
             let received = script == SCRIPT;
-            Ok(Some(json!({ "assigned_to_id_eq": received.to_string() })))
+            Ok(Some(json!({
+                "assigned_to_id_eq": received.to_string(),
+            })))
         }
     }
 
@@ -362,7 +370,9 @@ async fn wildcard_col_policy_with_row_policy() -> Res<()> {
     impl AuthzHandlers for UserHandler {
         async fn execute_script(&self, ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
             let user_id = ctx.auth().await?;
-            Ok(Some(json!({ "assigned_to_id_eq": user_id })))
+            Ok(Some(json!({
+                "assigned_to_id_eq": user_id,
+            })))
         }
     }
 
@@ -393,7 +403,9 @@ async fn execute_script_returns_hardcoded_value() -> Res<()> {
     #[async_trait]
     impl AuthzHandlers for HardcodedHandler {
         async fn execute_script(&self, _ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
-            Ok(Some(json!({ "assigned_to_id_eq": "gold" })))
+            Ok(Some(json!({
+                "assigned_to_id_eq": "gold",
+            })))
         }
     }
 
