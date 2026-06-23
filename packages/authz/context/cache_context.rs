@@ -33,19 +33,38 @@ impl AuthzCacheContext for Context<'_> {
             return Err(MyErr::HeaderRoleId404.into());
         }
 
+        let mut q = Role::find()
+            .exclude_deleted()
+            .filter_by_id(&role_id)
+            .filter(RoleColumn::Realm.eq(&check.realm));
+
         let org = if check.org {
-            Some(self.org_unchecked().await?)
+            let o = self.org_unchecked().await?;
+            q = q.filter(RoleColumn::OrgId.eq(&o.id));
+            Some(o)
         } else {
+            q = q.filter(RoleColumn::OrgId.is_null());
             None
         };
 
+        if check.user {
+            let user_id = self.auth().await?;
+            let mut sub = UserInRole::find()
+                .exclude_deleted()
+                .select_only()
+                .column(UserInRoleColumn::RoleId)
+                .filter(UserInRoleColumn::UserId.eq(user_id));
+            if check.org {
+                let o = self.org_unchecked().await?;
+                sub = sub.filter(UserInRoleColumn::OrgId.eq(&o.id));
+            } else {
+                sub = sub.filter(UserInRoleColumn::OrgId.is_null());
+            }
+            q = q.filter(RoleColumn::Id.in_subquery(sub.into_query()));
+        }
+
         let tx = &*self.tx().await?;
-        let role = Role::find()
-            .exclude_deleted()
-            .filter_by_id(&role_id)
-            .filter(RoleColumn::Realm.eq(&check.realm))
-            .one(tx)
-            .await?;
+        let role = q.one(tx).await?;
 
         let Some(role) = role else {
             return Ok(None);
