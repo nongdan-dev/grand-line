@@ -3,154 +3,66 @@ mod prelude;
 use prelude::*;
 
 // ---------------------------------------------------------------------------
-// Filter type deserialized from the execute_script result.
-// ---------------------------------------------------------------------------
-
-#[derive(Serialize, Deserialize)]
-struct RowFilter {
-    assigned_to_id_eq: Option<String>,
-    org_id_eq: Option<String>,
-}
-
-// ---------------------------------------------------------------------------
-// GraphQL output type returned by the test resolver.
-// ---------------------------------------------------------------------------
-
-#[derive(SimpleObject)]
-struct RowOutput {
-    assigned_to_id_eq: Option<String>,
-    org_id_eq: Option<String>,
-}
-
-// ---------------------------------------------------------------------------
-// Test resolver: requires org-realm authz, then returns the row filter.
-// authz_row returns None when the role has no row_policy entry for this field.
-// ---------------------------------------------------------------------------
-
-#[query(authz(realm = "org"))]
-fn row_result() -> Option<RowOutput> {
-    ctx.authz().await?;
-    let filter: Option<RowFilter> = ctx.authz_row().await?;
-    filter.map(|f| RowOutput {
-        assigned_to_id_eq: f.assigned_to_id_eq,
-        org_id_eq: f.org_id_eq,
-    })
-}
-
-#[derive(Default, MergedObject)]
-struct TestQuery(RowResultQuery);
-
-// ---------------------------------------------------------------------------
 // Test setup
 // ---------------------------------------------------------------------------
 
 struct Setup {
     tmp: TmpDb,
-    schema: GraphQLSchema<TestQuery, EmptyMutation, EmptySubscription>,
-    user_id: String,
-    org_id: String,
+    schema: GraphQLSchema<Query, EmptyMutation, EmptySubscription>,
 }
 
-async fn prepare(row_script: Option<&str>) -> Res<Setup> {
-    prepare_with_op_key("rowResult", row_script).await
+async fn setup(row_script: Option<&str>) -> Res<Setup> {
+    setup_inner("tasks", row_script, None).await
 }
 
-async fn prepare_with_op_key(col_op_key: &str, row_script: Option<&str>) -> Res<Setup> {
-    prepare_inner(col_op_key, row_script, None).await
+async fn setup_with_cfg(row_script: Option<&str>, cfg: AuthzConfig) -> Res<Setup> {
+    setup_inner("tasks", row_script, Some(cfg)).await
 }
 
-async fn prepare_with_config(row_script: Option<&str>, cfg: AuthzConfig) -> Res<Setup> {
-    prepare_inner("rowResult", row_script, Some(cfg)).await
-}
+async fn setup_inner(col_key: &str, row_script: Option<&str>, cfg: Option<AuthzConfig>) -> Res<Setup> {
+    let wc = col_policy_field(col_policy_fields_wildcard_nested());
+    let col = col_policy(col_key.to_owned(), wc.clone(), wc);
+    let row = row_script
+        .map(|s| row_policy("tasks".to_owned(), s.to_owned()))
+        .unwrap_or_default();
+    let d = prepare_with_policy(col, row).await?;
 
-async fn prepare_inner(col_op_key: &str, row_script: Option<&str>, cfg: Option<AuthzConfig>) -> Res<Setup> {
-    let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole);
-    let mut builder = schema_q::<TestQuery>(&tmp.db).data(authz_org_impl::<Org>());
+    // task1: assigned to user1, belongs to org1
+    am_create!(Task {
+        title: "Alpha task",
+        assignee_id: d.user_id1.clone(),
+        org_id: d.org_id1.clone(),
+    })
+    .exec_without_ctx(&d.tmp.db)
+    .await?;
+
+    // task2: assigned to user2, belongs to org2
+    am_create!(Task {
+        title: "Beta task",
+        assignee_id: d.user_id2.clone(),
+        org_id: d.org_id2.clone(),
+    })
+    .exec_without_ctx(&d.tmp.db)
+    .await?;
+
+    let mut h = d.h;
+    h.append(H_ORG_ID, h_str(&d.org_id1));
+    h.insert(H_AUTHORIZATION, h_bearer(&d.token1));
+    h.insert(H_ROLE_ID, h_str(&d.role_id1));
+    let mut b = d.s;
     if let Some(c) = cfg {
-        builder = builder.data(c);
+        b = b.data(c);
     }
-    let h = init_common_headers();
-
-    let u = am_create!(User {
-        email: "tester@example.com",
-        password_hashed: rand_utils::password_hash("pass123")?,
-    })
-    .exec_without_ctx(&tmp.db)
-    .await?;
-
-    let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
-    let secret = rand_utils::secret();
-    let ls = am_create!(LoginSession {
-        user_id: u.id.clone(),
-        secret_hashed: rand_utils::secret_hash(&secret),
-        ip: "127.0.0.1",
-        ua: ua.to_json()?,
-    })
-    .exec_without_ctx(&tmp.db)
-    .await?;
-    let token = rand_utils::qs_token(&ls.id, &secret)?;
-
-    let o = am_create!(Org {
-        name: "TestOrg",
-    })
-    .exec_without_ctx(&tmp.db)
-    .await?;
-
-    let wc_field = ColPolicyField {
-        allow: true,
-        children: Some(hashmap! {
-            "**".to_owned() => ColPolicyField { allow: true, children: None }
-        }),
-    };
-    let col_p: ColPolicy = hashmap! {
-        col_op_key.to_owned() => ColPolicyOperation {
-            inputs: wc_field.clone(),
-            output: wc_field.clone(),
-        }
-    };
-    let row_p: RowPolicy = match row_script {
-        Some(s) => hashmap! {
-            "rowResult".to_owned() => RowPolicyField { script: s.to_owned() }
-        },
-        None => RowPolicy::default(),
-    };
-
-    let r = am_create!(Role {
-        name: "Tester",
-        realm: "org",
-        col_policy: col_p.to_json()?,
-        row_policy: row_p.to_json()?,
-        org_id: Some(o.id.clone()),
-    })
-    .exec_without_ctx(&tmp.db)
-    .await?;
-    am_create!(UserInRole {
-        user_id: u.id.clone(),
-        role_id: r.id.clone(),
-        org_id: Some(o.id.clone()),
-    })
-    .exec_without_ctx(&tmp.db)
-    .await?;
-
-    let mut headers = h;
-    headers.append(H_ORG_ID, h_str(&o.id));
-    headers.insert(H_AUTHORIZATION, h_bearer(&token));
-    headers.insert(H_ROLE_ID, h_str(&r.id));
-    let schema = builder.data(headers).finish();
-
     Ok(Setup {
-        tmp,
-        schema,
-        user_id: u.id,
-        org_id: o.id,
+        schema: b.data(h).finish(),
+        tmp: d.tmp,
     })
 }
 
 const Q: &str = "
 query {
-    rowResult {
-        assignedToIdEq
-        orgIdEq
+    tasks(orderBy: [TitleAsc]) {
+        title
     }
 }
 ";
@@ -159,18 +71,20 @@ query {
 // Tests
 // ---------------------------------------------------------------------------
 
-// When the role has no row_policy entry for this field, authz_row returns None.
+// No row_policy entry for this resolver -> all tasks returned.
 #[tokio::test]
-async fn no_row_script_returns_null() -> Res<()> {
-    let d = prepare(None).await?;
-    let expected = value!({ "rowResult": null });
+async fn no_row_policy_returns_all() -> Res<()> {
+    let d = setup(None).await?;
+    let expected = value!({
+        "tasks": [{ "title": "Alpha task" }, { "title": "Beta task" }]
+    });
     exec_assert(&d.schema, Q, None, &expected).await;
     d.tmp.drop().await
 }
 
-// execute_script returning Ok(None) causes authz_row to return None -> null result.
+// execute_script returning Ok(None) -> no filter applied -> all tasks returned.
 #[tokio::test]
-async fn execute_script_returns_none_gives_null() -> Res<()> {
+async fn script_none_returns_all() -> Res<()> {
     struct NoneHandler;
     #[async_trait]
     impl AuthzHandlers for NoneHandler {
@@ -179,164 +93,144 @@ async fn execute_script_returns_none_gives_null() -> Res<()> {
         }
     }
 
-    let d = prepare_with_config(
-        Some("any_script"),
+    let d = setup_with_cfg(
+        Some("any"),
         AuthzConfig {
             handlers: Arc::new(NoneHandler),
             ..Default::default()
         },
     )
     .await?;
-    let expected = value!({ "rowResult": null });
-    exec_assert(&d.schema, Q, None, &expected).await;
-    d.tmp.drop().await
-}
-
-// execute_script can read the authenticated user from ctx and inject it into the result.
-#[tokio::test]
-async fn execute_script_reads_ctx_user() -> Res<()> {
-    struct UserHandler;
-    #[async_trait]
-    impl AuthzHandlers for UserHandler {
-        async fn execute_script(&self, ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
-            let user_id = ctx.auth().await?;
-            Ok(Some(json!({
-                "assigned_to_id_eq": user_id,
-            })))
-        }
-    }
-
-    let d = prepare_with_config(
-        Some("any_script"),
-        AuthzConfig {
-            handlers: Arc::new(UserHandler),
-            ..Default::default()
-        },
-    )
-    .await?;
     let expected = value!({
-        "rowResult": {
-            "assignedToIdEq": d.user_id,
-            "orgIdEq": null,
-        }
+        "tasks": [{ "title": "Alpha task" }, { "title": "Beta task" }]
     });
     exec_assert(&d.schema, Q, None, &expected).await;
     d.tmp.drop().await
 }
 
-// execute_script can read the current org from ctx and inject it into the result.
+// Handler reads ctx.auth() to get the current user, filters tasks by assignee.
 #[tokio::test]
-async fn execute_script_reads_ctx_org() -> Res<()> {
+async fn script_filters_tasks_by_assignee() -> Res<()> {
+    struct AssigneeHandler;
+    #[async_trait]
+    impl AuthzHandlers for AssigneeHandler {
+        async fn execute_script(&self, ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
+            let user_id = ctx.auth().await?;
+            Ok(Some(json!({ "assignee_id": user_id })))
+        }
+    }
+
+    let d = setup_with_cfg(
+        Some("any"),
+        AuthzConfig {
+            handlers: Arc::new(AssigneeHandler),
+            ..Default::default()
+        },
+    )
+    .await?;
+    // user1 is logged in, so only user1's task is returned.
+    let expected = value!({ "tasks": [{ "title": "Alpha task" }] });
+    exec_assert(&d.schema, Q, None, &expected).await;
+    d.tmp.drop().await
+}
+
+// Handler reads ctx.authz() to get the current org, filters tasks by org.
+#[tokio::test]
+async fn script_filters_tasks_by_org() -> Res<()> {
     struct OrgHandler;
     #[async_trait]
     impl AuthzHandlers for OrgHandler {
         async fn execute_script(&self, ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
             let org_id = ctx.authz().await?;
-            Ok(Some(json!({
-                "org_id_eq": org_id,
-            })))
+            Ok(Some(json!({ "org_id": org_id })))
         }
     }
 
-    let d = prepare_with_config(
-        Some("any_script"),
+    let d = setup_with_cfg(
+        Some("any"),
         AuthzConfig {
             handlers: Arc::new(OrgHandler),
             ..Default::default()
         },
     )
     .await?;
-    let expected = value!({
-        "rowResult": {
-            "assignedToIdEq": null,
-            "orgIdEq": d.org_id,
-        }
-    });
+    // org1 is the request context, only task belonging to org1 is returned.
+    let expected = value!({ "tasks": [{ "title": "Alpha task" }] });
     exec_assert(&d.schema, Q, None, &expected).await;
     d.tmp.drop().await
 }
 
-// execute_script can read both user and org from ctx simultaneously.
+// Handler reads both user and org from ctx, filters by both assignee and org.
 #[tokio::test]
-async fn execute_script_reads_ctx_user_and_org() -> Res<()> {
+async fn script_filters_tasks_by_assignee_and_org() -> Res<()> {
     struct BothHandler;
     #[async_trait]
     impl AuthzHandlers for BothHandler {
         async fn execute_script(&self, ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
             let user_id = ctx.auth().await?;
             let org_id = ctx.authz().await?;
-            Ok(Some(json!({
-                "assigned_to_id_eq": user_id,
-                "org_id_eq": org_id,
-            })))
+            Ok(Some(json!({ "assignee_id": user_id, "org_id": org_id })))
         }
     }
 
-    let d = prepare_with_config(
-        Some("any_script"),
+    let d = setup_with_cfg(
+        Some("any"),
         AuthzConfig {
             handlers: Arc::new(BothHandler),
             ..Default::default()
         },
     )
     .await?;
-    let expected = value!({
-        "rowResult": {
-            "assignedToIdEq": d.user_id,
-            "orgIdEq": d.org_id,
-        }
-    });
+    let expected = value!({ "tasks": [{ "title": "Alpha task" }] });
     exec_assert(&d.schema, Q, None, &expected).await;
     d.tmp.drop().await
 }
 
 // The script string stored in row_policy is forwarded verbatim to execute_script.
 #[tokio::test]
-async fn execute_script_receives_script_string() -> Res<()> {
-    const SCRIPT: &str = "my_custom_script_content";
+async fn script_string_forwarded_verbatim() -> Res<()> {
+    const EXPECTED_SCRIPT: &str = "filter_by_assignee_v1";
 
-    struct ScriptCaptureHandler;
+    struct ScriptCheckHandler;
     #[async_trait]
-    impl AuthzHandlers for ScriptCaptureHandler {
+    impl AuthzHandlers for ScriptCheckHandler {
         async fn execute_script(&self, _ctx: &Context<'_>, script: &str) -> Res<Option<JsonValue>> {
-            let received = script == SCRIPT;
-            Ok(Some(json!({
-                "assigned_to_id_eq": received.to_string(),
-            })))
+            // Return Alpha's filter only if the correct script was received.
+            let filter = if script == EXPECTED_SCRIPT {
+                json!({ "title": "Alpha task" })
+            } else {
+                json!({ "title": "Beta task" })
+            };
+            Ok(Some(filter))
         }
     }
 
-    let d = prepare_with_config(
-        Some(SCRIPT),
+    let d = setup_with_cfg(
+        Some(EXPECTED_SCRIPT),
         AuthzConfig {
-            handlers: Arc::new(ScriptCaptureHandler),
+            handlers: Arc::new(ScriptCheckHandler),
             ..Default::default()
         },
     )
     .await?;
-    let expected = value!({
-        "rowResult": {
-            "assignedToIdEq": "true",
-            "orgIdEq": null,
-        }
-    });
+    let expected = value!({ "tasks": [{ "title": "Alpha task" }] });
     exec_assert(&d.schema, Q, None, &expected).await;
     d.tmp.drop().await
 }
 
-// An error returned from execute_script is masked as InternalServer in the GQL response.
+// An error from execute_script is masked as InternalServer in the GQL response.
 #[tokio::test]
-async fn execute_script_error_is_internal_server() -> Res<()> {
+async fn script_error_masked_as_internal_server() -> Res<()> {
     struct ErrorHandler;
     #[async_trait]
     impl AuthzHandlers for ErrorHandler {
         async fn execute_script(&self, _ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
-            Err(AuthzErr::RowScript("script evaluation failed".to_owned()).into())
+            Err(AuthzErr::RowScript("evaluation failed".to_owned()).into())
         }
     }
 
-    let d = prepare_with_config(
-        Some("any_script"),
+    let d = setup_with_cfg(
+        Some("any"),
         AuthzConfig {
             handlers: Arc::new(ErrorHandler),
             ..Default::default()
@@ -347,68 +241,28 @@ async fn execute_script_error_is_internal_server() -> Res<()> {
     d.tmp.drop().await
 }
 
-// Col policy wildcard "*" matches any operation. Row policy is looked up by
-// the actual field path independently of the col policy key.
+// Col policy with wildcard key "*" still applies the row filter correctly.
 #[tokio::test]
-async fn wildcard_col_policy_with_row_policy() -> Res<()> {
-    struct UserHandler;
+async fn wildcard_col_key_with_row_filter() -> Res<()> {
+    struct AssigneeHandler;
     #[async_trait]
-    impl AuthzHandlers for UserHandler {
+    impl AuthzHandlers for AssigneeHandler {
         async fn execute_script(&self, ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
             let user_id = ctx.auth().await?;
-            Ok(Some(json!({
-                "assigned_to_id_eq": user_id,
-            })))
+            Ok(Some(json!({ "assignee_id": user_id })))
         }
     }
 
-    // col_policy uses "*" to match any operation name
-    let d = prepare_inner(
+    let d = setup_inner(
         "*",
-        Some("any_script"),
+        Some("any"),
         Some(AuthzConfig {
-            handlers: Arc::new(UserHandler),
+            handlers: Arc::new(AssigneeHandler),
             ..Default::default()
         }),
     )
     .await?;
-    let expected = value!({
-        "rowResult": {
-            "assignedToIdEq": d.user_id,
-            "orgIdEq": null,
-        }
-    });
-    exec_assert(&d.schema, Q, None, &expected).await;
-    d.tmp.drop().await
-}
-
-// execute_script can return any hardcoded value, independent of the script content.
-#[tokio::test]
-async fn execute_script_returns_hardcoded_value() -> Res<()> {
-    struct HardcodedHandler;
-    #[async_trait]
-    impl AuthzHandlers for HardcodedHandler {
-        async fn execute_script(&self, _ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
-            Ok(Some(json!({
-                "assigned_to_id_eq": "gold",
-            })))
-        }
-    }
-
-    let d = prepare_with_config(
-        Some("any_script"),
-        AuthzConfig {
-            handlers: Arc::new(HardcodedHandler),
-            ..Default::default()
-        },
-    )
-    .await?;
-    let expected = value!({
-        "rowResult": {
-            "assignedToIdEq": "gold",
-            "orgIdEq": null,
-        }
-    });
+    let expected = value!({ "tasks": [{ "title": "Alpha task" }] });
     exec_assert(&d.schema, Q, None, &expected).await;
     d.tmp.drop().await
 }

@@ -24,7 +24,8 @@ async fn sql_dep_cols() -> Res<()> {
         }
 
         #[detail(User)]
-        fn resolver() {}
+        fn resolver() {
+        }
     }
     use test::*;
 
@@ -79,7 +80,8 @@ async fn sql_dep_exprs() -> Res<()> {
         }
 
         #[detail(User)]
-        fn resolver() {}
+        fn resolver() {
+        }
     }
     use test::*;
 

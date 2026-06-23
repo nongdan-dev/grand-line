@@ -13,7 +13,8 @@ pub struct User {
     pub orgs: Org,
 }
 #[detail(User)]
-fn resolver() {}
+fn resolver() {
+}
 #[search(User)]
 fn resolver() {
     (None, None)
@@ -23,7 +24,8 @@ fn resolver() {
     None
 }
 #[delete(User)]
-fn resolver() {}
+fn resolver() {
+}
 
 #[model]
 pub struct Person {
@@ -33,7 +35,8 @@ pub struct Person {
     pub user: User,
 }
 #[detail(Person)]
-fn resolver() {}
+fn resolver() {
+}
 
 #[model]
 pub struct Alias {

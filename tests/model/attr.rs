@@ -12,7 +12,8 @@ async fn name_override() -> Res<()> {
         }
 
         #[detail(User)]
-        fn resolver() {}
+        fn resolver() {
+        }
     }
     use test::*;
 
@@ -52,7 +53,8 @@ async fn skip() -> Res<()> {
         }
 
         #[detail(User)]
-        fn resolver() {}
+        fn resolver() {
+        }
     }
     use test::*;
 
@@ -77,7 +79,8 @@ async fn doc_comment() -> Res<()> {
         }
 
         #[detail(User)]
-        fn resolver() {}
+        fn resolver() {
+        }
     }
     use test::*;
 
@@ -102,7 +105,8 @@ async fn deprecation() -> Res<()> {
         }
 
         #[detail(User)]
-        fn resolver() {}
+        fn resolver() {
+        }
     }
     use test::*;
 
@@ -127,7 +131,8 @@ async fn name_override_with_extra() -> Res<()> {
         }
 
         #[detail(User)]
-        fn resolver() {}
+        fn resolver() {
+        }
     }
     use test::*;
 

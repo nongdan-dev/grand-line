@@ -53,4 +53,5 @@ pub trait AuthHandlers: Send + Sync {
 
 struct DefaultHandlers;
 #[async_trait]
-impl AuthHandlers for DefaultHandlers {}
+impl AuthHandlers for DefaultHandlers {
+}

@@ -11,6 +11,10 @@ pub use user::*;
 mod org;
 pub use org::*;
 
+#[path = "../_fixtures/task.rs"]
+mod task;
+pub use task::*;
+
 #[query(authz(realm = "org"))]
 fn org_primitive() -> i64 {
     0
@@ -43,7 +47,13 @@ fn system(org_id: String) -> OrgGql {
 }
 
 #[derive(Default, MergedObject)]
-pub struct Query(OrgPrimitiveQuery, OrgQuery, SystemPrimitiveQuery, SystemQuery);
+pub struct Query(
+    TasksQuery,
+    OrgPrimitiveQuery,
+    OrgQuery,
+    SystemPrimitiveQuery,
+    SystemQuery,
+);
 
 pub struct Prepare {
     pub tmp: TmpDb,
@@ -71,7 +81,7 @@ pub async fn prepare_with_col_policy(org1_admin: ColPolicy) -> Res<Prepare> {
 pub async fn prepare_with_policy(org1_admin: ColPolicy, org1_row: RowPolicy) -> Res<Prepare> {
     let org_impl = authz_org_impl::<Org>();
 
-    let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole);
+    let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole, Task);
     let s = schema_q::<Query>(&tmp.db).data(org_impl);
 
     let h = init_common_headers();
@@ -245,7 +255,5 @@ pub fn col_policy_org_name() -> ColPolicy {
 }
 
 pub fn row_policy(k: String, script: String) -> RowPolicy {
-    hashmap! {
-        k => RowPolicyField { script }
-    }
+    hashmap! { k => script }
 }

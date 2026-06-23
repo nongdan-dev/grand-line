@@ -7,4 +7,5 @@ pub enum AuthDirectiveCheck {
 }
 
 #[TypeDirective(name = "auth", location = "FieldDefinition")]
-pub fn auth_directive(check: AuthDirectiveCheck) {}
+pub fn auth_directive(check: AuthDirectiveCheck) {
+}

@@ -19,7 +19,8 @@ async fn t() -> Res<()> {
         }
 
         #[detail(User)]
-        fn resolver() {}
+        fn resolver() {
+        }
     }
     use test::*;
 

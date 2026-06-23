@@ -27,7 +27,8 @@ pub trait AuthzHandlers: Send + Sync {
 
 struct DefaultHandlers;
 #[async_trait]
-impl AuthzHandlers for DefaultHandlers {}
+impl AuthzHandlers for DefaultHandlers {
+}
 
 /// Org lookup callbacks, non-generic: method signatures use only primitives
 /// so the trait needs no type parameter.

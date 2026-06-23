@@ -16,7 +16,8 @@ async fn insert_defaults() -> Res<()> {
         }
 
         #[detail(User)]
-        fn resolver() {}
+        fn resolver() {
+        }
     }
     use test::*;
 

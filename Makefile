@@ -1,5 +1,5 @@
 fmt:
-	@cargo fmt --all \
+	@cargo +nightly fmt --all \
 	&& doctoc --loglevel warn --github README.md \
 	&& dprint fmt;
 

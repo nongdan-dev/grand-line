@@ -447,6 +447,7 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
             }
 
             #[gql_input]
+            #[serde(default)]
             pub struct #filter {
                 #(#filter_struk)*
             }

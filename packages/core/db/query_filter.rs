@@ -20,8 +20,14 @@ where
 }
 
 /// Automatically implement for Select<E>.
-impl<E> QueryFilterX<E> for Select<E> where E: EntityX {}
+impl<E> QueryFilterX<E> for Select<E> where E: EntityX
+{
+}
 /// Automatically implement for `DeleteMany`<E>.
-impl<E> QueryFilterX<E> for DeleteMany<E> where E: EntityX {}
+impl<E> QueryFilterX<E> for DeleteMany<E> where E: EntityX
+{
+}
 /// Automatically implement for `UpdateMany`<E>.
-impl<E> QueryFilterX<E> for UpdateMany<E> where E: EntityX {}
+impl<E> QueryFilterX<E> for UpdateMany<E> where E: EntityX
+{
+}

@@ -7,4 +7,5 @@ pub struct Org {
     pub description: String,
 }
 
-impl AuthzOrg for Org {}
+impl AuthzOrg for Org {
+}
