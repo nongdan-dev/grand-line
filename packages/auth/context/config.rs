@@ -46,12 +46,12 @@ struct DefaultHandlers;
 impl AuthHandlers for DefaultHandlers {}
 
 /// Generic user config: callbacks that receive the user's own model type.
-/// Add this to your schema with `.data(AuthUserConfig::<User>::default())`.
-pub struct AuthUserConfig<U: AuthUser> {
+/// Add this to your schema with `.data(AuthUserImpl::<User>::default())`.
+pub struct AuthUserImpl<U: AuthUser> {
     pub handlers: Arc<dyn AuthUserHandlers<U>>,
 }
 
-impl<U: AuthUser> Default for AuthUserConfig<U> {
+impl<U: AuthUser> Default for AuthUserImpl<U> {
     fn default() -> Self {
         Self {
             handlers: Arc::new(DefaultUserHandlers(PhantomData)),

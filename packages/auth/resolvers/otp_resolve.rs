@@ -68,7 +68,12 @@ pub async fn auth_otp_ensure_resolve(
     Ok(t)
 }
 
-pub async fn auth_otp_ensure_re_request(ctx: &Context<'_>, tx: &DatabaseTransaction, ty: AuthOtpTy, email: &str) -> Res<()> {
+pub async fn auth_otp_ensure_re_request(
+    ctx: &Context<'_>,
+    tx: &DatabaseTransaction,
+    ty: AuthOtpTy,
+    email: &str,
+) -> Res<()> {
     let t = AuthOtp::find()
         .exclude_deleted()
         .filter(AuthOtpColumn::Ty.eq(ty))
