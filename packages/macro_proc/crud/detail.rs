@@ -24,10 +24,12 @@ fn try_gen_detail(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
 
         let body = r.body;
         let model = a.model.ts2_or_err()?;
+        let authz_row_filter = gen_authz_row_filter(&ty_filter(&model)?, a.ra.authz_row);
         let include_deleted = get_include_deleted(!a.resolver_inputs && a.ra.include_deleted);
+
         r.body = quote! {
             #body
-            #model::gql_detail(ctx, tx, &id, #include_deleted).await?
+            #model::gql_detail(ctx, tx, &id, #authz_row_filter, #include_deleted).await?
         }
     }
 

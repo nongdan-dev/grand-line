@@ -1,14 +1,5 @@
 use crate::prelude::*;
 
-#[cfg(feature = "authz")]
-fn gen_row_f(filter: &Ts2) -> Ts2 {
-    quote! { let _row_f = ctx.authz_row_graceful::<#filter>().await?; }
-}
-#[cfg(not(feature = "authz"))]
-fn gen_row_f(filter: &Ts2) -> Ts2 {
-    quote! { let _row_f: Option<#filter> = None; }
-}
-
 pub struct GenRelation {
     pub ty: RelationTy,
     pub a: RelationAttr,
@@ -83,21 +74,10 @@ impl GenRelation {
         let model = self.a.to()?;
         let column = self.column()?;
         let col = self.col()?;
-        let filter = ty_filter(&model)?;
+        let authz_row_filter = gen_authz_row_filter(&ty_filter(&model)?, self.a.authz_row);
         let include_deleted = get_include_deleted(self.a.include_deleted);
-        let row_f = gen_row_f(&filter);
         let r = quote! {
-            #row_f
-            match _row_f {
-                Some(_f) => {
-                    let mut _q = #model::find().filter(#column::#col.eq(id.clone()));
-                    if !#include_deleted.unwrap_or_default() {
-                        _q = _q.exclude_deleted();
-                    }
-                    _q.chain(_f).gql_select(ctx)?.one(tx).await?
-                }
-                None => #model::gql_load(ctx, #column::#col, id, #include_deleted).await?,
-            }
+            #model::gql_load(ctx, tx, #column::#col, id, #authz_row_filter, #include_deleted).await?
         };
         self.body_utils(&r, false)
     }
@@ -105,16 +85,13 @@ impl GenRelation {
         let column = self.column()?;
         let col = self.col()?;
         let model = self.a.to()?;
-        let filter = ty_filter(&model)?;
-        let include_deleted = get_include_deleted(self.a.include_deleted);
-        let row_f = gen_row_f(&filter);
         let extra_cond = quote! {
-            let extra_cond = Condition::all().add(#column::#col.eq(id));
+            Condition::all().add(#column::#col.eq(id))
         };
+        let authz_row_filter = gen_authz_row_filter(&ty_filter(&model)?, self.a.authz_row);
+        let include_deleted = get_include_deleted(self.a.include_deleted);
         let r = quote! {
-            #extra_cond
-            #row_f
-            #model::gql_search(ctx, tx, Some(extra_cond), filter, _row_f, order_by, None, page, #include_deleted).await?
+            #model::gql_search(ctx, tx, Some(#extra_cond), filter, None, #authz_row_filter, order_by, None, page, #include_deleted).await?
         };
         self.body_utils(&r, true)
     }
@@ -126,21 +103,19 @@ impl GenRelation {
         let through_key_col = self.a.key_str()?.to_pascal_case().ts2_or_err()?;
         let through_other_key_col = self.a.other_key()?.to_string().to_pascal_case().ts2_or_err()?;
         let model = self.a.to()?;
-        let filter = ty_filter(&model)?;
-        let include_deleted = get_include_deleted(self.a.include_deleted);
-        let row_f = gen_row_f(&filter);
-        let extra_cond = quote! {
+        let extra_cond = quote! {{
             let sub = #through::find()
                 .select_only()
                 .column(#through_column::#through_other_key_col)
                 .filter(#through_column::#through_key_col.eq(id))
                 .into_query();
-            let extra_cond = Condition::all().add(#column::#col.in_subquery(sub));
-        };
+            Condition::all().add(#column::#col.in_subquery(sub))
+        }};
+        let include_deleted = get_include_deleted(self.a.include_deleted);
+        let authz_row_filter = gen_authz_row_filter(&ty_filter(&model)?, self.a.authz_row);
+
         let r = quote! {
-            #extra_cond
-            #row_f
-            #model::gql_search(ctx, tx, Some(extra_cond), filter, _row_f, order_by, None, page, #include_deleted).await?
+            #model::gql_search(ctx, tx, Some(#extra_cond), filter, None, #authz_row_filter, order_by, None, page, #include_deleted).await?
         };
         self.body_utils(&r, true)
     }

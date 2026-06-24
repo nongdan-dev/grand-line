@@ -1,6 +1,6 @@
 use crate::prelude::*;
 
-#[search(LoginSession, include_deleted = false, auth)]
+#[search(LoginSession, include_deleted = false, auth, authz_row = false)]
 fn resolver() {
     ctx.auth_ensure_authenticated().await?;
     let f = get_filter(ctx).await?;
@@ -8,7 +8,7 @@ fn resolver() {
     (Some(f), Some(o))
 }
 
-#[count(LoginSession, include_deleted = false, auth)]
+#[count(LoginSession, include_deleted = false, auth, authz_row = false)]
 fn resolver() {
     let f = get_filter(ctx).await?;
     Some(f)

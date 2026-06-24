@@ -123,6 +123,7 @@ where
         extra_cond: Option<Condition>,
         filter: Option<Self::F>,
         filter_extra: Option<Self::F>,
+        authz_row_filter: Option<Self::F>,
         order_by: Option<Vec<Self::O>>,
         order_by_default: Option<Vec<Self::O>>,
         page: Option<Pagination>,
@@ -131,7 +132,7 @@ where
     where
         D: ConnectionTrait,
     {
-        let f = filter.combine(filter_extra);
+        let f = filter.combine(filter_extra).combine(authz_row_filter);
         let exclude_deleted = !include_deleted.or_else(|| Some(f.has_deleted_at())).unwrap_or_default();
         let mut r = Self::find();
         if exclude_deleted {
@@ -153,12 +154,13 @@ where
         db: &D,
         filter: Option<Self::F>,
         filter_extra: Option<Self::F>,
+        authz_row_filter: Option<Self::F>,
         include_deleted: Option<bool>,
     ) -> Res<u64>
     where
         D: ConnectionTrait,
     {
-        let f = filter.combine(filter_extra);
+        let f = filter.combine(filter_extra).combine(authz_row_filter);
         let exclude_deleted = !include_deleted.or_else(|| Some(f.has_deleted_at())).unwrap_or_default();
         let mut r = Self::find();
         if exclude_deleted {
@@ -169,16 +171,23 @@ where
     }
 
     /// Helper to use in resolver body of the macro detail.
-    async fn gql_detail<D>(ctx: &Context<'_>, db: &D, id: &str, include_deleted: Option<bool>) -> Res<Option<Self::G>>
+    async fn gql_detail<D>(
+        ctx: &Context<'_>,
+        db: &D,
+        id: &str,
+        authz_row_filter: Option<Self::F>,
+        include_deleted: Option<bool>,
+    ) -> Res<Option<Self::G>>
     where
         D: ConnectionTrait,
     {
-        let exclude_deleted = !include_deleted.unwrap_or_default();
+        let f = authz_row_filter;
+        let exclude_deleted = !include_deleted.or_else(|| Some(f.has_deleted_at())).unwrap_or_default();
         let mut r = Self::find();
         if exclude_deleted {
             r = r.exclude_deleted();
         }
-        let r = r.filter_by_id(id).gql_select(ctx)?.one(db).await?;
+        let r = r.chain(f).filter_by_id(id).gql_select(ctx)?.one(db).await?;
         Ok(r)
     }
 
@@ -196,12 +205,26 @@ where
         Ok(r)
     }
 
-    async fn gql_load(
+    async fn gql_load<D>(
         ctx: &Context<'_>,
+        db: &D,
         col: Self::C,
         id: String,
+        authz_row_filter: Option<Self::F>,
         include_deleted: Option<bool>,
-    ) -> Res<Option<Self::G>> {
+    ) -> Res<Option<Self::G>>
+    where
+        D: ConnectionTrait,
+    {
+        // TODO: data loader key here
+        if let Some(authz_row_filter) = authz_row_filter {
+            let mut q = Self::find().filter(col.eq(id.clone()));
+            if !include_deleted.unwrap_or_default() {
+                q = q.exclude_deleted();
+            }
+            let r = q.chain(authz_row_filter).gql_select(ctx)?.one(db).await?;
+            return Ok(r);
+        }
         let look_ahead = Self::gql_look_ahead(ctx)?;
         let exclude_deleted = !include_deleted.unwrap_or_default();
         let exclude_deleted = if exclude_deleted {

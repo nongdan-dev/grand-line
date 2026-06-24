@@ -28,6 +28,7 @@ default_flags = [
   "resolver_ctx",
   "resolver_include_deleted",
   "resolver_permanent_delete",
+  "resolver_authz_row",
 ]
 # db
 sqlite = ["_core/sqlite"]
@@ -46,6 +47,7 @@ resolver_tx = ["_core/resolver_tx"]
 resolver_ctx = ["_core/resolver_ctx"]
 resolver_include_deleted = ["_core/resolver_include_deleted"]
 resolver_permanent_delete = ["_core/resolver_permanent_delete"]
+resolver_authz_row = ["_core/resolver_authz_row"]
 # main packages
 auth = ["dep:_auth", "_core/auth", "rand_utils"]
 authz = ["auth", "dep:_authz", "_core/authz"]
