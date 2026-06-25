@@ -37,7 +37,7 @@ where
         F: Serialize + DeserializeOwned,
     {
         let r = self.authz_role().await?;
-        let Some(script) = r.row_policy.get(path) else {
+        let Some(script) = r.as_ref().role.row_policy.get(path) else {
             return Ok(None);
         };
         if script.is_null() {

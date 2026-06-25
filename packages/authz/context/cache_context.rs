@@ -5,33 +5,33 @@ pub trait AuthzCacheContext<'a>
 where
     Self: AuthContext<'a> + AuthzHttpContext<'a> + AuthzColContext<'a>,
 {
-    async fn authz_with_cache(&self, check: AuthzEnsure) -> Res<Arc<Option<AuthzCacheItem>>> {
+    async fn authz_with_cache(&self, check: AuthzEnsure) -> Res<Option<Arc<AuthzCacheItem>>> {
         let field = self.field_impl();
-        let alias = field.alias().unwrap_or_else(|| field.name()).to_owned();
-        let op = check.operation.clone();
+        let name = field.name();
+        let alias = field.alias();
+        let has_alias = alias.is_some();
+        let alias = alias.unwrap_or(name).to_owned();
 
         // Collect alias->schema path entries for the entire selection subtree
         // synchronously before any .await so SelectionField<'_> does not cross
         // an async boundary.
-        let op_has_alias = alias != op;
-        let mut path_entries: Vec<(String, String)> = if op_has_alias {
-            vec![(alias.clone(), op.clone())]
+        let mut path_entries: Vec<(String, String)> = if has_alias {
+            vec![(alias.clone(), name.to_owned())]
         } else {
             vec![]
         };
-        collect_alias_recursively(field, &alias, &op, op_has_alias, &mut path_entries);
+        collect_alias_recursively(field, name, &alias, has_alias, &mut path_entries);
 
         let m = self.authz_cache_or_init().await?;
         let mut guard = m.lock().await;
         if let Some(v) = guard.get(&alias) {
-            let v = Arc::clone(v);
+            let v = v.clone();
             drop(guard);
             return Ok(v);
         }
 
-        let v = self.authz_without_cache(check).await?;
-        let v = Arc::new(v);
-        guard.insert(alias.clone(), Arc::clone(&v));
+        let v = self.authz_without_cache(check).await?.map(Arc::new);
+        guard.insert(alias.clone(), v.clone());
         drop(guard);
 
         // Store the path map so any nested resolver can translate its alias-based
@@ -93,7 +93,7 @@ where
         };
 
         let map = ColPolicy::from_json(role.col_policy.clone())?;
-        if let Some(p) = map.get("*").or_else(|| map.get(&check.operation))
+        if let Some(p) = map.get("*").or_else(|| map.get(self.field_impl().name()))
             && self.authz_col_check_inputs(&p.inputs)
             && self.authz_col_check_output(&p.output)
         {
@@ -157,22 +157,22 @@ impl<'a> AuthzCacheContext<'a> for Context<'a> {
 }
 
 fn collect_alias_recursively(
-    field: SelectionField<'_>,
-    alias_prefix: &str,
-    name_prefix: &str,
-    ancestor_has_alias: bool,
+    parent: SelectionField<'_>,
+    name_path: &str,
+    alias_path: &str,
+    has_alias: bool,
     out: &mut Vec<(String, String)>,
 ) {
-    for child in field.selection_set() {
-        let child_alias = child.alias();
-        let ca = child_alias.unwrap_or_else(|| child.name());
-        let cn = child.name();
-        let alias_path = format!("{alias_prefix}.{ca}");
-        let name_path = format!("{name_prefix}.{cn}");
-        let any_alias = ancestor_has_alias || child_alias.is_some();
-        if any_alias {
+    for child in parent.selection_set() {
+        let name = child.name();
+        let name_path = format!("{name_path}.{name}");
+        let alias = child.alias();
+        let has_alias = has_alias || alias.is_some();
+        let alias = alias.unwrap_or(name);
+        let alias_path = format!("{alias_path}.{alias}");
+        if has_alias {
             out.push((alias_path.clone(), name_path.clone()));
         }
-        collect_alias_recursively(child, &alias_path, &name_path, any_alias, out);
+        collect_alias_recursively(child, &name_path, &alias_path, has_alias, out);
     }
 }

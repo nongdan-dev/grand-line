@@ -11,7 +11,7 @@ pub struct AuthzCacheItem {
 }
 
 /// Per-request cache for authz results.
-pub type AuthzCache = Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>;
+pub type AuthzCache = Mutex<HashMap<String, Option<Arc<AuthzCacheItem>>>>;
 
 /// Per-request cache for authz_row results, keyed by (filter TypeId, field path).
 /// Avoids calling the handler repeatedly for the same field in the same request

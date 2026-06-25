@@ -70,13 +70,12 @@ where
             let realm = authz.realm;
             let org = !authz.skip_org;
             let user = !authz.skip_user;
-            let gql_name = self.gql_name()?;
+            let _gql_name = self.gql_name()?;
             let ensure = quote! {
                 AuthzEnsure {
                     realm: #realm.to_owned(),
                     org: #org,
                     user: #user,
-                    operation: #gql_name.to_owned(),
                 }
             };
             body = quote! {

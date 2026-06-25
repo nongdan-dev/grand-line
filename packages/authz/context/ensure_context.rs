@@ -4,7 +4,6 @@ pub struct AuthzEnsure {
     pub realm: String,
     pub org: bool,
     pub user: bool,
-    pub operation: String,
 }
 
 #[async_trait]
