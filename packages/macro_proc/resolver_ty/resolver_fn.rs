@@ -156,8 +156,8 @@ where
         };
 
         Ok(quote! {
-            #(#[doc = #field_doc_strs])*
             #graphql_attr
+            #(#[doc = #field_doc_strs])*
             #(#[doc = #directive_comments])*
             async fn #name(&self, #inputs) -> #output {
                 #body

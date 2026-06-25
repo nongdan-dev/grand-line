@@ -22,7 +22,10 @@ impl Default for AuthzConfig {
 
 #[allow(unused_variables)]
 #[async_trait]
-pub trait AuthzHandlers: Send + Sync {
+pub trait AuthzHandlers
+where
+    Self: Send + Sync,
+{
     async fn execute_script(&self, ctx: &Context<'_>, script: &str) -> Res<Option<JsonValue>> {
         Ok(None)
     }
@@ -36,7 +39,10 @@ impl AuthzHandlers for DefaultHandlers {
 /// Org lookup callbacks, non-generic: method signatures use only primitives
 /// so the trait needs no type parameter.
 #[async_trait]
-pub trait AuthzOrgImpl: Send + Sync {
+pub trait AuthzOrgImpl
+where
+    Self: Send + Sync,
+{
     async fn find_by_id(&self, id: &str, tx: &DatabaseTransaction) -> Res<Option<OrgMinimal>>;
 }
 

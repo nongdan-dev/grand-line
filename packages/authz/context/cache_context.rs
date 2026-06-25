@@ -1,17 +1,17 @@
 use crate::prelude::*;
 
-pub struct AuthzCache(pub Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>);
+type AuthzCache = Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>;
 
 #[async_trait]
 pub trait AuthzCacheContext<'a>
 where
-    Self: AuthContext<'a> + AuthzHttpContext<'a> + AuthzColPolicyContext<'a>,
+    Self: AuthContext<'a> + AuthzHttpContext<'a> + AuthzColContext<'a>,
 {
     async fn authz_with_cache(&self, check: AuthzDirectiveEnsure) -> Res<Arc<Option<AuthzCacheItem>>> {
         let k = self.authz_cache_key().await?;
 
         let m = self.authz_cache_or_init().await?;
-        let mut guard = m.0.lock().await;
+        let mut guard = m.lock().await;
         if let Some(v) = guard.get(&k) {
             let v = Arc::clone(v);
             drop(guard);
@@ -73,8 +73,8 @@ where
         let operation = self.field_impl().name();
         let map = ColPolicy::from_json(role.col_policy.clone())?;
         if let Some(p) = map.get("*").or_else(|| map.get(operation))
-            && self.authz_col_policy_check_inputs(&p.inputs)
-            && self.authz_col_policy_check_output(&p.output)
+            && self.authz_col_check_inputs(&p.inputs)
+            && self.authz_col_check_output(&p.output)
         {
             let c = AuthzCacheItem {
                 role,
@@ -87,7 +87,7 @@ where
     }
 
     async fn authz_cache_or_init(&self) -> Res<Arc<AuthzCache>> {
-        self.cache(async || Ok(AuthzCache(Mutex::new(HashMap::new())))).await
+        self.cache(async || Ok(Mutex::new(HashMap::new()))).await
     }
 
     async fn authz_cache_key(&self) -> Res<String> {

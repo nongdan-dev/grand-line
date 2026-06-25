@@ -25,7 +25,10 @@ impl Default for AuthConfig {
 
 #[allow(unused_variables)]
 #[async_trait]
-pub trait AuthHandlers: Send + Sync {
+pub trait AuthHandlers
+where
+    Self: Send + Sync,
+{
     async fn password_validate(&self, ctx: &Context<'_>, password: &str) -> Res<bool> {
         Ok(rand_utils::password_validate(password).is_ok())
     }

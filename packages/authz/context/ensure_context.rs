@@ -1,12 +1,10 @@
 use crate::prelude::*;
 
 #[async_trait]
-pub trait AuthzEnsureContext {
-    async fn authz_ensure_in_macro(&self, check: AuthzDirectiveEnsure) -> Res<()>;
-}
-
-#[async_trait]
-impl AuthzEnsureContext for Context<'_> {
+pub trait AuthzEnsureContext<'a>
+where
+    Self: AuthzCacheContext<'a>,
+{
     async fn authz_ensure_in_macro(&self, check: AuthzDirectiveEnsure) -> Res<()> {
         // authz_with_cache -> authz_cache_key() stores the root key in AuthzCachedKey
         // on first call so nested resolvers return the same HashMap entry.
@@ -16,4 +14,8 @@ impl AuthzEnsureContext for Context<'_> {
         }
         Ok(())
     }
+}
+
+#[async_trait]
+impl<'a> AuthzEnsureContext<'a> for Context<'a> {
 }

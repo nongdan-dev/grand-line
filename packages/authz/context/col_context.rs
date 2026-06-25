@@ -1,16 +1,16 @@
 use crate::prelude::*;
 
-pub trait AuthzColPolicyContext<'a>
+pub trait AuthzColContext<'a>
 where
     Self: ImplContext<'a>,
 {
     /// Entry point: verify every selected field in the GraphQL response against `output`.
-    fn authz_col_policy_check_output(&self, output: &ColPolicyField) -> bool {
+    fn authz_col_check_output(&self, output: &ColPolicyField) -> bool {
         check_output(self.field_impl(), output)
     }
 
     /// Entry point: verify every argument in the current GraphQL field against `inputs`.
-    fn authz_col_policy_check_inputs(&self, inputs: &ColPolicyField) -> bool {
+    fn authz_col_check_inputs(&self, inputs: &ColPolicyField) -> bool {
         let Ok(pairs) = self.field_impl().arguments() else {
             return false;
         };
@@ -23,7 +23,7 @@ where
     }
 }
 
-impl<'a> AuthzColPolicyContext<'a> for Context<'a> {
+impl<'a> AuthzColContext<'a> for Context<'a> {
 }
 
 /// Check a single key-value argument pair against `parent`.

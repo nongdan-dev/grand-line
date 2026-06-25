@@ -68,7 +68,7 @@ where
 // exec_without_ctx
 
 #[async_trait]
-pub trait AmExecWithoutCtx: Sized {
+pub trait AmExecWithoutCtx {
     type Model: Send;
     async fn exec_without_ctx<D>(self, tx: &D) -> Res<Self::Model>
     where

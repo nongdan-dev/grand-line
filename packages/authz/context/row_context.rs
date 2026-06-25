@@ -3,12 +3,13 @@ use crate::prelude::*;
 /// Per-request cache for authz_row results, keyed by (filter TypeId, field path).
 /// Avoids calling the handler repeatedly for the same field in the same request
 /// (e.g. N parents each resolving the same has_one relation with row auth).
+/// This seems to be a generic type, so we need to create a struct wrapper to avoid conflict.
 pub struct AuthzRowCache(pub Mutex<HashMap<(TypeId, String), ArcAny>>);
 
 #[async_trait]
 pub trait AuthzRowContext<'a>
 where
-    Self: AuthzConfigContext<'a> + AuthzContext<'a>,
+    Self: AuthzConfigContext<'a> + AuthzRoleContext<'a>,
 {
     /// Retrieve the row-level filter defined in the current operation's policy.
     /// Results are cached per (filter type, field path) for the lifetime of the request.

@@ -60,7 +60,10 @@ where
 // AmExec - resolves ctx, builds active model, runs db operation
 
 #[async_trait]
-pub trait AmExecCtx: Sized {
+pub trait AmExecCtx
+where
+    Self: Sized,
+{
     type Model: Send;
     async fn exec(self, ctx: &Context<'_>) -> Res<Self::Model>;
 }

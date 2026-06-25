@@ -1,6 +1,9 @@
 use crate::prelude::*;
 
-pub trait AuthUser: EntityX + Send + Sync {
+pub trait AuthUser
+where
+    Self: EntityX + Send + Sync,
+{
     fn email_col() -> Self::C;
     fn hashed_password_col() -> Self::C;
     fn get_email(m: &Self::M) -> &str;
