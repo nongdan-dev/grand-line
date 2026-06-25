@@ -4,6 +4,7 @@ pub struct AuthzEnsure {
     pub realm: String,
     pub org: bool,
     pub user: bool,
+    pub operation: String,
 }
 
 #[async_trait]
@@ -12,8 +13,6 @@ where
     Self: AuthzCacheContext<'a>,
 {
     async fn authz_ensure_in_macro(&self, check: AuthzEnsure) -> Res<()> {
-        // authz_with_cache -> authz_cache_key() stores the root key in AuthzCachedKey
-        // on first call so nested resolvers return the same HashMap entry.
         let v = self.authz_with_cache(check).await?;
         if v.is_none() {
             return Err(self.authz_err().clone());

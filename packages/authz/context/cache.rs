@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use strum_macros::Display;
 
 #[derive(FromQueryResult)]
 pub struct OrgMinimal {
@@ -11,18 +10,6 @@ pub struct AuthzCacheItem {
     pub org: Option<Arc<OrgMinimal>>,
 }
 
-/// Will be supplied in macro resolver fn.
-#[derive(Display)]
-#[strum(serialize_all = "PascalCase")]
-pub enum AuthzCacheOperationTy {
-    Query,
-    Mutation,
-    Subscription,
-}
-
-/// Type-keyed cache: stores the root operation's field-keyed cache key so that
-/// nested resolvers (e.g., relations) can look up the same HashMap entry.
-pub struct AuthzCachedKey(pub String);
 /// Per-request cache for authz results.
 pub type AuthzCache = Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>;
 
@@ -31,3 +18,9 @@ pub type AuthzCache = Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>;
 /// (e.g. N parents each resolving the same has_one relation with row auth).
 /// This seems to be a generic type, so we need to create a struct wrapper to avoid conflict.
 pub struct AuthzRowCache(pub Mutex<HashMap<(TypeId, String), ArcAny>>);
+
+/// Per-request flat map from alias-based path to schema-based path, built once
+/// by the root resolver from its full selection tree. Covers N levels of nesting
+/// regardless of which intermediate resolvers call authz_row.
+/// Key: dot-joined alias segments (e.g. "pd.cmt"). Value: schema names (e.g. "postDetail.comments").
+pub type AuthzPathMap = Mutex<HashMap<String, String>>;

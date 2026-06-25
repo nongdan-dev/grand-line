@@ -52,10 +52,10 @@ pub struct PostInTag {
 
 // Root resolvers: authz checks happen here; relations inherit the cached context.
 #[detail(Post, authz(realm = "org"))]
-fn post_detail() {
+fn postDetail() {
 }
 #[detail(Comment, authz(realm = "org"))]
-fn comment_detail() {
+fn commentDetail() {
 }
 
 #[derive(Default, MergedObject)]

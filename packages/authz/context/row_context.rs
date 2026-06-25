@@ -11,7 +11,7 @@ where
     where
         F: Serialize + DeserializeOwned + Clone + Send + Sync + 'static,
     {
-        let path = self.field_path_without_number_index();
+        let path = self.authz_row_field_path().await?;
         let k = (TypeId::of::<F>(), path.clone());
 
         let cache = self.authz_row_cache_or_init().await?;

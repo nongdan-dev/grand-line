@@ -6,11 +6,24 @@ where
     Self: AuthContext<'a> + AuthzHttpContext<'a> + AuthzColContext<'a>,
 {
     async fn authz_with_cache(&self, check: AuthzEnsure) -> Res<Arc<Option<AuthzCacheItem>>> {
-        let k = self.authz_cache_key().await?;
+        let field = self.field_impl();
+        let alias = field.alias().unwrap_or_else(|| field.name()).to_owned();
+        let op = check.operation.clone();
+
+        // Collect alias->schema path entries for the entire selection subtree
+        // synchronously before any .await so SelectionField<'_> does not cross
+        // an async boundary.
+        let op_has_alias = alias != op;
+        let mut path_entries: Vec<(String, String)> = if op_has_alias {
+            vec![(alias.clone(), op.clone())]
+        } else {
+            vec![]
+        };
+        collect_alias_recursively(field, &alias, &op, op_has_alias, &mut path_entries);
 
         let m = self.authz_cache_or_init().await?;
         let mut guard = m.lock().await;
-        if let Some(v) = guard.get(&k) {
+        if let Some(v) = guard.get(&alias) {
             let v = Arc::clone(v);
             drop(guard);
             return Ok(v);
@@ -18,8 +31,19 @@ where
 
         let v = self.authz_without_cache(check).await?;
         let v = Arc::new(v);
-        guard.insert(k, Arc::clone(&v));
+        guard.insert(alias.clone(), Arc::clone(&v));
         drop(guard);
+
+        // Store the path map so any nested resolver can translate its alias-based
+        // path to a schema path for row policy lookup. or_insert keeps the first
+        // mapping in case two root fields share overlapping response keys.
+        let pm = self.authz_path_map_or_init().await?;
+        let mut pm_guard = pm.lock().await;
+        // need to use for loop to keep existing keys from other operations.
+        for (a, n) in path_entries {
+            pm_guard.entry(a).or_insert(n);
+        }
+        drop(pm_guard);
 
         Ok(v)
     }
@@ -68,9 +92,8 @@ where
             return Ok(None);
         };
 
-        let operation = self.field_impl().name();
         let map = ColPolicy::from_json(role.col_policy.clone())?;
-        if let Some(p) = map.get("*").or_else(|| map.get(operation))
+        if let Some(p) = map.get("*").or_else(|| map.get(&check.operation))
             && self.authz_col_check_inputs(&p.inputs)
             && self.authz_col_check_output(&p.output)
         {
@@ -88,31 +111,68 @@ where
         self.cache(async || Ok(Mutex::new(HashMap::new()))).await
     }
 
+    async fn authz_path_map_or_init(&self) -> Res<Arc<AuthzPathMap>> {
+        self.cache(async || Ok(Mutex::new(HashMap::new()))).await
+    }
+
+    /// Translate the current resolver's alias-based path to schema field names.
+    /// The root resolver pre-builds the full alias->schema path map for its entire
+    /// selection subtree, so this is a single O(1) lookup with no per-level registration.
+    async fn authz_row_field_path(&self) -> Res<String> {
+        let alias_path = self.field_path_without_number_index();
+        let pm = self.authz_path_map_or_init().await?;
+        let guard = pm.lock().await;
+        Ok(guard.get(&alias_path).cloned().unwrap_or(alias_path))
+    }
+
+    /// Return the root resolver's cache key from the current resolver's path.
+    /// Because #[authz] is only allowed on root resolvers, the cache only ever
+    /// holds single-segment keys. Nested resolvers just need the first non-numeric
+    /// path segment (the root alias or field name) and verify it is in the cache.
     async fn authz_cache_key(&self) -> Res<String> {
-        let operation_ty = self.get_cache::<AuthzCacheOperationTy>().await?;
-        let Some(operation_ty) = operation_ty else {
-            return Err(MyErr::MissingMacro.into());
-        };
+        let alias = if let Some(node) = self.path_node_impl() {
+            node.to_string_vec().first().cloned()
+        } else {
+            None
+        }
+        .unwrap_or_else(|| {
+            let field = self.field_impl();
+            field.alias().unwrap_or_else(|| field.name()).to_owned()
+        });
 
-        // On first call (root resolver), compute and store the key so that nested
-        // resolvers (e.g. relations) return the same key instead of their own field name.
-        let k = self
-            .cache(async || {
-                let field = self.field_impl();
-                let operation = field.name();
-                let alias = field.alias().unwrap_or_default();
-                let k = format!("{operation_ty}:{operation}:{alias}");
-                Ok(AuthzCachedKey(k))
-            })
-            .await?
-            .as_ref()
-            .0
-            .clone();
+        let m = self.authz_cache_or_init().await?;
+        let guard = m.lock().await;
+        if guard.contains_key(&alias) {
+            drop(guard);
+            return Ok(alias);
+        }
 
-        Ok(k)
+        drop(guard);
+        Err(MyErr::MissingMacro.into())
     }
 }
 
 #[async_trait]
 impl<'a> AuthzCacheContext<'a> for Context<'a> {
+}
+
+fn collect_alias_recursively(
+    field: SelectionField<'_>,
+    alias_prefix: &str,
+    name_prefix: &str,
+    ancestor_has_alias: bool,
+    out: &mut Vec<(String, String)>,
+) {
+    for child in field.selection_set() {
+        let child_alias = child.alias();
+        let ca = child_alias.unwrap_or_else(|| child.name());
+        let cn = child.name();
+        let alias_path = format!("{alias_prefix}.{ca}");
+        let name_path = format!("{name_prefix}.{cn}");
+        let any_alias = ancestor_has_alias || child_alias.is_some();
+        if any_alias {
+            out.push((alias_path.clone(), name_path.clone()));
+        }
+        collect_alias_recursively(child, &alias_path, &name_path, any_alias, out);
+    }
 }

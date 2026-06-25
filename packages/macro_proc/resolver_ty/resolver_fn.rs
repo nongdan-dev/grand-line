@@ -65,22 +65,21 @@ where
             if !ctx {
                 return Err(self.syn_err("authz requires ctx"));
             }
-            let operation_ty = self
-                .root_operation_ty()?
-                .ok_or_else(|| self.syn_err("authz only available in root resolvers"))?
-                .ts2_or_err()?;
+            self.root_operation_ty()?
+                .ok_or_else(|| self.syn_err("authz only available in root resolvers"))?;
             let realm = authz.realm;
             let org = !authz.skip_org;
             let user = !authz.skip_user;
+            let gql_name = self.gql_name()?;
             let ensure = quote! {
                 AuthzEnsure {
                     realm: #realm.to_owned(),
                     org: #org,
                     user: #user,
+                    operation: #gql_name.to_owned(),
                 }
             };
             body = quote! {
-                ctx.cache(async || Ok(AuthzCacheOperationTy::#operation_ty)).await?;
                 ctx.authz_ensure_in_macro(#ensure).await?;
                 #body
             };
