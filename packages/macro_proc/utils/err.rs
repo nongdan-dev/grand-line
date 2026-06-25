@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-pub fn gen_grand_line_err(_: TokenStream, item: TokenStream) -> TokenStream {
+pub fn gen_grand_line_err(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let attr = Into::<Ts2>::into(attr);
     let item = Into::<Ts2>::into(item);
 
     quote! {
@@ -9,6 +10,7 @@ pub fn gen_grand_line_err(_: TokenStream, item: TokenStream) -> TokenStream {
             ThisErr,
             GrandLineErrDerive,
         )]
+        #attr
         #item
     }
     .into()

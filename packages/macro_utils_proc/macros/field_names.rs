@@ -1,11 +1,13 @@
 use crate::prelude::*;
 
-pub fn gen_field_names(_: TokenStream, item: TokenStream) -> TokenStream {
+pub fn gen_field_names(attr: TokenStream, item: TokenStream) -> TokenStream {
     let item = parse_macro_input!(item as ItemStruct);
-    try_gen_field_names(item).unwrap_or_else(|e| e.to_compile_error().into())
+    try_gen_field_names(attr, item).unwrap_or_else(|e| e.to_compile_error().into())
 }
 
-fn try_gen_field_names(mut item: ItemStruct) -> SynRes<TokenStream> {
+fn try_gen_field_names(attr: TokenStream, mut item: ItemStruct) -> SynRes<TokenStream> {
+    let attr = Into::<Ts2>::into(attr);
+
     let name = item.ident.to_token_stream();
     let name_span = item.ident.span();
     let mut fields = vec![];
@@ -65,6 +67,7 @@ fn try_gen_field_names(mut item: ItemStruct) -> SynRes<TokenStream> {
     let l = all.len();
 
     Ok(quote! {
+        #attr
         #item
         impl #name {
             pub const FIELDS: [&'static str; #l] = [#(#all)*];

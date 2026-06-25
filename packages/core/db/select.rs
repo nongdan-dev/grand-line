@@ -23,7 +23,7 @@ where
     fn gql_select_id(self) -> Selector<SelectModel<E::G>>;
 
     /// Helper to check if exists and return error if not.
-    async fn exists_or_404<D>(self, db: &D) -> Res<()>
+    async fn exists_or_404<D>(self, tx: &D) -> Res<()>
     where
         D: ConnectionTrait;
 }
@@ -74,11 +74,11 @@ where
         self.select_only().column(E::col_id()).into_model::<E::G>()
     }
 
-    async fn exists_or_404<D>(self, db: &D) -> Res<()>
+    async fn exists_or_404<D>(self, tx: &D) -> Res<()>
     where
         D: ConnectionTrait,
     {
-        if !PaginatorTrait::exists(self, db).await? {
+        if !PaginatorTrait::exists(self, tx).await? {
             return Err(MyErr::Db404.into());
         }
         Ok(())
@@ -91,11 +91,11 @@ impl<E> SelectorX<E::M> for Select<E>
 where
     E: EntityX,
 {
-    async fn one_or_404<D>(self, db: &D) -> Res<E::M>
+    async fn one_or_404<D>(self, tx: &D) -> Res<E::M>
     where
         D: ConnectionTrait,
     {
-        let v = self.one(db).await?.ok_or(MyErr::Db404)?;
+        let v = self.one(tx).await?.ok_or(MyErr::Db404)?;
         Ok(v)
     }
 }

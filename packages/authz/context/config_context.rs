@@ -4,6 +4,9 @@ static DEFAULT: LazyLock<AuthzConfig> = LazyLock::new(AuthzConfig::default);
 
 pub trait AuthzConfigContext<'a> {
     fn authz_config(&self) -> &'a AuthzConfig;
+    fn authz_err(&self) -> &'a GrandLineErr {
+        &self.authz_config().unauthorized_err
+    }
 }
 
 impl<'a> AuthzConfigContext<'a> for Context<'a> {

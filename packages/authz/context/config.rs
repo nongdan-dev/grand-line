@@ -4,6 +4,8 @@ use crate::prelude::*;
 pub struct AuthzConfig {
     pub org_id_header_key: &'static str,
     pub role_id_header_key: &'static str,
+    /// Can be configured to use CoreDbErr::Db404 to not leak the existence status.
+    pub unauthorized_err: GrandLineErr,
     pub handlers: Arc<dyn AuthzHandlers>,
 }
 
@@ -12,6 +14,7 @@ impl Default for AuthzConfig {
         Self {
             org_id_header_key: H_ORG_ID,
             role_id_header_key: H_ROLE_ID,
+            unauthorized_err: MyErr::Unauthorized.into(),
             handlers: Arc::new(DefaultHandlers),
         }
     }

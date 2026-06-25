@@ -119,7 +119,7 @@ where
     /// Helper to use in resolver body of the macro search.
     async fn gql_search<D>(
         ctx: &Context<'_>,
-        db: &D,
+        tx: &D,
         extra_cond: Option<Condition>,
         filter: Option<Self::F>,
         filter_extra: Option<Self::F>,
@@ -144,14 +144,14 @@ where
             .chain(order_by.combine(order_by_default))
             .chain(page.inner(ctx.config()))
             .gql_select(ctx)?
-            .all(db)
+            .all(tx)
             .await?;
         Ok(r)
     }
 
     /// Helper to use in resolver body of the macro count.
     async fn gql_count<D>(
-        db: &D,
+        tx: &D,
         filter: Option<Self::F>,
         filter_extra: Option<Self::F>,
         authz_row_filter: Option<Self::F>,
@@ -166,14 +166,14 @@ where
         if exclude_deleted {
             r = r.exclude_deleted();
         }
-        let r = r.chain(f).count(db).await?;
+        let r = r.chain(f).count(tx).await?;
         Ok(r)
     }
 
     /// Helper to use in resolver body of the macro detail.
     async fn gql_detail<D>(
         ctx: &Context<'_>,
-        db: &D,
+        tx: &D,
         id: &str,
         authz_row_filter: Option<Self::F>,
         include_deleted: Option<bool>,
@@ -183,31 +183,78 @@ where
     {
         let f = authz_row_filter;
         let exclude_deleted = !include_deleted.or_else(|| Some(f.has_deleted_at())).unwrap_or_default();
-        let mut r = Self::find();
+        let mut q = Self::find();
         if exclude_deleted {
-            r = r.exclude_deleted();
+            q = q.exclude_deleted();
         }
-        let r = r.chain(f).filter_by_id(id).gql_select(ctx)?.one(db).await?;
+        let r = q.chain(f).filter_by_id(id).gql_select(ctx)?.one(tx).await?;
         Ok(r)
     }
 
-    /// Helper to use in resolver body of the macro delete.
-    async fn gql_delete<D>(db: &D, id: &str, permanent: Option<bool>) -> Res<Self::G>
+    /// Helper to use in resolver body of the macro update/delete.
+    async fn gql_mutation_check_id<D>(
+        tx: &D,
+        id: &str,
+        authz_row_filter: Option<Self::F>,
+        authz_err: &GrandLineErr,
+    ) -> Res<()>
     where
         D: ConnectionTrait,
     {
-        if permanent.unwrap_or_default() {
-            Self::delete_many().filter_by_id(id).exec(db).await?;
-        } else {
-            Self::soft_delete_by_id(id)?.exec(db).await?;
+        let q = || Self::find().filter_by_id(id);
+
+        let Some(f) = authz_row_filter else {
+            q().exists_or_404(tx).await?;
+            return Ok(());
+        };
+
+        if !q().filter(f.into_condition()).exists(tx).await? {
+            return Err(authz_err.clone());
         }
+
+        Ok(())
+    }
+
+    /// Helper to use in resolver body of the macro delete.
+    async fn gql_delete<D>(
+        tx: &D,
+        id: &str,
+        permanent: Option<bool>,
+        authz_row_filter: Option<Self::F>,
+        authz_err: &GrandLineErr,
+    ) -> Res<Self::G>
+    where
+        D: ConnectionTrait,
+    {
+        let rows_affected = if permanent.unwrap_or_default() {
+            let mut q = Self::delete_many().filter_by_id(id);
+
+            if let Some(f) = authz_row_filter {
+                q = q.filter(f.into_condition());
+            }
+
+            q.exec(tx).await?.rows_affected
+        } else {
+            let mut q = Self::soft_delete_by_id(id)?;
+
+            if let Some(f) = authz_row_filter {
+                q = q.filter(f.into_condition());
+            }
+
+            q.exec(tx).await?.rows_affected
+        };
+
+        if rows_affected == 0 {
+            return Err(authz_err.clone());
+        }
+
         let r = Self::G::from_id(id);
         Ok(r)
     }
 
     async fn gql_load<D>(
         ctx: &Context<'_>,
-        db: &D,
+        tx: &D,
         col: Self::C,
         id: String,
         authz_row_filter: Option<Self::F>,
@@ -222,7 +269,7 @@ where
             if !include_deleted.unwrap_or_default() {
                 q = q.exclude_deleted();
             }
-            let r = q.chain(authz_row_filter).gql_select(ctx)?.one(db).await?;
+            let r = q.chain(authz_row_filter).gql_select(ctx)?.one(tx).await?;
             return Ok(r);
         }
         let look_ahead = Self::gql_look_ahead(ctx)?;

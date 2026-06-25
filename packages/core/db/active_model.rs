@@ -66,7 +66,7 @@ where
 #[async_trait]
 pub trait AmExecWithoutCtx: Sized {
     type Model: Send;
-    async fn exec_without_ctx<D>(self, db: &D) -> Res<Self::Model>
+    async fn exec_without_ctx<D>(self, tx: &D) -> Res<Self::Model>
     where
         D: ConnectionTrait;
 }
@@ -80,11 +80,11 @@ where
 {
     type Model = E::M;
 
-    async fn exec_without_ctx<D>(self, db: &D) -> Res<Self::Model>
+    async fn exec_without_ctx<D>(self, tx: &D) -> Res<Self::Model>
     where
         D: ConnectionTrait,
     {
-        let r = self.into_active_model().insert(db).await?;
+        let r = self.into_active_model().insert(tx).await?;
         Ok(r)
     }
 }
@@ -98,11 +98,11 @@ where
 {
     type Model = E::M;
 
-    async fn exec_without_ctx<D>(self, db: &D) -> Res<Self::Model>
+    async fn exec_without_ctx<D>(self, tx: &D) -> Res<Self::Model>
     where
         D: ConnectionTrait,
     {
-        let r = self.into_active_model().update(db).await?;
+        let r = self.into_active_model().update(tx).await?;
         Ok(r)
     }
 }
@@ -116,12 +116,12 @@ where
 {
     type Model = E::M;
 
-    async fn exec_without_ctx<D>(self, db: &D) -> Res<Self::Model>
+    async fn exec_without_ctx<D>(self, tx: &D) -> Res<Self::Model>
     where
         D: ConnectionTrait,
     {
         E::ensure_col_deleted_at()?;
-        let r = self.into_active_model().update(db).await?;
+        let r = self.into_active_model().update(tx).await?;
         Ok(r)
     }
 }
@@ -209,14 +209,14 @@ where
         <Self as Default>::default().set_defaults_on_delete()
     }
 
-    /// Set `deleted_at` and update db.
+    /// Set `deleted_at` and update tx.
     /// It also checks if the model has configured with `deleted_at` column or not.
-    async fn soft_delete<D>(self, db: &D) -> Res<E::M>
+    async fn soft_delete<D>(self, tx: &D) -> Res<E::M>
     where
         D: ConnectionTrait,
     {
         E::ensure_col_deleted_at()?;
-        let r = self.set_defaults_on_delete().update(db).await?;
+        let r = self.set_defaults_on_delete().update(tx).await?;
         Ok(r)
     }
 }

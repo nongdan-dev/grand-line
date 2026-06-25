@@ -8,7 +8,7 @@ where
     G: FromQueryResult + Send + Sync,
 {
     /// Helper to find one and return error if not.
-    async fn one_or_404<D>(self, db: &D) -> Res<G>
+    async fn one_or_404<D>(self, tx: &D) -> Res<G>
     where
         D: ConnectionTrait;
 }
@@ -19,11 +19,11 @@ impl<G> SelectorX<G> for Selector<SelectModel<G>>
 where
     G: FromQueryResult + Send + Sync,
 {
-    async fn one_or_404<D>(self, db: &D) -> Res<G>
+    async fn one_or_404<D>(self, tx: &D) -> Res<G>
     where
         D: ConnectionTrait,
     {
-        let v = self.one(db).await?.ok_or(MyErr::Db404)?;
+        let v = self.one(tx).await?.ok_or(MyErr::Db404)?;
         Ok(v)
     }
 }
