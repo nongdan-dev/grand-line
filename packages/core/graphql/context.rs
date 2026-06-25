@@ -1,19 +1,15 @@
 use super::prelude::*;
 
-pub trait GrandLineContext<'a> {
-    fn grand_line(&self) -> Res<&'a GrandLineContextData>;
+pub trait CoreContext<'a>
+where
+    Self: ImplContext<'a>
+        + GrandLineDataContext<'a>
+        + CacheContext<'a>
+        + CoreConfigContext<'a>
+        + TxContext<'a>
+        + DataLoaderContext<'a>,
+{
 }
 
-impl<'a> GrandLineContext<'a> for Context<'a> {
-    fn grand_line(&self) -> Res<&'a GrandLineContextData> {
-        let gl = self.data_opt::<Arc<GrandLineContextData>>().ok_or(MyErr::Ctx404)?;
-        Ok(gl)
-    }
-}
-
-impl<'a> GrandLineContext<'a> for ExtensionContext<'a> {
-    fn grand_line(&self) -> Res<&'a GrandLineContextData> {
-        let gl = self.data_opt::<Arc<GrandLineContextData>>().ok_or(MyErr::Ctx404)?;
-        Ok(gl)
-    }
+impl<'a> CoreContext<'a> for Context<'a> {
 }

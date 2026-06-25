@@ -18,7 +18,7 @@ where
     ctx.auth_ensure_not_authenticated().await?;
 
     let tx = &*ctx.tx().await?;
-    let lsd = login_session_data(ctx)?;
+    let lsd = ctx.login_session_data()?;
     let h = &ctx.auth_config().handlers;
 
     let u = U::find()
@@ -37,13 +37,6 @@ where
     h.on_login_resolve(ctx, &u.get_id(), &ls.inner).await?;
 
     Ok(ls)
-}
-
-pub fn login_session_data(ctx: &Context<'_>) -> Res<LoginSessionData> {
-    Ok(LoginSessionData {
-        ip: ctx.get_ip()?,
-        ua: ctx.get_ua()?,
-    })
 }
 
 pub async fn login_session_create(

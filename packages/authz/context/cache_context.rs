@@ -1,28 +1,26 @@
 use crate::prelude::*;
 
 #[async_trait]
-pub trait AuthzCacheContext {
-    async fn authz_with_cache(&self, check: AuthzDirectiveEnsure) -> Res<Arc<Option<AuthzCacheItem>>>;
-    async fn authz_without_cache(&self, check: AuthzDirectiveEnsure) -> Res<Option<AuthzCacheItem>>;
-    async fn authz_cache_or_init(&self) -> Res<Arc<Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>>>;
-    async fn authz_cache_key(&self) -> Res<String>;
-}
-
-#[async_trait]
-impl AuthzCacheContext for Context<'_> {
+pub trait AuthzCacheContext<'a>
+where
+    Self: AuthContext<'a> + AuthzHttpContext<'a> + AuthzColPolicyContext<'a>,
+{
     async fn authz_with_cache(&self, check: AuthzDirectiveEnsure) -> Res<Arc<Option<AuthzCacheItem>>> {
-        let cache_k = self.authz_cache_key().await?;
+        let k = self.authz_cache_key().await?;
+
         let m = self.authz_cache_or_init().await?;
         let mut guard = m.lock().await;
-        if let Some(v) = guard.get(&cache_k) {
+        if let Some(v) = guard.get(&k) {
             let v = Arc::clone(v);
             drop(guard);
             return Ok(v);
         }
+
         let v = self.authz_without_cache(check).await?;
         let v = Arc::new(v);
-        guard.insert(cache_k, Arc::clone(&v));
+        guard.insert(k, Arc::clone(&v));
         drop(guard);
+
         Ok(v)
     }
 
@@ -70,16 +68,17 @@ impl AuthzCacheContext for Context<'_> {
             return Ok(None);
         };
 
-        let operation = self.field().name();
+        let operation = self.field_impl().name();
         let map = ColPolicy::from_json(role.col_policy.clone())?;
         if let Some(p) = map.get("*").or_else(|| map.get(operation))
-            && col_policy_check_inputs(self, &p.inputs)
-            && col_policy_check_output(self, &p.output)
+            && self.authz_col_policy_check_inputs(&p.inputs)
+            && self.authz_col_policy_check_output(&p.output)
         {
-            return Ok(Some(AuthzCacheItem {
+            let c = AuthzCacheItem {
                 role,
                 org,
-            }));
+            };
+            return Ok(Some(c));
         }
 
         Ok(None)
@@ -100,7 +99,7 @@ impl AuthzCacheContext for Context<'_> {
         if let Some(cached_key) = self.get_cache::<AuthzCachedKey>().await? {
             return Ok(cached_key.0.clone());
         }
-        let field = self.field();
+        let field = self.field_impl();
         let operation = field.name();
         let alias = field.alias().unwrap_or_default();
         let k = format!("{operation_ty}:{operation}:{alias}");
@@ -108,4 +107,8 @@ impl AuthzCacheContext for Context<'_> {
         self.cache(async move || Ok(AuthzCachedKey(store))).await?;
         Ok(k)
     }
+}
+
+#[async_trait]
+impl<'a> AuthzCacheContext<'a> for Context<'a> {
 }

@@ -5,7 +5,7 @@ fn login_session_delete(id: String) -> LoginSessionGql {
     ctx.auth_ensure_authenticated().await?;
 
     let tx = &*ctx.tx().await?;
-    let arc = ctx.auth_with_cache().await?;
+    let arc = ctx.auth_unchecked().await?;
     let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;
 
     LoginSession::delete_by_id(&id)
@@ -21,7 +21,7 @@ fn login_session_delete_all() -> Vec<LoginSessionGql> {
     ctx.auth_ensure_authenticated().await?;
 
     let tx = &*ctx.tx().await?;
-    let arc = ctx.auth_with_cache().await?;
+    let arc = ctx.auth_unchecked().await?;
     let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;
 
     let r = LoginSession::find()

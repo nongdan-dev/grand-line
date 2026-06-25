@@ -3,21 +3,10 @@ use dataloader::DataLoader;
 use tokio::spawn;
 
 #[async_trait]
-pub trait DataLoaderContext {
-    async fn data_loader<E>(
-        &self,
-        key: String,
-        col: E::C,
-        look_ahead: Vec<LookaheadX<E>>,
-        exclude_deleted: Option<Condition>,
-        authz_row_filter: Option<Condition>,
-    ) -> Res<Arc<DataLoader<LoaderX<E>>>>
-    where
-        E: EntityX;
-}
-
-#[async_trait]
-impl DataLoaderContext for Context<'_> {
+pub trait DataLoaderContext<'a>
+where
+    Self: GrandLineDataContext<'a>,
+{
     async fn data_loader<E>(
         &self,
         key: String,
@@ -53,4 +42,8 @@ impl DataLoaderContext for Context<'_> {
         };
         Ok(a)
     }
+}
+
+#[async_trait]
+impl<'a> DataLoaderContext<'a> for Context<'a> {
 }

@@ -1,13 +1,10 @@
 use crate::prelude::*;
 
 #[async_trait]
-pub trait AuthzContext {
-    async fn authz(&self) -> Res<String>;
-    async fn authz_role(&self) -> Res<RoleSql>;
-}
-
-#[async_trait]
-impl AuthzContext for Context<'_> {
+pub trait AuthzContext<'a>
+where
+    Self: AuthzCacheContext<'a>,
+{
     async fn authz(&self) -> Res<String> {
         let k = self.authz_cache_key().await?;
         let m = self.authz_cache_or_init().await?;
@@ -26,6 +23,7 @@ impl AuthzContext for Context<'_> {
         drop(guard);
         Ok(org_id)
     }
+
     async fn authz_role(&self) -> Res<RoleSql> {
         let k = self.authz_cache_key().await?;
         let m = self.authz_cache_or_init().await?;
@@ -41,4 +39,8 @@ impl AuthzContext for Context<'_> {
         drop(guard);
         Ok(v)
     }
+}
+
+#[async_trait]
+impl<'a> AuthzContext<'a> for Context<'a> {
 }

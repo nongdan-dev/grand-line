@@ -1,8 +1,11 @@
 use super::prelude::*;
 use axum::http::HeaderMap;
 
-pub trait HttpAxumContext {
-    fn get_headers_raw(h: &HeaderMap) -> Option<HashMap<String, Vec<String>>> {
+pub trait HttpAxumContext<'a>
+where
+    Self: CoreContext<'a>,
+{
+    fn axum_headers(h: &HeaderMap) -> Option<HashMap<String, Vec<String>>> {
         let mut m = HashMap::<String, Vec<String>>::new();
         for (k, v) in h {
             let k = k.as_str().to_owned();
@@ -11,12 +14,12 @@ pub trait HttpAxumContext {
         }
         Some(m)
     }
-    fn get_headers(&self) -> Option<HashMap<String, Vec<String>>>;
+
+    fn get_headers(&self) -> Option<HashMap<String, Vec<String>>> {
+        let h = self.data_opt_impl::<HeaderMap>()?;
+        Self::axum_headers(h)
+    }
 }
 
-impl HttpAxumContext for Context<'_> {
-    fn get_headers(&self) -> Option<HashMap<String, Vec<String>>> {
-        let h = self.data_opt::<HeaderMap>()?;
-        Self::get_headers_raw(h)
-    }
+impl<'a> HttpAxumContext<'a> for Context<'a> {
 }

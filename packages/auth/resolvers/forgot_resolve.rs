@@ -14,7 +14,7 @@ where
     let h = &ctx.auth_config().handlers;
 
     h.password_validate(ctx, &password).await?;
-    let lsd = login_session_data(ctx)?;
+    let lsd = ctx.login_session_data()?;
 
     let t = auth_otp_ensure_resolve(ctx, tx, AuthOtpTy::Forgot, data).await?;
     let d = AuthOtpDataForgot::from_json(t.data)?;

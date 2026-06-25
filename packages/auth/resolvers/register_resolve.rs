@@ -7,7 +7,7 @@ where
     ctx.auth_ensure_not_authenticated().await?;
 
     let tx = &*ctx.tx().await?;
-    let lsd = login_session_data(ctx)?;
+    let lsd = ctx.login_session_data()?;
     let h = &ctx.auth_config().handlers;
 
     let t = auth_otp_ensure_resolve(ctx, tx, AuthOtpTy::Register, data).await?;

@@ -102,7 +102,7 @@ pub async fn row_relation_setup(row_pol: RowPolicy, cfg: AuthzConfig) -> Res<Row
     let s = schema_q::<Q>(&tmp.db).data(org_impl).data(cfg);
 
     let h = init_common_headers();
-    let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
+    let ua = Context::get_ua_raw(Context::axum_headers(&h))?;
 
     // Users
     let u1 = am_create!(User {

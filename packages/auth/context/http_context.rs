@@ -1,13 +1,10 @@
 use crate::prelude::*;
 
 #[async_trait]
-pub trait AuthCookieContext {
-    fn get_cookie_login_session(&self) -> Res<String>;
-    fn set_cookie_login_session(&self, ls: &LoginSessionWithSecret) -> Res<()>;
-}
-
-#[async_trait]
-impl AuthCookieContext for Context<'_> {
+pub trait AuthHttpContext<'a>
+where
+    Self: HttpContext<'a> + AuthConfigContext<'a>,
+{
     fn get_cookie_login_session(&self) -> Res<String> {
         let c = self.auth_config();
         let k = c.cookie_login_session_key;
@@ -23,4 +20,15 @@ impl AuthCookieContext for Context<'_> {
         self.set_cookie(k, &token, expires);
         Ok(())
     }
+
+    fn login_session_data(&self) -> Res<LoginSessionData> {
+        Ok(LoginSessionData {
+            ip: self.get_ip()?,
+            ua: self.get_ua()?,
+        })
+    }
+}
+
+#[async_trait]
+impl<'a> AuthHttpContext<'a> for Context<'a> {
 }

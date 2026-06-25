@@ -66,7 +66,7 @@ pub async fn row_crud_setup(row_pol: RowPolicy, cfg: AuthzConfig) -> Res<RowCrud
     let s = schema_qm::<CrudQ, CrudM>(&tmp.db).data(org_impl).data(cfg);
 
     let h = init_common_headers();
-    let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
+    let ua = Context::get_ua_raw(Context::axum_headers(&h))?;
 
     let u1 = am_create!(User {
         email: "alice@example.com",

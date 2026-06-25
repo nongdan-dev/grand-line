@@ -20,6 +20,8 @@ pub enum MyErr {
     // ========================================================================
     // server errors
     //
-    #[error("context missing request headers")]
+    #[error("http implementation is not configured")]
+    MissingImplementation,
+    #[error("request headers are missing in the context")]
     CtxHeaders404,
 }

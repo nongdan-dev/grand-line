@@ -148,7 +148,7 @@ where
             .chain(f)
             .chain(authz_row_filter)
             .chain(order_by.combine(order_by_default))
-            .chain(page.inner(ctx.config()))
+            .chain(page.inner(ctx.core_config()))
             .gql_select(ctx)?
             .all(tx)
             .await?;

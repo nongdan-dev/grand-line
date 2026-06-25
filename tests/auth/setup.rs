@@ -38,7 +38,7 @@ pub async fn setup() -> Res<Setup> {
     .exec_without_ctx(&tmp.db)
     .await?;
 
-    let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
+    let ua = Context::get_ua_raw(Context::axum_headers(&h))?;
     let secret = rand_utils::secret();
     let ls = am_create!(LoginSession {
         user_id: u.id.clone(),

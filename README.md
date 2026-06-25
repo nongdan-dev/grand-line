@@ -397,7 +397,7 @@ ctx.cache(|| async { ... }).await?    // Arc<T> - per-request memoize by type
 | Method                                       | Returns                        | Description                                                      |
 | -------------------------------------------- | ------------------------------ | ---------------------------------------------------------------- |
 | `ctx.auth().await?`                          | `String`                       | Current user's `id`; errors with `Unauthenticated` if no session |
-| `ctx.auth_with_cache().await?`               | `Arc<Option<LoginSessionSql>>` | Current session or `None`                                        |
+| `ctx.auth_unchecked().await?`                | `Arc<Option<LoginSessionSql>>` | Current session or `None`                                        |
 | `ctx.auth_ensure_authenticated().await?`     | `()`                           | Errors if no session                                             |
 | `ctx.auth_ensure_not_authenticated().await?` | `()`                           | Errors if already logged in                                      |
 

@@ -1,19 +1,10 @@
 use super::prelude::*;
 
 #[async_trait]
-pub trait CacheContext {
-    async fn cache<T, F, Fu>(&self, init: F) -> Res<Arc<T>>
-    where
-        T: Send + Sync + 'static,
-        F: FnOnce() -> Fu + Send,
-        Fu: Future<Output = Res<T>> + Send;
-    async fn get_cache<T>(&self) -> Res<Option<Arc<T>>>
-    where
-        T: Send + Sync + 'static;
-}
-
-#[async_trait]
-impl CacheContext for Context<'_> {
+pub trait CacheContext<'a>
+where
+    Self: GrandLineDataContext<'a>,
+{
     async fn cache<T, F, Fu>(&self, init: F) -> Res<Arc<T>>
     where
         T: Send + Sync + 'static,
@@ -34,6 +25,7 @@ impl CacheContext for Context<'_> {
         drop(mutex);
         Ok(v)
     }
+
     async fn get_cache<T>(&self) -> Res<Option<Arc<T>>>
     where
         T: Send + Sync + 'static,
@@ -49,4 +41,8 @@ impl CacheContext for Context<'_> {
         drop(mutex);
         Ok(Some(v))
     }
+}
+
+#[async_trait]
+impl<'a> CacheContext<'a> for Context<'a> {
 }

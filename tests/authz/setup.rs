@@ -103,7 +103,7 @@ pub async fn setup_with_policy(org1_admin: ColPolicy, org1_row: RowPolicy) -> Re
     .exec_without_ctx(&tmp.db)
     .await?;
 
-    let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
+    let ua = Context::get_ua_raw(Context::axum_headers(&h))?;
 
     let secret1 = rand_utils::secret();
     let ls1 = am_create!(LoginSession {

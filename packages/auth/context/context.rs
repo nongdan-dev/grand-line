@@ -1,15 +1,13 @@
 use crate::prelude::*;
 
 #[async_trait]
-pub trait AuthContext {
-    async fn auth(&self) -> Res<String>;
-}
-
-#[async_trait]
-impl AuthContext for Context<'_> {
+pub trait AuthContext<'a>
+where
+    Self: AuthConfigContext<'a> + AuthHttpContext<'a> + AuthCacheContext<'a> + AuthEnsureContext<'a>,
+{
     async fn auth(&self) -> Res<String> {
         let user_id = self
-            .auth_with_cache()
+            .auth_unchecked()
             .await?
             .as_ref()
             .as_ref()
@@ -17,4 +15,8 @@ impl AuthContext for Context<'_> {
             .ok_or(MyErr::Unauthenticated)?;
         Ok(user_id)
     }
+}
+
+#[async_trait]
+impl<'a> AuthContext<'a> for Context<'a> {
 }

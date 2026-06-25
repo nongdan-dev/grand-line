@@ -1,13 +1,10 @@
 use crate::prelude::*;
 
 #[async_trait]
-pub trait OrgUnauthorizedContext {
-    async fn org_unchecked(&self) -> Res<Arc<OrgMinimal>>;
-    async fn org_unchecked_without_cache(&self) -> Res<OrgMinimal>;
-}
-
-#[async_trait]
-impl OrgUnauthorizedContext for Context<'_> {
+pub trait AuthzHttpContext<'a>
+where
+    Self: CoreContext<'a> + HttpContext<'a> + AuthzConfigContext<'a>,
+{
     async fn org_unchecked(&self) -> Res<Arc<OrgMinimal>> {
         let arc = self.cache(|| self.org_unchecked_without_cache()).await?;
         Ok(arc)
@@ -28,4 +25,8 @@ impl OrgUnauthorizedContext for Context<'_> {
             .await?
             .ok_or_else(|| self.authz_err().clone())
     }
+}
+
+#[async_trait]
+impl<'a> AuthzHttpContext<'a> for Context<'a> {
 }

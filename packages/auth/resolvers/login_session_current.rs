@@ -2,7 +2,7 @@ use crate::prelude::*;
 
 #[query]
 async fn login_session_current() -> Option<LoginSessionGql> {
-    if let Some(ls) = ctx.auth_with_cache().await?.as_ref().as_ref() {
+    if let Some(ls) = ctx.auth_unchecked().await?.as_ref().as_ref() {
         Some(ls.clone().into_gql(ctx).await?)
     } else {
         None

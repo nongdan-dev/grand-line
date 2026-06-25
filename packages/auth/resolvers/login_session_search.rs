@@ -16,7 +16,7 @@ fn resolver() {
 
 async fn get_filter(ctx: &Context<'_>) -> Res<LoginSessionFilter> {
     let c = ctx.auth_config();
-    let arc = ctx.auth_with_cache().await?;
+    let arc = ctx.auth_unchecked().await?;
     let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;
     let f = filter!(LoginSession {
         id_ne: ls.id.clone(),
