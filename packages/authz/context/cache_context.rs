@@ -1,13 +1,11 @@
 use crate::prelude::*;
 
-type AuthzCache = Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>;
-
 #[async_trait]
 pub trait AuthzCacheContext<'a>
 where
     Self: AuthContext<'a> + AuthzHttpContext<'a> + AuthzColContext<'a>,
 {
-    async fn authz_with_cache(&self, check: AuthzDirectiveEnsure) -> Res<Arc<Option<AuthzCacheItem>>> {
+    async fn authz_with_cache(&self, check: AuthzEnsure) -> Res<Arc<Option<AuthzCacheItem>>> {
         let k = self.authz_cache_key().await?;
 
         let m = self.authz_cache_or_init().await?;
@@ -26,7 +24,7 @@ where
         Ok(v)
     }
 
-    async fn authz_without_cache(&self, check: AuthzDirectiveEnsure) -> Res<Option<AuthzCacheItem>> {
+    async fn authz_without_cache(&self, check: AuthzEnsure) -> Res<Option<AuthzCacheItem>> {
         let k = self.authz_config().role_id_header_key;
         let role_id = self.get_header(k)?.trim().to_owned();
         if role_id.is_empty() {
@@ -95,17 +93,22 @@ where
         let Some(operation_ty) = operation_ty else {
             return Err(MyErr::MissingMacro.into());
         };
+
         // On first call (root resolver), compute and store the key so that nested
         // resolvers (e.g. relations) return the same key instead of their own field name.
-        if let Some(cached_key) = self.get_cache::<AuthzCachedKey>().await? {
-            return Ok(cached_key.0.clone());
-        }
-        let field = self.field_impl();
-        let operation = field.name();
-        let alias = field.alias().unwrap_or_default();
-        let k = format!("{operation_ty}:{operation}:{alias}");
-        let tobe_moved = k.clone();
-        self.cache(async move || Ok(AuthzCachedKey(tobe_moved))).await?;
+        let k = self
+            .cache(async || {
+                let field = self.field_impl();
+                let operation = field.name();
+                let alias = field.alias().unwrap_or_default();
+                let k = format!("{operation_ty}:{operation}:{alias}");
+                Ok(AuthzCachedKey(k))
+            })
+            .await?
+            .as_ref()
+            .0
+            .clone();
+
         Ok(k)
     }
 }

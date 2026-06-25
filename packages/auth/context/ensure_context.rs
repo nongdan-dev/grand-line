@@ -1,14 +1,19 @@
 use crate::prelude::*;
 
+pub enum AuthEnsure {
+    Authenticated,
+    Unauthenticated,
+}
+
 #[async_trait]
 pub trait AuthEnsureContext<'a>
 where
     Self: AuthCacheContext<'a>,
 {
-    async fn auth_ensure_in_macro(&self, check: AuthDirectiveCheck) -> Res<()> {
+    async fn auth_ensure_in_macro(&self, check: AuthEnsure) -> Res<()> {
         match check {
-            AuthDirectiveCheck::Authenticated => self.auth_ensure_authenticated().await?,
-            AuthDirectiveCheck::Unauthenticated => self.auth_ensure_not_authenticated().await?,
+            AuthEnsure::Authenticated => self.auth_ensure_authenticated().await?,
+            AuthEnsure::Unauthenticated => self.auth_ensure_not_authenticated().await?,
         }
         Ok(())
     }
