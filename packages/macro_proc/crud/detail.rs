@@ -29,7 +29,13 @@ fn try_gen_detail(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
 
         r.body = quote! {
             #body
-            #model::gql_detail(ctx, tx, &id, #authz_row_filter, #include_deleted).await?
+            #model::gql_detail(
+                ctx,
+                tx,
+                &id,
+                #include_deleted,
+                #authz_row_filter,
+            ).await?
         }
     }
 

@@ -36,7 +36,18 @@ fn try_gen_search(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
             let (filter_extra, order_by_default): (Option<#filter>, Option<Vec<#order_by>>) = {
                 #body
             };
-            #model::gql_search(ctx, tx, None, filter, filter_extra, #authz_row_filter, order_by, order_by_default, page, #include_deleted).await?
+            #model::gql_search(
+                ctx,
+                tx,
+                filter,
+                order_by,
+                page,
+                #include_deleted,
+                filter_extra,
+                order_by_default,
+                None,
+                #authz_row_filter,
+            ).await?
         };
     }
 

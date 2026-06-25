@@ -17,12 +17,12 @@ fn try_gen_create(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
     }
 
     if !a.resolver_output {
-        let output = ty_gql(&a.model)?;
+        let model = a.model.ts2_or_err()?;
+        let output = ty_gql(&model)?;
         r.output = quote!(#output);
 
         let body = r.body;
-        let model = a.model.ts2_or_err()?;
-        let am = ty_active_model(&a.model)?;
+        let am = ty_active_model(&model)?;
 
         let exec = if a.ra.has_auth() {
             quote!(exec(ctx))

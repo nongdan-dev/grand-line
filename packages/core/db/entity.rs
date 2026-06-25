@@ -120,19 +120,24 @@ where
     async fn gql_search<D>(
         ctx: &Context<'_>,
         tx: &D,
-        extra_cond: Option<Condition>,
+        // From graphql input.
         filter: Option<Self::F>,
-        filter_extra: Option<Self::F>,
-        authz_row_filter: Option<Self::F>,
         order_by: Option<Vec<Self::O>>,
-        order_by_default: Option<Vec<Self::O>>,
         page: Option<Pagination>,
         include_deleted: Option<bool>,
+        // From resolver handler.
+        filter_extra: Option<Self::F>,
+        order_by_default: Option<Vec<Self::O>>,
+        // From relation.
+        extra_cond: Option<Condition>,
+        // From macro to handle authz row filter.
+        authz_row_filter: Option<Self::F>,
     ) -> Res<Vec<Self::G>>
     where
         D: ConnectionTrait,
     {
-        let f = filter.combine(filter_extra).combine(authz_row_filter);
+        // should not combine authz role filter, it will change the exclude_deleted condition
+        let f = filter.combine(filter_extra);
         let exclude_deleted = !include_deleted.or_else(|| Some(f.has_deleted_at())).unwrap_or_default();
         let mut r = Self::find();
         if exclude_deleted {
@@ -141,6 +146,7 @@ where
         let r = r
             .filter_opt(extra_cond)
             .chain(f)
+            .chain(authz_row_filter)
             .chain(order_by.combine(order_by_default))
             .chain(page.inner(ctx.config()))
             .gql_select(ctx)?
@@ -152,21 +158,25 @@ where
     /// Helper to use in resolver body of the macro count.
     async fn gql_count<D>(
         tx: &D,
+        // From graphql input.
         filter: Option<Self::F>,
-        filter_extra: Option<Self::F>,
-        authz_row_filter: Option<Self::F>,
         include_deleted: Option<bool>,
+        // From resolver handler.
+        filter_extra: Option<Self::F>,
+        // From macro to handle authz row filter.
+        authz_row_filter: Option<Self::F>,
     ) -> Res<u64>
     where
         D: ConnectionTrait,
     {
-        let f = filter.combine(filter_extra).combine(authz_row_filter);
+        // should not combine authz role filter, it will change the exclude_deleted condition
+        let f = filter.combine(filter_extra);
         let exclude_deleted = !include_deleted.or_else(|| Some(f.has_deleted_at())).unwrap_or_default();
         let mut r = Self::find();
         if exclude_deleted {
             r = r.exclude_deleted();
         }
-        let r = r.chain(f).count(tx).await?;
+        let r = r.chain(f).chain(authz_row_filter).count(tx).await?;
         Ok(r)
     }
 
@@ -175,19 +185,24 @@ where
         ctx: &Context<'_>,
         tx: &D,
         id: &str,
-        authz_row_filter: Option<Self::F>,
         include_deleted: Option<bool>,
+        authz_row_filter: Option<Self::F>,
     ) -> Res<Option<Self::G>>
     where
         D: ConnectionTrait,
     {
-        let f = authz_row_filter;
-        let exclude_deleted = !include_deleted.or_else(|| Some(f.has_deleted_at())).unwrap_or_default();
+        // should not combine authz role filter, it will change the exclude_deleted condition
+        let exclude_deleted = !include_deleted.unwrap_or_default();
         let mut q = Self::find();
         if exclude_deleted {
             q = q.exclude_deleted();
         }
-        let r = q.chain(f).filter_by_id(id).gql_select(ctx)?.one(tx).await?;
+        let r = q
+            .filter_by_id(id)
+            .chain(authz_row_filter)
+            .gql_select(ctx)?
+            .one(tx)
+            .await?;
         Ok(r)
     }
 
@@ -208,7 +223,7 @@ where
             return Ok(());
         };
 
-        if !q().filter(f.into_condition()).exists(tx).await? {
+        if !q().chain(f).exists(tx).await? {
             return Err(authz_err.clone());
         }
 
