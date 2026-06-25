@@ -9,7 +9,7 @@ pub fn gen_authz_row_filter(filter: &Ts2, enable: bool) -> Ts2 {
 
 pub fn gen_authz_row_filter_var(filter: &Ts2, enable: bool) -> (Ts2, Ts2) {
     if !cfg!(feature = "authz") || !enable {
-        return (quote!(None), "".into_token_stream());
+        return (quote!(None), quote!());
     }
     let var = unique_ident();
     let authz_row_filter = gen_authz_row_filter(filter, enable);
