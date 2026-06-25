@@ -34,13 +34,14 @@ fn try_gen_delete(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
             quote!(None)
         };
 
-        let authz_row_filter = gen_authz_row_filter(&ty_filter(&a.model)?, a.ra.authz_row);
+        let (authz_row_filter, authz_row_filter_def) = gen_authz_row_filter_var(&ty_filter(&a.model)?, a.ra.authz_row);
         let authz_err = gen_authz_err(a.ra.authz_row);
 
         let body = r.body;
         let model = a.model.ts2_or_err()?;
         r.body = quote! {
-            #model::gql_mutation_check_id(tx, &id, #authz_row_filter, #authz_err).await?;
+            #authz_row_filter_def
+            #model::gql_mutation_check_id(tx, &id, #authz_row_filter.clone(), #authz_err).await?;
             #body
             #model::gql_delete(tx, &id, #permanent, #authz_row_filter, #authz_err).await?
         };
