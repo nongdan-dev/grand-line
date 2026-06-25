@@ -1,9 +1,9 @@
 use crate::prelude::*;
 
-// Per-request cache for authz_row results, keyed by (filter TypeId, field path).
-// Avoids calling the handler repeatedly for the same field in the same request
-// (e.g. N parents each resolving the same has_one relation with row auth).
-pub struct AuthzRowCacheMap(Mutex<HashMap<(TypeId, String), ArcAny>>);
+/// Per-request cache for authz_row results, keyed by (filter TypeId, field path).
+/// Avoids calling the handler repeatedly for the same field in the same request
+/// (e.g. N parents each resolving the same has_one relation with row auth).
+pub struct AuthzRowCache(pub Mutex<HashMap<(TypeId, String), ArcAny>>);
 
 #[async_trait]
 pub trait AuthzRowContext<'a>
@@ -60,12 +60,8 @@ where
     }
 
     /// Get or create cache for authz row.
-    async fn authz_row_cache_or_init(&self) -> Res<Arc<AuthzRowCacheMap>> {
-        self.cache(async || {
-            let m = Mutex::new(HashMap::<(TypeId, String), ArcAny>::new());
-            Ok(AuthzRowCacheMap(m))
-        })
-        .await
+    async fn authz_row_cache_or_init(&self) -> Res<Arc<AuthzRowCache>> {
+        self.cache(async || Ok(AuthzRowCache(Mutex::new(HashMap::new())))).await
     }
 
     /// Helper to execute the dsl script using authz handler from trait definition.

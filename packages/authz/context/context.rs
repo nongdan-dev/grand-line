@@ -8,7 +8,7 @@ where
     async fn authz(&self) -> Res<String> {
         let k = self.authz_cache_key().await?;
         let m = self.authz_cache_or_init().await?;
-        let guard = m.lock().await;
+        let guard = m.0.lock().await;
         let org_id = guard
             .get(&k)
             .ok_or(MyErr::MissingMacro)?
@@ -27,7 +27,7 @@ where
     async fn authz_role(&self) -> Res<RoleSql> {
         let k = self.authz_cache_key().await?;
         let m = self.authz_cache_or_init().await?;
-        let guard = m.lock().await;
+        let guard = m.0.lock().await;
         let v = guard
             .get(&k)
             .ok_or(MyErr::MissingMacro)?

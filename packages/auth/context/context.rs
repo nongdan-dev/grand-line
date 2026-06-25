@@ -10,6 +10,7 @@ where
             .auth_unchecked()
             .await?
             .as_ref()
+            .0
             .as_ref()
             .map(|ls| ls.user_id.clone())
             .ok_or(MyErr::Unauthenticated)?;

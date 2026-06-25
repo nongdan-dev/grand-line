@@ -14,14 +14,14 @@ where
     }
 
     async fn auth_ensure_authenticated(&self) -> Res<()> {
-        if self.auth_unchecked().await?.as_ref().is_none() {
+        if self.auth_unchecked().await?.as_ref().0.is_none() {
             return Err(MyErr::Unauthenticated.into());
         }
         Ok(())
     }
 
     async fn auth_ensure_not_authenticated(&self) -> Res<()> {
-        if self.auth_unchecked().await?.as_ref().is_some() {
+        if self.auth_unchecked().await?.as_ref().0.is_some() {
             return Err(MyErr::AlreadyAuthenticated.into());
         }
         Ok(())

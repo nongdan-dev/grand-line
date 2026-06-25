@@ -6,7 +6,7 @@ async fn logout() -> LoginSessionGql {
 
     let tx = &*ctx.tx().await?;
     let arc = ctx.auth_unchecked().await?;
-    let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;
+    let ls = arc.as_ref().0.as_ref().ok_or(MyErr::Unauthenticated)?;
 
     LoginSession::delete_by_id(&ls.id).exec(tx).await?;
 

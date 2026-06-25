@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+pub struct AuthzCache(pub Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>);
+
 #[async_trait]
 pub trait AuthzCacheContext<'a>
 where
@@ -9,7 +11,7 @@ where
         let k = self.authz_cache_key().await?;
 
         let m = self.authz_cache_or_init().await?;
-        let mut guard = m.lock().await;
+        let mut guard = m.0.lock().await;
         if let Some(v) = guard.get(&k) {
             let v = Arc::clone(v);
             drop(guard);
@@ -84,9 +86,8 @@ where
         Ok(None)
     }
 
-    async fn authz_cache_or_init(&self) -> Res<Arc<Mutex<HashMap<String, Arc<Option<AuthzCacheItem>>>>>> {
-        let m = self.cache(async || Ok(Mutex::new(HashMap::new()))).await?;
-        Ok(m)
+    async fn authz_cache_or_init(&self) -> Res<Arc<AuthzCache>> {
+        self.cache(async || Ok(AuthzCache(Mutex::new(HashMap::new())))).await
     }
 
     async fn authz_cache_key(&self) -> Res<String> {
@@ -103,8 +104,8 @@ where
         let operation = field.name();
         let alias = field.alias().unwrap_or_default();
         let k = format!("{operation_ty}:{operation}:{alias}");
-        let store = k.clone();
-        self.cache(async move || Ok(AuthzCachedKey(store))).await?;
+        let tobe_moved = k.clone();
+        self.cache(async move || Ok(AuthzCachedKey(tobe_moved))).await?;
         Ok(k)
     }
 }
