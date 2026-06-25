@@ -22,6 +22,8 @@ pub enum MyErr {
     MissingMacro,
     #[error("authz org impl not found")]
     OrgImplNotFound,
-    #[error("row script not found in db")]
+    #[error("authz row script not found in db")]
     RowScript404,
+    #[error("authz row cache downcast failed")]
+    RowCacheDowncast,
 }

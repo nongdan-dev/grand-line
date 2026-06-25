@@ -10,6 +10,7 @@ pub trait DataLoaderContext {
         col: E::C,
         look_ahead: Vec<LookaheadX<E>>,
         exclude_deleted: Option<Condition>,
+        authz_row_filter: Option<Condition>,
     ) -> Res<Arc<DataLoader<LoaderX<E>>>>
     where
         E: EntityX;
@@ -23,6 +24,7 @@ impl DataLoaderContext for Context<'_> {
         col: E::C,
         look_ahead: Vec<LookaheadX<E>>,
         exclude_deleted: Option<Condition>,
+        authz_row_filter: Option<Condition>,
     ) -> Res<Arc<DataLoader<LoaderX<E>>>>
     where
         E: EntityX,
@@ -41,6 +43,7 @@ impl DataLoaderContext for Context<'_> {
                     col,
                     look_ahead,
                     exclude_deleted,
+                    authz_row_filter,
                 },
                 spawn,
             ));

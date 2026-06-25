@@ -23,21 +23,26 @@ fn try_gen_update(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
         let output = ty_gql(&a.model)?;
         r.output = quote!(#output);
 
+        let (authz_row_filter, authz_row_filter_def) = gen_authz_row_filter_var(&ty_filter(&a.model)?, a.ra.authz_row);
+        let authz_err = gen_authz_err(a.ra.authz_row);
+
         let body = r.body;
         let model = a.model.ts2_or_err()?;
         let am = ty_active_model(&a.model)?;
 
-        let exec = if a.ra.has_auth() {
-            quote!(exec(ctx))
+        let into = if a.ra.has_auth() {
+            quote!(into_active_model(ctx).await?)
         } else {
-            quote!(exec_without_ctx(tx))
+            quote!(into_active_model_without_ctx())
         };
 
         r.body = quote! {
+            #authz_row_filter_def
+            #model::gql_mutation_check_id(tx, &id, #authz_row_filter.clone(), #authz_err).await?;
             let am: ActiveModelWrapper<AmUpdate, #model, #am> = {
                 #body
             };
-            am.#exec.await?.into_gql(ctx).await?
+            #model::gql_update(tx, &id, am.#into, #authz_row_filter, #authz_err).await?
         }
     }
 

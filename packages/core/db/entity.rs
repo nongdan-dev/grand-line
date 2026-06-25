@@ -215,6 +215,31 @@ where
         Ok(())
     }
 
+    /// Helper to use in resolver body of the macro update.
+    async fn gql_update<D>(
+        tx: &D,
+        id: &str,
+        am: Self::A,
+        authz_row_filter: Option<Self::F>,
+        authz_err: &GrandLineErr,
+    ) -> Res<Self::G>
+    where
+        D: ConnectionTrait,
+    {
+        let mut q = Self::update_many().filter_by_id(id);
+        if let Some(f) = authz_row_filter {
+            q = q.filter(f.into_condition());
+        }
+        let rows_affected = q.set(am).exec(tx).await?.rows_affected;
+
+        if rows_affected == 0 {
+            return Err(authz_err.clone());
+        }
+
+        let r = Self::G::from_id(id);
+        Ok(r)
+    }
+
     /// Helper to use in resolver body of the macro delete.
     async fn gql_delete<D>(
         tx: &D,
@@ -228,19 +253,15 @@ where
     {
         let rows_affected = if permanent.unwrap_or_default() {
             let mut q = Self::delete_many().filter_by_id(id);
-
             if let Some(f) = authz_row_filter {
                 q = q.filter(f.into_condition());
             }
-
             q.exec(tx).await?.rows_affected
         } else {
             let mut q = Self::soft_delete_by_id(id)?;
-
             if let Some(f) = authz_row_filter {
                 q = q.filter(f.into_condition());
             }
-
             q.exec(tx).await?.rows_affected
         };
 
@@ -254,7 +275,7 @@ where
 
     async fn gql_load<D>(
         ctx: &Context<'_>,
-        tx: &D,
+        _tx: &D,
         col: Self::C,
         id: String,
         authz_row_filter: Option<Self::F>,
@@ -263,15 +284,6 @@ where
     where
         D: ConnectionTrait,
     {
-        // TODO: data loader key here
-        if let Some(authz_row_filter) = authz_row_filter {
-            let mut q = Self::find().filter(col.eq(id.clone()));
-            if !include_deleted.unwrap_or_default() {
-                q = q.exclude_deleted();
-            }
-            let r = q.chain(authz_row_filter).gql_select(ctx)?.one(tx).await?;
-            return Ok(r);
-        }
         let look_ahead = Self::gql_look_ahead(ctx)?;
         let exclude_deleted = !include_deleted.unwrap_or_default();
         let exclude_deleted = if exclude_deleted {
@@ -279,8 +291,10 @@ where
         } else {
             None
         };
-        let key = col.to_loader_key(&look_ahead, exclude_deleted.is_some());
-        ctx.data_loader(key, col, look_ahead, exclude_deleted)
+        let authz_key = authz_row_filter.as_ref().map(json_string).transpose()?;
+        let authz_condition = authz_row_filter.map(|f| f.into_condition());
+        let key = col.to_loader_key(&look_ahead, exclude_deleted.is_some(), authz_key.as_deref());
+        ctx.data_loader(key, col, look_ahead, exclude_deleted, authz_condition)
             .await?
             .as_ref()
             .load_one(id)

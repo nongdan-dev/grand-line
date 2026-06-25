@@ -17,10 +17,10 @@ impl AuthzContext for Context<'_> {
             .ok_or(MyErr::MissingMacro)?
             .as_ref()
             .as_ref()
-            .ok_or(MyErr::Unauthorized)?
+            .ok_or_else(|| self.authz_err().clone())?
             .org
             .as_ref()
-            .ok_or(MyErr::Unauthorized)?
+            .ok_or_else(|| self.authz_err().clone())?
             .id
             .clone();
         drop(guard);
@@ -35,7 +35,7 @@ impl AuthzContext for Context<'_> {
             .ok_or(MyErr::MissingMacro)?
             .as_ref()
             .as_ref()
-            .ok_or(MyErr::Unauthorized)?
+            .ok_or_else(|| self.authz_err().clone())?
             .role
             .clone();
         drop(guard);

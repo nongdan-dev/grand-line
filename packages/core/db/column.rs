@@ -20,7 +20,7 @@ where
         s
     }
 
-    fn to_loader_key(&self, look_ahead: &[LookaheadX<E>], exclude_deleted: bool) -> String {
+    fn to_loader_key(&self, look_ahead: &[LookaheadX<E>], exclude_deleted: bool, authz_key: Option<&str>) -> String {
         let exclude_deleted = if exclude_deleted {
             "exclude_deleted-"
         } else {
@@ -34,7 +34,8 @@ where
             + col.len()
             + 1
             + exclude_deleted.len()
-            + look_ahead.iter().map(|l| l.c.len() + 1).sum::<usize>();
+            + look_ahead.iter().map(|l| l.c.len() + 1).sum::<usize>()
+            + authz_key.map_or(0, |k| k.len() + 1);
         let mut s = String::with_capacity(len);
 
         s.push_str(model);
@@ -50,6 +51,11 @@ where
             }
             first = false;
             s.push_str(l.c);
+        }
+
+        if let Some(k) = authz_key {
+            s.push('-');
+            s.push_str(k);
         }
 
         s

@@ -26,6 +26,6 @@ impl OrgUnauthorizedContext for Context<'_> {
         org_impl
             .find_by_id(&v, tx)
             .await?
-            .ok_or_else(|| MyErr::Unauthorized.into())
+            .ok_or_else(|| self.authz_err().clone())
     }
 }

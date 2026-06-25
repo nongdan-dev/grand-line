@@ -28,34 +28,38 @@ impl<T, E, A> ActiveModelWrapper<T, E, A> {
 }
 
 // ============================================================================
-// IntoActiveModel impls for bulk operations (e.g. Entity::insert_many)
+// IntoActiveModelWithoutCtx impls for bulk operations (e.g. Entity::insert_many)
 
-impl<E, A> IntoActiveModel<A> for ActiveModelWrapper<AmCreate, E, A>
+pub trait IntoActiveModelWithoutCtx<A> {
+    fn into_active_model_without_ctx(self) -> A;
+}
+
+impl<E, A> IntoActiveModelWithoutCtx<A> for ActiveModelWrapper<AmCreate, E, A>
 where
     E: EntityX<A = A>,
     A: ActiveModelX<E>,
 {
-    fn into_active_model(self) -> A {
+    fn into_active_model_without_ctx(self) -> A {
         self.am.set_defaults_on_create()
     }
 }
 
-impl<E, A> IntoActiveModel<A> for ActiveModelWrapper<AmUpdate, E, A>
+impl<E, A> IntoActiveModelWithoutCtx<A> for ActiveModelWrapper<AmUpdate, E, A>
 where
     E: EntityX<A = A>,
     A: ActiveModelX<E>,
 {
-    fn into_active_model(self) -> A {
+    fn into_active_model_without_ctx(self) -> A {
         self.am.set_defaults_on_update()
     }
 }
 
-impl<E, A> IntoActiveModel<A> for ActiveModelWrapper<AmSoftDelete, E, A>
+impl<E, A> IntoActiveModelWithoutCtx<A> for ActiveModelWrapper<AmSoftDelete, E, A>
 where
     E: EntityX<A = A>,
     A: ActiveModelX<E>,
 {
-    fn into_active_model(self) -> A {
+    fn into_active_model_without_ctx(self) -> A {
         self.am.set_defaults_on_delete()
     }
 }
@@ -84,7 +88,7 @@ where
     where
         D: ConnectionTrait,
     {
-        let r = self.into_active_model().insert(tx).await?;
+        let r = self.into_active_model_without_ctx().insert(tx).await?;
         Ok(r)
     }
 }
@@ -102,7 +106,7 @@ where
     where
         D: ConnectionTrait,
     {
-        let r = self.into_active_model().update(tx).await?;
+        let r = self.into_active_model_without_ctx().update(tx).await?;
         Ok(r)
     }
 }
@@ -121,7 +125,7 @@ where
         D: ConnectionTrait,
     {
         E::ensure_col_deleted_at()?;
-        let r = self.into_active_model().update(tx).await?;
+        let r = self.into_active_model_without_ctx().update(tx).await?;
         Ok(r)
     }
 }

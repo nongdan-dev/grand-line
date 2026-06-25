@@ -9,6 +9,7 @@ where
     pub col: E::C,
     pub look_ahead: Vec<LookaheadX<E>>,
     pub exclude_deleted: Option<Condition>,
+    pub authz_row_filter: Option<Condition>,
 }
 
 #[async_trait]
@@ -27,6 +28,7 @@ where
         }
         let r = r
             .filter(self.col.is_in(keys))
+            .filter_opt(self.authz_row_filter.clone())
             .gql_select_with_look_ahead(&self.look_ahead, self.col)?
             .all(tx)
             .await?;

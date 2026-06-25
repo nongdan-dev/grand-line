@@ -12,7 +12,7 @@ impl AuthzEnsureContext for Context<'_> {
         // on first call so nested resolvers return the same HashMap entry.
         let v = self.authz_with_cache(check).await?;
         if v.is_none() {
-            return Err(MyErr::Unauthorized.into());
+            return Err(self.authz_err().clone());
         }
         Ok(())
     }
