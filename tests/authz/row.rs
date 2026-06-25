@@ -140,6 +140,46 @@ async fn script_error_masked_as_internal_server() -> Res<()> {
     d.tmp.drop().await
 }
 
+// Handler returns JSON with the wrong type for a filter field.
+// org_id expects a String value but the handler provides a number (123).
+// serde_json::from_value fails -> error propagated as InternalServer.
+#[tokio::test]
+async fn handler_wrong_type_returns_internal_server() -> Res<()> {
+    let c = AuthzConfig {
+        handlers: Arc::new(WrongTypeHandler),
+        ..Default::default()
+    };
+    let d = row_setup(Some("any"), Some(c)).await?;
+
+    exec_assert_err(&d.schema, Q, None, &CoreGraphQLErr::InternalServer).await;
+
+    d.tmp.drop().await
+}
+
+// Handler returns JSON with a field that does not exist in TaskFilter.
+// TaskFilter uses #[serde(default)] without deny_unknown_fields, so the unknown
+// field is silently dropped and the resulting filter is empty (all fields None).
+// An empty filter applies no WHERE clause, so all tasks are returned.
+#[tokio::test]
+async fn handler_unknown_field_silently_ignored_returns_all() -> Res<()> {
+    let c = AuthzConfig {
+        handlers: Arc::new(UnknownFieldHandler),
+        ..Default::default()
+    };
+    let d = row_setup(Some("any"), Some(c)).await?;
+
+    let expected = value!({
+        "tasks": [{
+            "title": "Alpha task",
+        }, {
+            "title": "Beta task",
+        }],
+    });
+    exec_assert(&d.schema, Q, None, &expected).await;
+
+    d.tmp.drop().await
+}
+
 // Col policy with wildcard key "*" still applies the row filter correctly.
 #[tokio::test]
 async fn wildcard_col_key_with_row_filter() -> Res<()> {

@@ -181,12 +181,12 @@ async fn alias_ok_other_err() -> Res<()> {
 // the filter still applies. Aliasing cannot be used to bypass row policy.
 #[tokio::test]
 async fn nested_alias_on_root() -> Res<()> {
-    let rc = row_policy("postDetail.comments".to_owned(), "any".to_owned());
+    let pol = row_policy("postDetail.comments".to_owned(), "any".to_owned());
     let cfg = AuthzConfig {
         handlers: Arc::new(OrgHandler),
         ..Default::default()
     };
-    let d = row_relation_setup(rc, cfg).await?;
+    let d = row_relation_setup(pol, cfg).await?;
 
     let q = "
     query($id: ID!) {
@@ -212,13 +212,50 @@ async fn nested_alias_on_root() -> Res<()> {
     d.tmp.drop().await
 }
 
+// Both the root field and a nested field carry aliases:
+// pd: postDetail { cmt: comments { body } }
+// alias path "pd.cmt" must be translated to schema path "postDetail.comments"
+// for the row policy lookup to apply the org filter correctly.
+#[tokio::test]
+async fn deep_nested_alias_translates_to_schema_path() -> Res<()> {
+    let pol = row_policy("postDetail.comments".to_owned(), "any".to_owned());
+    let cfg = AuthzConfig {
+        handlers: Arc::new(OrgHandler),
+        ..Default::default()
+    };
+    let d = row_relation_setup(pol, cfg).await?;
+
+    let q = "
+    query($id: ID!) {
+        pd: postDetail(id: $id) {
+            cmt: comments(orderBy: [BodyAsc]) {
+                body
+            }
+        }
+    }
+    ";
+    let v = value!({
+        "id": d.post1_id,
+    });
+    let expected = value!({
+        "pd": {
+            "cmt": [{
+                "body": "A",
+            }],
+        },
+    });
+    exec_assert(&d.schema, q, Some(v), &expected).await;
+
+    d.tmp.drop().await
+}
+
 // Two root ops each with a nested relation in one request.
 // postDetail.comments walk-up finds "postDetail"; commentDetail.post walk-up
 // finds "commentDetail". Neither crosses into the other root's cache entry.
 // OrgHandler filters by org1, so only org1 records pass.
 #[tokio::test]
 async fn nested_two_ops_each_isolated() -> Res<()> {
-    let rc = hashmap! {
+    let pol = hashmap! {
         "postDetail.comments".to_owned() => "any".to_owned(),
         "commentDetail.post".to_owned() => "any".to_owned(),
     };
@@ -226,7 +263,7 @@ async fn nested_two_ops_each_isolated() -> Res<()> {
         handlers: Arc::new(OrgHandler),
         ..Default::default()
     };
-    let d = row_relation_setup(rc, cfg).await?;
+    let d = row_relation_setup(pol, cfg).await?;
 
     let q = "
     query($pid: ID!, $cid: ID!) {

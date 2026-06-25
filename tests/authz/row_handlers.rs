@@ -77,3 +77,24 @@ impl AuthzHandlers for ErrorHandler {
         Err(ScriptErr::Failed.into())
     }
 }
+
+// Handler returning wrong JSON type: org_id expects String but receives a number.
+// TaskFilter::from_json will fail deserialization -> InternalServer in GQL response.
+pub struct WrongTypeHandler;
+#[async_trait]
+impl AuthzHandlers for WrongTypeHandler {
+    async fn execute_script(&self, _ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
+        Ok(Some(json!({ "org_id": 123 })))
+    }
+}
+
+// Handler returning an unknown field not present in TaskFilter.
+// serde uses #[serde(default)] without deny_unknown_fields, so the field is
+// silently dropped and the filter is effectively empty (no WHERE clause applied).
+pub struct UnknownFieldHandler;
+#[async_trait]
+impl AuthzHandlers for UnknownFieldHandler {
+    async fn execute_script(&self, _ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
+        Ok(Some(json!({ "unknown_col": "x" })))
+    }
+}
