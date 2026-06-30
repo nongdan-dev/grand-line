@@ -3,6 +3,7 @@ use crate::prelude::*;
 #[field_names]
 pub struct RelationAttr {
     pub include_deleted: bool,
+    pub authz_row: bool,
     #[field_names(skip)]
     pub inner: Attr,
     #[field_names(virt)]
@@ -19,6 +20,7 @@ impl TryFrom<Attr> for RelationAttr {
             include_deleted: a
                 .bool(Self::FIELD_INCLUDE_DELETED)?
                 .unwrap_or(FEATURE_RESOLVER_INCLUDE_DELETED),
+            authz_row: a.bool(Self::FIELD_AUTHZ_ROW)?.unwrap_or(FEATURE_RESOLVER_AUTHZ_ROW),
             inner: a,
         })
     }
@@ -80,10 +82,8 @@ impl RelationAttr {
     }
 
     fn bug(&self, k: &str) -> SynErr {
-        let err = format!(
-            "{} key `{k}` should not access this key in this attr (programmer error)",
-            self.inner.attr_debug(),
-        );
-        SynErr::new(self.inner.span, err)
+        let d = self.inner.attr_debug();
+        let msg = format!("{d} key `{k}` should not access this key in this attr (programmer error)");
+        SynErr::new(self.inner.span, msg)
     }
 }

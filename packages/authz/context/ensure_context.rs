@@ -1,17 +1,25 @@
 use crate::prelude::*;
 
-#[async_trait]
-pub trait AuthzEnsureContext {
-    async fn authz_ensure_in_macro(&self, check: AuthzDirectiveEnsure) -> Res<()>;
+pub struct AuthzEnsure {
+    pub realm: String,
+    pub org: bool,
+    pub user: bool,
 }
 
 #[async_trait]
-impl AuthzEnsureContext for Context<'_> {
-    async fn authz_ensure_in_macro(&self, check: AuthzDirectiveEnsure) -> Res<()> {
+pub trait AuthzEnsureContext<'a>
+where
+    Self: AuthzCacheContext<'a>,
+{
+    async fn authz_ensure_in_macro(&self, check: AuthzEnsure) -> Res<()> {
         let v = self.authz_with_cache(check).await?;
         if v.is_none() {
-            return Err(MyErr::Unauthorized.into());
+            return Err(self.authz_err().clone());
         }
         Ok(())
     }
+}
+
+#[async_trait]
+impl<'a> AuthzEnsureContext<'a> for Context<'a> {
 }

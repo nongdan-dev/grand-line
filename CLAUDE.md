@@ -1,7 +1,9 @@
 # Important
 
 - Always use English in code and comments. Chat responses are in Vietnamese.
-- Run `make check` and `make test_sqlite` and fix all if any on each modification. You can read to understand and run a modified command instead to only check and test your change selectively.
+- Do not use unwrap or expect or panic. Try to return result or something instead.
+- See ./tests/independently.sh to find a coresponding command and run to test your change.
+- Code need to be human readable, concise and focus. You can see the existing code base to know the current convention, line break, block break..
 
 # Formatting Rules
 

@@ -1,16 +1,16 @@
 use super::prelude::*;
 
-/// GrandLineContextData should be constructed on each request.
+/// GrandLineData should be constructed on each request.
 /// We will get it in the resolvers to manage per-request db transaction, graphql loaders, cache...
 /// We should only use it in the GrandLineExtension to inject this context automatically on each request.
-pub struct GrandLineContextData {
+pub struct GrandLineData {
     pub(crate) db: Arc<DatabaseConnection>,
     pub(crate) tx: Mutex<Option<Arc<DatabaseTransaction>>>,
     pub(crate) loaders: Mutex<HashMap<String, ArcAny>>,
     pub(crate) cache: Mutex<HashMap<TypeId, Arc<OnceCell<ArcAny>>>>,
 }
 
-impl GrandLineContextData {
+impl GrandLineData {
     pub(crate) fn new(db: Arc<DatabaseConnection>) -> Self {
         Self {
             db,

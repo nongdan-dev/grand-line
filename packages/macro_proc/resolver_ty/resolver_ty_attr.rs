@@ -7,6 +7,7 @@ pub struct ResolverTyAttr {
     pub include_deleted: bool,
     pub auth: Option<AuthAttr>,
     pub authz: Option<AuthzAttr>,
+    pub authz_row: bool,
     #[field_names(skip)]
     pub inner: Attr,
 }
@@ -32,6 +33,7 @@ impl TryFrom<Attr> for ResolverTyAttr {
                 .unwrap_or(FEATURE_RESOLVER_INCLUDE_DELETED),
             auth: a.nested_with_path_into::<AuthAttr>(Self::FIELD_AUTH)?.map(|(_, a)| a),
             authz: a.nested_into::<AuthzAttr>(Self::FIELD_AUTHZ)?,
+            authz_row: a.bool(Self::FIELD_AUTHZ_ROW)?.unwrap_or(FEATURE_RESOLVER_AUTHZ_ROW),
             inner: a,
         })
     }

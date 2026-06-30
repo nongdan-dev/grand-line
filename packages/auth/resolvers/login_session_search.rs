@@ -1,43 +1,27 @@
 use crate::prelude::*;
 
-pub async fn login_session_search_impl(
-    ctx: &Context<'_>,
-    filter: Option<LoginSessionFilter>,
-    order_by: Option<Vec<LoginSessionOrderBy>>,
-    page: Option<Pagination>,
-) -> Res<Vec<LoginSessionGql>> {
+#[search(LoginSession, include_deleted = false, auth, authz_row = false)]
+fn resolver() {
     ctx.auth_ensure_authenticated().await?;
-    let tx = &*ctx.tx().await?;
-    let extra = login_session_get_filter(ctx).await?;
-    let default_order = order_by!(LoginSession[UpdatedAtDesc]);
-    LoginSession::gql_search(
-        ctx,
-        tx,
-        None,
-        filter,
-        Some(extra),
-        order_by,
-        Some(default_order),
-        page,
-        Some(false),
-    )
-    .await
+    let f = get_filter(ctx).await?;
+    let o = order_by!(LoginSession[UpdatedAtDesc]);
+    (Some(f), Some(o))
 }
 
-pub async fn login_session_count_impl(ctx: &Context<'_>, filter: Option<LoginSessionFilter>) -> Res<u64> {
-    ctx.auth_ensure_authenticated().await?;
-    let tx = &*ctx.tx().await?;
-    let extra = login_session_get_filter(ctx).await?;
-    LoginSession::gql_count(tx, filter, Some(extra), Some(false)).await
+#[count(LoginSession, include_deleted = false, auth, authz_row = false)]
+fn resolver() {
+    let f = get_filter(ctx).await?;
+    Some(f)
 }
 
-async fn login_session_get_filter(ctx: &Context<'_>) -> Res<LoginSessionFilter> {
-    let arc = ctx.auth_with_cache().await?;
+async fn get_filter(ctx: &Context<'_>) -> Res<LoginSessionFilter> {
+    let c = ctx.auth_config();
+    let arc = ctx.auth_unchecked().await?;
     let ls = arc.as_ref().as_ref().ok_or(MyErr::Unauthenticated)?;
     let f = filter!(LoginSession {
         id_ne: ls.id.clone(),
         user_id: ls.user_id.clone(),
-        created_at_gte: now() - duration_ms(ctx.auth_config().cookie_login_session_expires_ms),
+        created_at_gte: now() - duration_ms(c.cookie_login_session_expires_ms),
     });
     Ok(f)
 }

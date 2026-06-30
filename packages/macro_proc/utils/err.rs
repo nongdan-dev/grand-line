@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-pub fn gen_grand_line_err(_: TokenStream, item: TokenStream) -> TokenStream {
+pub fn gen_grand_line_err(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let attr = Into::<Ts2>::into(attr);
     let item = Into::<Ts2>::into(item);
 
     quote! {
@@ -9,6 +10,7 @@ pub fn gen_grand_line_err(_: TokenStream, item: TokenStream) -> TokenStream {
             ThisErr,
             GrandLineErrDerive,
         )]
+        #attr
         #item
     }
     .into()
@@ -19,8 +21,8 @@ pub fn gen_grand_line_err_derive(item: TokenStream) -> TokenStream {
     let name = &item.ident;
 
     let Data::Enum(d) = &item.data else {
-        let err = "GrandLineErrDerive only support enum with ThisErr";
-        return SynErr::new_spanned(&item.ident, err).to_compile_error().into();
+        let msg = "GrandLineErrDerive only support enum with ThisErr";
+        return SynErr::new_spanned(&item.ident, msg).to_compile_error().into();
     };
 
     let mut codes = Vec::new();

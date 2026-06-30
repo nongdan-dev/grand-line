@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use serde::de::DeserializeOwned;
 use serde_json::{from_value, to_value};
 
 /// Helper to quickly convert json.
@@ -17,5 +16,7 @@ where
     }
 }
 
-/// Automatically implement for Serialize + DeserializeOwned.
-impl<T> JsonHelper for T where T: Serialize + DeserializeOwned {}
+/// Automatically implement for Serialize + `DeserializeOwned`.
+impl<T> JsonHelper for T where T: Serialize + DeserializeOwned
+{
+}

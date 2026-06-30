@@ -25,12 +25,20 @@ fn try_gen_count(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
 
         let body = r.body;
         let model = a.model.ts2_or_err()?;
+        let authz_row_filter = gen_authz_row_filter(&ty_filter(&model)?, a.ra.authz_row);
         let include_deleted = get_include_deleted(!a.resolver_inputs && a.ra.include_deleted);
+
         r.body = quote! {
             let filter_extra: Option<#filter> = {
                 #body
             };
-            #model::gql_count(tx, filter, filter_extra, #include_deleted).await?
+            #model::gql_count(
+                tx,
+                filter,
+                #include_deleted,
+                filter_extra,
+                #authz_row_filter,
+            ).await?
         };
     }
 

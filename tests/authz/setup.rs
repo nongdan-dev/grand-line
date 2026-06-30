@@ -6,10 +6,18 @@ pub use grand_line::prelude::*;
 #[path = "../_fixtures/user.rs"]
 mod user;
 pub use user::*;
-
 #[path = "../_fixtures/org.rs"]
 mod org;
 pub use org::*;
+#[path = "../_fixtures/task.rs"]
+mod task;
+pub use task::*;
+#[path = "../_fixtures/col_policy.rs"]
+mod col_policy;
+pub use col_policy::*;
+#[path = "../_fixtures/row_policy.rs"]
+mod row_policy;
+pub use row_policy::*;
 
 #[query(authz(realm = "org"))]
 fn org_primitive() -> i64 {
@@ -43,9 +51,15 @@ fn system(org_id: String) -> OrgGql {
 }
 
 #[derive(Default, MergedObject)]
-pub struct Query(OrgPrimitiveQuery, OrgQuery, SystemPrimitiveQuery, SystemQuery);
+pub struct Query(
+    TasksQuery,
+    OrgPrimitiveQuery,
+    OrgQuery,
+    SystemPrimitiveQuery,
+    SystemQuery,
+);
 
-pub struct Prepare {
+pub struct Setup {
     pub tmp: TmpDb,
     pub s: SchemaBuilder<Query, EmptyMutation, EmptySubscription>,
     pub h: HeaderMap,
@@ -55,15 +69,25 @@ pub struct Prepare {
     pub token2: String,
     pub org_id1: String,
     pub org_id2: String,
+    pub role_id1: String,
+    pub role_id1_system: String,
+    pub role_id2: String,
 }
 
-pub async fn prepare_wildcard() -> Res<Prepare> {
-    prepare_with_ops(operations_wildcard()).await
+pub async fn setup_with_col_wildcard() -> Res<Setup> {
+    setup_with_col_policy(col_policy_wildcard()).await
 }
 
-pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> {
-    let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole);
-    let s = schema_q::<Query>(&tmp.db).data(authz_org::<Org>());
+pub async fn setup_with_col_policy(org1_admin: ColPolicy) -> Res<Setup> {
+    setup_with_policy(org1_admin, RowPolicy::default()).await
+}
+
+pub async fn setup_with_policy(org1_admin: ColPolicy, org1_row: RowPolicy) -> Res<Setup> {
+    let org_impl = authz_org_impl::<Org>();
+
+    let tmp = tmp_db!(User, LoginSession, Org, Role, UserInRole, Task);
+    let s = schema_q::<Query>(&tmp.db).data(org_impl);
+
     let h = init_common_headers();
 
     let u1 = am_create!(User {
@@ -79,7 +103,7 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
     .exec_without_ctx(&tmp.db)
     .await?;
 
-    let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
+    let ua = Context::get_ua_raw(Context::axum_headers(&h))?;
 
     let secret1 = rand_utils::secret();
     let ls1 = am_create!(LoginSession {
@@ -117,7 +141,8 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
     let r1 = am_create!(Role {
         name: "Org Admin",
         realm: "org",
-        operations: org1_admin_ops.to_json()?,
+        col_policy: org1_admin.to_json()?,
+        row_policy: org1_row.to_json()?,
         org_id: Some(o1.id.clone()),
     })
     .exec_without_ctx(&tmp.db)
@@ -133,7 +158,8 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
     let r2 = am_create!(Role {
         name: "Org Admin",
         realm: "org",
-        operations: operations_wildcard().to_json()?,
+        col_policy: col_policy_wildcard().to_json()?,
+        row_policy: RowPolicy::default().to_json()?,
         org_id: Some(o2.id.clone()),
     })
     .exec_without_ctx(&tmp.db)
@@ -149,7 +175,8 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
     let r3 = am_create!(Role {
         name: "System Admin",
         realm: "system",
-        operations: operations_wildcard().to_json()?,
+        col_policy: col_policy_wildcard().to_json()?,
+        row_policy: RowPolicy::default().to_json()?,
     })
     .exec_without_ctx(&tmp.db)
     .await?;
@@ -160,7 +187,7 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
     .exec_without_ctx(&tmp.db)
     .await?;
 
-    Ok(Prepare {
+    Ok(Setup {
         tmp,
         s,
         h,
@@ -170,60 +197,8 @@ pub async fn prepare_with_ops(org1_admin_ops: PolicyOperations) -> Res<Prepare> 
         token2,
         org_id1: o1.id,
         org_id2: o2.id,
+        role_id1: r1.id,
+        role_id1_system: r3.id,
+        role_id2: r2.id,
     })
-}
-
-pub const fn field(children: PolicyFields) -> PolicyField {
-    PolicyField {
-        allow: true,
-        children: Some(children),
-    }
-}
-pub const fn field_no_children() -> PolicyField {
-    PolicyField {
-        allow: true,
-        children: None,
-    }
-}
-
-pub fn fields(k: String, children: PolicyFields) -> PolicyFields {
-    hashmap! {
-        k => field(children),
-    }
-}
-pub fn fields_no_children(k: String) -> PolicyFields {
-    hashmap! {
-        k => field_no_children(),
-    }
-}
-
-pub fn fields_wildcard() -> PolicyFields {
-    fields_no_children("*".to_owned())
-}
-pub fn fields_wildcard_nested() -> PolicyFields {
-    fields_no_children("**".to_owned())
-}
-
-pub const fn operation(inputs: PolicyField, output: PolicyField) -> PolicyOperation {
-    PolicyOperation {
-        inputs,
-        output,
-    }
-}
-pub fn operations(k: String, inputs: PolicyField, output: PolicyField) -> PolicyOperations {
-    hashmap! {
-        k => operation(inputs, output),
-    }
-}
-
-pub fn operations_wildcard() -> PolicyOperations {
-    let children = fields_wildcard_nested();
-    let field = field(children);
-    operations("*".to_owned(), field.clone(), field)
-}
-
-pub fn operations_col_level_org_name() -> PolicyOperations {
-    let inputs = field(fields_wildcard_nested());
-    let output = field(fields_no_children("name".to_owned()));
-    operations("org".to_owned(), inputs, output)
 }

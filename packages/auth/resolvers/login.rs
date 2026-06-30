@@ -11,9 +11,15 @@ pub struct LoginSessionData {
     pub ua: HashMap<String, String>,
 }
 
-pub async fn login_impl<U: AuthUser>(ctx: &Context<'_>, data: Login) -> Res<LoginSessionWithSecret> {
+pub async fn login_impl<U>(ctx: &Context<'_>, data: Login) -> Res<LoginSessionWithSecret>
+where
+    U: AuthUser,
+{
+    ctx.auth_ensure_not_authenticated().await?;
+
     let tx = &*ctx.tx().await?;
-    let lsd = login_session_data(ctx)?;
+    let lsd = ctx.login_session_data()?;
+    let h = &ctx.auth_config().handlers;
 
     let u = U::find()
         .exclude_deleted()
@@ -28,19 +34,9 @@ pub async fn login_impl<U: AuthUser>(ctx: &Context<'_>, data: Login) -> Res<Logi
 
     let ls = login_session_create(ctx, tx, &u.get_id(), &lsd).await?;
 
-    ctx.auth_user_config::<U>()?
-        .handlers
-        .on_login_resolve(ctx, &u, &ls.inner)
-        .await?;
+    h.on_login_resolve(ctx, &u.get_id(), &ls.inner).await?;
 
     Ok(ls)
-}
-
-pub fn login_session_data(ctx: &Context<'_>) -> Res<LoginSessionData> {
-    Ok(LoginSessionData {
-        ip: ctx.get_ip()?,
-        ua: ctx.get_ua()?,
-    })
 }
 
 pub async fn login_session_create(

@@ -1,47 +1,36 @@
 use crate::prelude::*;
 
 #[async_trait]
-pub trait AuthzContext {
-    async fn authz(&self) -> Res<String>;
-    async fn authz_role(&self) -> Res<RoleSql>;
-}
-
-#[async_trait]
-impl AuthzContext for Context<'_> {
+pub trait AuthzContext<'a>
+where
+    Self: AuthzConfigContext<'a>
+        + AuthzCacheContext<'a>
+        + AuthzHttpContext<'a>
+        + AuthzEnsureContext<'a>
+        + AuthzRoleContext<'a>
+        + AuthzColContext<'a>
+        + AuthzRowContext<'a>,
+{
     async fn authz(&self) -> Res<String> {
-        let cache_k = self.authz_cache_key().await?;
+        let k = self.authz_cache_key().await?;
         let m = self.authz_cache_or_init().await?;
         let guard = m.lock().await;
-        let Some(v) = guard.get(&cache_k) else {
-            drop(guard);
-            return Err(MyErr::MissingMacro.into());
-        };
-        let Some(v) = v.as_ref() else {
-            drop(guard);
-            return Err(MyErr::Unauthorized.into());
-        };
-        let Some(o) = &v.org else {
-            drop(guard);
-            return Err(MyErr::Unauthorized.into());
-        };
-        let org_id = o.id.clone();
+        let org_id = guard
+            .get(&k)
+            .ok_or(MyErr::MissingMacro)?
+            .as_ref()
+            .as_ref()
+            .ok_or_else(|| self.authz_err().clone())?
+            .org
+            .as_ref()
+            .ok_or_else(|| self.authz_err().clone())?
+            .id
+            .clone();
         drop(guard);
         Ok(org_id)
     }
-    async fn authz_role(&self) -> Res<RoleSql> {
-        let cache_k = self.authz_cache_key().await?;
-        let m = self.authz_cache_or_init().await?;
-        let guard = m.lock().await;
-        let Some(v) = guard.get(&cache_k) else {
-            drop(guard);
-            return Err(MyErr::MissingMacro.into());
-        };
-        let Some(v) = v.as_ref() else {
-            drop(guard);
-            return Err(MyErr::Unauthorized.into());
-        };
-        let role = v.role.clone();
-        drop(guard);
-        Ok(role)
-    }
+}
+
+#[async_trait]
+impl<'a> AuthzContext<'a> for Context<'a> {
 }

@@ -36,8 +36,8 @@ impl ResolverFn for GenResolver {
         }
         Ok(self.name()?.to_string().to_lower_camel_case())
     }
-    fn doc_strs(&self) -> Vec<String> {
-        attr_doc_strs(&self.field_attrs)
+    fn docs(&self) -> Vec<String> {
+        attr_docs(&self.field_attrs)
     }
     fn extra_graphql(&self) -> Ts2 {
         attr_graphql_info(&self.field_attrs).1

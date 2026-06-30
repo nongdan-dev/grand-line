@@ -29,12 +29,25 @@ fn try_gen_search(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
 
         let body = r.body;
         let model = a.model.ts2_or_err()?;
+        let authz_row_filter = gen_authz_row_filter(&ty_filter(&model)?, a.ra.authz_row);
         let include_deleted = get_include_deleted(!a.resolver_inputs && a.ra.include_deleted);
+
         r.body = quote! {
             let (filter_extra, order_by_default): (Option<#filter>, Option<Vec<#order_by>>) = {
                 #body
             };
-            #model::gql_search(ctx, tx, None, filter, filter_extra, order_by, order_by_default, page, #include_deleted).await?
+            #model::gql_search(
+                ctx,
+                tx,
+                filter,
+                order_by,
+                page,
+                #include_deleted,
+                filter_extra,
+                order_by_default,
+                None,
+                #authz_row_filter,
+            ).await?
         };
     }
 

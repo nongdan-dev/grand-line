@@ -12,7 +12,7 @@ pub struct Query(AuthMergedQuery);
 #[derive(Default, MergedObject)]
 pub struct Mutation(AuthMergedMutation<User>);
 
-pub struct Prepare {
+pub struct Setup {
     pub tmp: TmpDb,
     pub s: SchemaBuilder<Query, Mutation, EmptySubscription>,
     pub h: HeaderMap,
@@ -20,26 +20,25 @@ pub struct Prepare {
     pub token: String,
 }
 
-pub async fn prepare() -> Res<Prepare> {
-    let tmp = tmp_db!(User, AuthOtp, LoginSession);
+pub async fn setup() -> Res<Setup> {
     let c = AuthConfig {
         handlers: Arc::new(MockAuthHandlers),
         ..Default::default()
     };
-    let s = schema_qm::<Query, Mutation>(&tmp.db)
-        .data(c)
-        .data(AuthUserConfig::<User>::default());
+
+    let tmp = tmp_db!(User, AuthOtp, LoginSession);
+    let s = schema_qm::<Query, Mutation>(&tmp.db).data(c);
+
     let h = init_common_headers();
 
     let u = am_create!(User {
         email: "olivia@example.com",
         password_hashed: rand_utils::password_hash("123123")?,
-        display_name: "Olivia",
     })
     .exec_without_ctx(&tmp.db)
     .await?;
 
-    let ua = Context::get_ua_raw(Context::get_headers_raw(&h))?;
+    let ua = Context::get_ua_raw(Context::axum_headers(&h))?;
     let secret = rand_utils::secret();
     let ls = am_create!(LoginSession {
         user_id: u.id.clone(),
@@ -52,7 +51,7 @@ pub async fn prepare() -> Res<Prepare> {
 
     let token = rand_utils::qs_token(&ls.id, &secret)?;
 
-    Ok(Prepare {
+    Ok(Setup {
         tmp,
         s,
         h,

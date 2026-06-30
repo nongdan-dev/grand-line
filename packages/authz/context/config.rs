@@ -3,6 +3,9 @@ use crate::prelude::*;
 #[derive(Clone)]
 pub struct AuthzConfig {
     pub org_id_header_key: &'static str,
+    pub role_id_header_key: &'static str,
+    /// Can be configured to use CoreDbErr::Db404 to not leak the existence status.
+    pub unauthorized_err: GrandLineErr,
     pub handlers: Arc<dyn AuthzHandlers>,
 }
 
@@ -10,6 +13,8 @@ impl Default for AuthzConfig {
     fn default() -> Self {
         Self {
             org_id_header_key: H_ORG_ID,
+            role_id_header_key: H_ROLE_ID,
+            unauthorized_err: MyErr::Unauthorized.into(),
             handlers: Arc::new(DefaultHandlers),
         }
     }
@@ -17,24 +22,36 @@ impl Default for AuthzConfig {
 
 #[allow(unused_variables)]
 #[async_trait]
-pub trait AuthzHandlers: Send + Sync {}
+pub trait AuthzHandlers
+where
+    Self: Send + Sync,
+{
+    async fn execute_script(&self, ctx: &Context<'_>, script: &str) -> Res<Option<JsonValue>> {
+        Ok(None)
+    }
+}
 
 struct DefaultHandlers;
 #[async_trait]
-impl AuthzHandlers for DefaultHandlers {}
+impl AuthzHandlers for DefaultHandlers {
+}
 
-/// Type-erased org lookup - stored in context so proc-macro resolvers can
-/// use it without needing to know the generic `O` type parameter.
-/// Register with `.data(authz_org::<YourOrg>())` when building your schema.
+/// Org lookup callbacks, non-generic: method signatures use only primitives
+/// so the trait needs no type parameter.
 #[async_trait]
-pub trait AuthzOrgLookup: Send + Sync {
+pub trait AuthzOrgImpl
+where
+    Self: Send + Sync,
+{
     async fn find_by_id(&self, id: &str, tx: &DatabaseTransaction) -> Res<Option<OrgMinimal>>;
 }
 
-struct DefaultOrgLookup<O: AuthzOrg>(PhantomData<O>);
-
+struct DefaultOrgImpl<O>(PhantomData<O>);
 #[async_trait]
-impl<O: AuthzOrg> AuthzOrgLookup for DefaultOrgLookup<O> {
+impl<O> AuthzOrgImpl for DefaultOrgImpl<O>
+where
+    O: AuthzOrg,
+{
     async fn find_by_id(&self, id: &str, tx: &DatabaseTransaction) -> Res<Option<OrgMinimal>> {
         let r = O::find()
             .exclude_deleted()
@@ -48,7 +65,9 @@ impl<O: AuthzOrg> AuthzOrgLookup for DefaultOrgLookup<O> {
     }
 }
 
-/// Create an org lookup for use in `.data(authz_org::<YourOrg>())`.
-pub fn authz_org<O: AuthzOrg>() -> Arc<dyn AuthzOrgLookup> {
-    Arc::new(DefaultOrgLookup::<O>(PhantomData))
+pub fn authz_org_impl<O>() -> Box<dyn AuthzOrgImpl>
+where
+    O: AuthzOrg,
+{
+    Box::new(DefaultOrgImpl::<O>(PhantomData))
 }

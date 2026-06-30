@@ -1,10 +1,10 @@
-#[path = "./prelude.rs"]
-mod prelude;
-use prelude::*;
+#[path = "./setup.rs"]
+mod setup;
+use setup::*;
 
 #[tokio::test]
 async fn t() -> Res<()> {
-    let d = prepare().await?;
+    let d = setup().await?;
 
     let q = "
     mutation test($id: ID!) {

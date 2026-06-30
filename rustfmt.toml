@@ -4,6 +4,7 @@ use_try_shorthand = true
 
 max_width = 120
 
+empty_item_single_line = false
 single_line_if_else_max_width = 0
 single_line_let_else_max_width = 0
 struct_lit_width = 0

@@ -1,5 +1,6 @@
 mod attr_default_flags;
 mod attr_ty;
+mod authz;
 mod err;
 mod expr_struct;
 mod gql_enum;
@@ -11,6 +12,7 @@ mod sql_enum;
 mod unwrap_option;
 pub use attr_default_flags::*;
 pub use attr_ty::*;
+pub use authz::*;
 pub use err::*;
 pub use expr_struct::*;
 pub use gql_enum::*;

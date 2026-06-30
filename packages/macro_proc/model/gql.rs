@@ -5,7 +5,7 @@ use crate::prelude::*;
 
 /// Extract doc-comment strings from a field's attributes.
 /// Each `///` line becomes one String entry (with the leading space preserved).
-pub fn attr_doc_strs(attrs: &[Attribute]) -> Vec<String> {
+pub fn attr_docs(attrs: &[Attribute]) -> Vec<String> {
     attrs
         .iter()
         .filter_map(|attr| {
@@ -81,7 +81,7 @@ pub fn gql_attr(gql_fields: &[(Field, Vec<Attr>)]) -> SynRes<GqlAttr> {
         let (opt, uw_str) = unwrap_option_str(&ty);
 
         // f.attrs contains only doc and #[graphql(...)] after attr_gql filtering.
-        let doc_strs = attr_doc_strs(&f.attrs);
+        let docs = attr_docs(&f.attrs);
         let (gql_name_override, extra_graphql) = attr_graphql_info(&f.attrs);
 
         push_struk_resolver(
@@ -93,7 +93,7 @@ pub fn gql_attr(gql_fields: &[(Field, Vec<Attr>)]) -> SynRes<GqlAttr> {
             attr_is_gql_skip(a),
             gql_name_override.as_deref(),
             &extra_graphql,
-            &doc_strs,
+            &docs,
         )?;
         push_default(&mut defaults, &name);
 
@@ -175,15 +175,15 @@ pub fn gql_exprs_ts2(exprs: &[(Field, Vec<Attr>)]) -> SynRes<GqlAttrExprs> {
     for (f, e) in exprs {
         let a = e.iter().find(|a| a.attr == VirtualTy::SqlExpr).ok_or_else(|| {
             let span = e.first().map(|a| a.span).unwrap_or_else(Span::call_site);
-            let err = "cannot find VirtualTy::SqlExpr to build select as";
-            SynErr::new(span, err)
+            let msg = "cannot find VirtualTy::SqlExpr to build select as";
+            SynErr::new(span, msg)
         })?;
         let name_str = a.field_name()?;
         let name = name_str.ts2_or_err()?;
         let ty = a.field_ty()?.ts2_or_err()?;
 
         // f.attrs has the original field attrs (not filtered by attr_gql).
-        let doc_strs = attr_doc_strs(&f.attrs);
+        let docs = attr_docs(&f.attrs);
         let (gql_name_override, extra_graphql) = attr_graphql_info(&f.attrs);
 
         push_struk_resolver(
@@ -195,7 +195,7 @@ pub fn gql_exprs_ts2(exprs: &[(Field, Vec<Attr>)]) -> SynRes<GqlAttrExprs> {
             false,
             gql_name_override.as_deref(),
             &extra_graphql,
-            &doc_strs,
+            &docs,
         )?;
         push_default(&mut defaults, &name);
 
@@ -229,7 +229,7 @@ fn push_struk_resolver(
     skip_resolver: bool,
     gql_name_override: Option<&str>,
     extra_graphql: &Ts2,
-    doc_strs: &[String],
+    docs: &[String],
 ) -> SynRes<()> {
     let (opt, uw) = unwrap_option(ty)?;
 
@@ -258,7 +258,7 @@ fn push_struk_resolver(
     };
 
     resolver.push(quote! {
-        #(#[doc = #doc_strs])*
+        #(#[doc = #docs])*
         #graphql_attr
         pub async fn #name(&self) -> Res<#ty> {
             let v = self.#name.clone()#unwrap;

@@ -17,7 +17,8 @@ async fn t() -> Res<()> {
         }
 
         #[detail(Alias)]
-        fn resolver() {}
+        fn resolver() {
+        }
     }
     use test::*;
 

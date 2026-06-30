@@ -5,7 +5,10 @@ use cookie::{
 };
 use core::net::{IpAddr, SocketAddr};
 
-pub trait HttpContext {
+pub trait HttpContext<'a>
+where
+    Self: ImplContext<'a>,
+{
     fn get_ua_raw(h: Option<HashMap<String, Vec<String>>>) -> Res<HashMap<String, String>> {
         let mut m = HashMap::<String, String>::new();
         for (k, v) in &h.ok_or(MyErr::CtxHeaders404)? {
@@ -23,13 +26,13 @@ pub trait HttpContext {
         Ok(m)
     }
 
-    // overridden by the HTTP integration layer (e.g. HttpAxumContext via axum feature)
-    fn get_headers(&self) -> Option<HashMap<String, Vec<String>>> {
-        None
+    // Will be overridden by the implementation below.
+    fn try_headers(&self) -> Res<Option<HashMap<String, Vec<String>>>> {
+        Err(MyErr::MissingImplementation.into())
     }
 
     fn get_header(&self, k: &str) -> Res<String> {
-        let req_headers = self.get_headers().ok_or(MyErr::CtxHeaders404)?;
+        let req_headers = self.try_headers()?.ok_or(MyErr::CtxHeaders404)?;
         let v: Vec<String> = if let Some(v) = req_headers.get(k) {
             v.clone()
         } else {
@@ -69,7 +72,7 @@ pub trait HttpContext {
         if self.get_header(H_UA)?.is_empty() {
             return Err(MyErr::HeaderUa404.into());
         }
-        let h = self.get_headers();
+        let h = self.try_headers()?;
         let ua = Self::get_ua_raw(h)?;
         Ok(ua)
     }
@@ -95,17 +98,6 @@ pub trait HttpContext {
         Ok(v)
     }
 
-    // abstract: writing response headers requires integration-specific API
-    fn set_cookie(&self, k: &str, v: &str, expires: i64);
-}
-
-impl HttpContext for Context<'_> {
-    // when axum feature is on, delegate to HttpAxumContext which reads from axum HeaderMap
-    #[cfg(feature = "axum")]
-    fn get_headers(&self) -> Option<HashMap<String, Vec<String>>> {
-        <Self as HttpAxumContext>::get_headers(self)
-    }
-
     fn set_cookie(&self, k: &str, v: &str, expires: i64) {
         let v = Cookie::build(Cookie::new(k, v))
             .http_only(true)
@@ -114,6 +106,13 @@ impl HttpContext for Context<'_> {
             .expires(OffsetDateTime::now_utc() + Duration::milliseconds(expires))
             .build()
             .to_string();
-        self.append_http_header(H_SET_COOKIE, &v);
+        self.append_http_header_impl(H_SET_COOKIE, &v);
+    }
+}
+
+impl<'a> HttpContext<'a> for Context<'a> {
+    #[cfg(feature = "axum")]
+    fn try_headers(&self) -> Res<Option<HashMap<String, Vec<String>>>> {
+        Ok(self.get_headers())
     }
 }

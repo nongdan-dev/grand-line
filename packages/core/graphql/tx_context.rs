@@ -1,14 +1,17 @@
 use super::prelude::*;
 
 #[async_trait]
-pub trait TxContext {
-    async fn tx(&self) -> Res<Arc<DatabaseTransaction>>;
-}
-
-#[async_trait]
-impl TxContext for Context<'_> {
+pub trait TxContext<'a>
+where
+    Self: GrandLineDataContext<'a>,
+{
+    /// Shortcut to get tx from grand line data.
     #[inline(always)]
     async fn tx(&self) -> Res<Arc<DatabaseTransaction>> {
         self.grand_line()?.tx().await
     }
+}
+
+#[async_trait]
+impl<'a> TxContext<'a> for Context<'a> {
 }

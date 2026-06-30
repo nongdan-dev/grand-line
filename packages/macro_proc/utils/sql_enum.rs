@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-pub fn gen_sql_enum(_: TokenStream, item: TokenStream) -> TokenStream {
+pub fn gen_sql_enum(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let attr = Into::<Ts2>::into(attr);
     let item = Into::<Ts2>::into(item);
 
     quote! {
@@ -11,6 +12,7 @@ pub fn gen_sql_enum(_: TokenStream, item: TokenStream) -> TokenStream {
             db_type = "String(StringLen::N(255))",
             rename_all = "snake_case",
         )]
+        #attr
         #item
     }
     .into()

@@ -1,30 +1,27 @@
 use crate::prelude::*;
 
 #[async_trait]
-pub trait AuthCacheContext {
-    async fn auth_with_cache(&self) -> Res<Arc<Option<LoginSessionSql>>>;
-    async fn auth_without_cache(&self) -> Res<Option<LoginSessionSql>>;
-}
-
-#[async_trait]
-impl AuthCacheContext for Context<'_> {
-    async fn auth_with_cache(&self) -> Res<Arc<Option<LoginSessionSql>>> {
-        let arc = self.cache(|| self.auth_without_cache()).await?;
+pub trait AuthCacheContext<'a>
+where
+    Self: AuthHttpContext<'a>,
+{
+    async fn auth_unchecked(&self) -> Res<Arc<Option<LoginSessionSql>>> {
+        let arc = self.cache(|| self.auth_unchecked_without_cache()).await?;
         Ok(arc)
     }
 
-    async fn auth_without_cache(&self) -> Res<Option<LoginSessionSql>> {
-        let mut token = self.get_authorization_token()?;
-        if token.is_empty() {
-            token = self.get_cookie_login_session()?;
+    async fn auth_unchecked_without_cache(&self) -> Res<Option<LoginSessionSql>> {
+        let mut t = self.get_authorization_token()?;
+        if t.is_empty() {
+            t = self.get_cookie_login_session()?;
         }
 
-        let t = rand_utils::qs_token_parse(&token);
+        let t = rand_utils::qs_token_parse(&t);
         let Some(t) = t else {
             return Ok(None);
         };
 
-        let lsd = login_session_data(self)?;
+        let lsd = self.login_session_data()?;
         let tx = &*self.tx().await?;
 
         let ls = LoginSession::find()
@@ -40,12 +37,13 @@ impl AuthCacheContext for Context<'_> {
             return Ok(None);
         }
 
-        if ls.created_at < now() - duration_ms(self.auth_config().cookie_login_session_expires_ms) {
+        let c = self.auth_config();
+        if ls.created_at < now() - duration_ms(c.cookie_login_session_expires_ms) {
             return Ok(None);
         }
 
         let ls = am_update!(LoginSession {
-            id: ls.id.clone(),
+            id: ls.id,
             ip: lsd.ip,
             ua: lsd.ua.to_json()?,
         })
@@ -54,4 +52,8 @@ impl AuthCacheContext for Context<'_> {
 
         Ok(Some(ls))
     }
+}
+
+#[async_trait]
+impl<'a> AuthCacheContext<'a> for Context<'a> {
 }

@@ -28,34 +28,38 @@ impl<T, E, A> ActiveModelWrapper<T, E, A> {
 }
 
 // ============================================================================
-// IntoActiveModel impls for bulk operations (e.g. Entity::insert_many)
+// IntoActiveModelWithoutCtx impls for bulk operations (e.g. Entity::insert_many)
 
-impl<E, A> IntoActiveModel<A> for ActiveModelWrapper<AmCreate, E, A>
+pub trait IntoActiveModelWithoutCtx<A> {
+    fn into_active_model_without_ctx(self) -> A;
+}
+
+impl<E, A> IntoActiveModelWithoutCtx<A> for ActiveModelWrapper<AmCreate, E, A>
 where
     E: EntityX<A = A>,
     A: ActiveModelX<E>,
 {
-    fn into_active_model(self) -> A {
+    fn into_active_model_without_ctx(self) -> A {
         self.am.set_defaults_on_create()
     }
 }
 
-impl<E, A> IntoActiveModel<A> for ActiveModelWrapper<AmUpdate, E, A>
+impl<E, A> IntoActiveModelWithoutCtx<A> for ActiveModelWrapper<AmUpdate, E, A>
 where
     E: EntityX<A = A>,
     A: ActiveModelX<E>,
 {
-    fn into_active_model(self) -> A {
+    fn into_active_model_without_ctx(self) -> A {
         self.am.set_defaults_on_update()
     }
 }
 
-impl<E, A> IntoActiveModel<A> for ActiveModelWrapper<AmSoftDelete, E, A>
+impl<E, A> IntoActiveModelWithoutCtx<A> for ActiveModelWrapper<AmSoftDelete, E, A>
 where
     E: EntityX<A = A>,
     A: ActiveModelX<E>,
 {
-    fn into_active_model(self) -> A {
+    fn into_active_model_without_ctx(self) -> A {
         self.am.set_defaults_on_delete()
     }
 }
@@ -64,9 +68,9 @@ where
 // exec_without_ctx
 
 #[async_trait]
-pub trait AmExecWithoutCtx: Sized {
+pub trait AmExecWithoutCtx {
     type Model: Send;
-    async fn exec_without_ctx<D>(self, db: &D) -> Res<Self::Model>
+    async fn exec_without_ctx<D>(self, tx: &D) -> Res<Self::Model>
     where
         D: ConnectionTrait;
 }
@@ -80,11 +84,11 @@ where
 {
     type Model = E::M;
 
-    async fn exec_without_ctx<D>(self, db: &D) -> Res<Self::Model>
+    async fn exec_without_ctx<D>(self, tx: &D) -> Res<Self::Model>
     where
         D: ConnectionTrait,
     {
-        let r = self.into_active_model().insert(db).await?;
+        let r = self.into_active_model_without_ctx().insert(tx).await?;
         Ok(r)
     }
 }
@@ -98,11 +102,11 @@ where
 {
     type Model = E::M;
 
-    async fn exec_without_ctx<D>(self, db: &D) -> Res<Self::Model>
+    async fn exec_without_ctx<D>(self, tx: &D) -> Res<Self::Model>
     where
         D: ConnectionTrait,
     {
-        let r = self.into_active_model().update(db).await?;
+        let r = self.into_active_model_without_ctx().update(tx).await?;
         Ok(r)
     }
 }
@@ -116,12 +120,12 @@ where
 {
     type Model = E::M;
 
-    async fn exec_without_ctx<D>(self, db: &D) -> Res<Self::Model>
+    async fn exec_without_ctx<D>(self, tx: &D) -> Res<Self::Model>
     where
         D: ConnectionTrait,
     {
         E::ensure_col_deleted_at()?;
-        let r = self.into_active_model().update(db).await?;
+        let r = self.into_active_model_without_ctx().update(tx).await?;
         Ok(r)
     }
 }
@@ -157,9 +161,9 @@ where
     fn get_deleted_by_id(&self) -> ActiveValue<Option<String>>;
     fn set_deleted_by_id(self, v: Option<String>) -> Self;
 
-    /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
+    /// `sea_orm` `ActiveModel` hooks will not be called with `Entity::` or bulk methods.
     /// We need to have this method instead to get default values on create.
-    /// This will be used together with the macro grand_line::am_create.
+    /// This will be used together with the macro `grand_line::am_create`.
     fn set_defaults_on_create(mut self) -> Self {
         if !self.get_id().is_set() {
             self = self.set_id(&ulid());
@@ -170,14 +174,14 @@ where
         self = self.set_defaults();
         self
     }
-    /// Shortcut for Self::default().set_defaults_on_create()
+    /// Shortcut for `Self::default().set_defaults_on_create()`
     fn defaults_on_create() -> Self {
         <Self as Default>::default().set_defaults_on_create()
     }
 
-    /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
+    /// `sea_orm` `ActiveModel` hooks will not be called with `Entity::` or bulk methods.
     /// We need to have this method instead to get default values on update.
-    /// This will be used together with the macro grand_line::am_update.
+    /// This will be used together with the macro `grand_line::am_update`.
     fn set_defaults_on_update(mut self) -> Self {
         if !self.get_updated_at().is_set() && E::col_updated_at().is_some() {
             // do not call now() if there is no column
@@ -185,14 +189,14 @@ where
         }
         self
     }
-    /// Shortcut for Self::default().set_defaults_on_update()
+    /// Shortcut for `Self::default().set_defaults_on_update()`
     fn defaults_on_update() -> Self {
         <Self as Default>::default().set_defaults_on_update()
     }
 
-    /// sea_orm ActiveModel hooks will not be called with Entity:: or bulk methods.
+    /// `sea_orm` `ActiveModel` hooks will not be called with `Entity::` or bulk methods.
     /// We need to have this method instead to get default values on delete.
-    /// This will be used together with the macro grand_line::am_soft_delete.
+    /// This will be used together with the macro `grand_line::am_soft_delete`.
     fn set_defaults_on_delete(mut self) -> Self {
         self = self.set_defaults_on_update();
         if let Set(Some(v)) = self.get_updated_at() {
@@ -204,19 +208,19 @@ where
         }
         self
     }
-    /// Shortcut for Self::default().set_defaults_on_delete()
+    /// Shortcut for `Self::default().set_defaults_on_delete()`
     fn defaults_on_delete() -> Self {
         <Self as Default>::default().set_defaults_on_delete()
     }
 
-    /// Set deleted_at and update db.
-    /// It also checks if the model has configured with deleted_at column or not.
-    async fn soft_delete<D>(self, db: &D) -> Res<E::M>
+    /// Set `deleted_at` and update tx.
+    /// It also checks if the model has configured with `deleted_at` column or not.
+    async fn soft_delete<D>(self, tx: &D) -> Res<E::M>
     where
         D: ConnectionTrait,
     {
         E::ensure_col_deleted_at()?;
-        let r = self.set_defaults_on_delete().update(db).await?;
+        let r = self.set_defaults_on_delete().update(tx).await?;
         Ok(r)
     }
 }

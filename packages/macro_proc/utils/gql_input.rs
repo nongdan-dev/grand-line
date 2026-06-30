@@ -1,6 +1,7 @@
 use crate::prelude::*;
 
-pub fn gen_gql_input(_: TokenStream, item: TokenStream) -> TokenStream {
+pub fn gen_gql_input(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let attr = Into::<Ts2>::into(attr);
     let item = Into::<Ts2>::into(item);
 
     quote! {
@@ -13,6 +14,7 @@ pub fn gen_gql_input(_: TokenStream, item: TokenStream) -> TokenStream {
             Serialize,
             InputObject,
         )]
+        #attr
         #item
     }
     .into()
