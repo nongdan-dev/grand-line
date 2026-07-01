@@ -232,11 +232,15 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
             .filter_map(|v| map.get(v.to_string().as_str()).map(move |a| (a, v)))
         {
             virtual_resolvers.push(match v {
-                VirtualTy::Relation(ty) => Box::new(GenRelation {
-                    ty: ty.clone(),
-                    a: a.clone().try_into_with_validate()?,
-                    field_attrs: f.attrs.clone(),
-                }),
+                VirtualTy::Relation(ty) => {
+                    let g = GenRelation {
+                        ty: ty.clone(),
+                        a: a.clone().try_into_with_validate()?,
+                        field_attrs: f.attrs.clone(),
+                    };
+                    relation_filter(&g, &mut filter_struk, &mut filter_query)?;
+                    Box::new(g)
+                }
                 VirtualTy::Resolver => {
                     let g = GenResolver {
                         a: a.clone().try_into_with_validate()?,

@@ -8,7 +8,9 @@ async fn t() -> Res<()> {
 
     let q = "
     query test {
-        userSearch(filter: { deletedAt_ne: null }) {
+        userSearch(
+            filter: { deletedAt_ne: null },
+        ) {
             name
         }
     }

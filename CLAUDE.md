@@ -3,7 +3,7 @@
 - Always use English in code and comments. Chat responses are in Vietnamese.
 - Do not use unwrap or expect or panic. Try to return result or something instead.
 - See ./tests/independently.sh to find a coresponding command and run to test your change.
-- Code need to be human readable, concise and focus. You can see the existing code base to know the current convention, line break, block break..
+- Code need to be human readable, concise and focus. You can see the existing code base to know the current convention, follow exactly coding style, variable names, line break, block break..
 
 # Formatting Rules
 

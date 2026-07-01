@@ -310,13 +310,13 @@ async fn delete_unauthorized_err_as_db404() -> Res<()> {
 async fn update_no_policy() -> Res<()> {
     let d = row_crud_setup(RowPolicy::default(), AuthzConfig::default()).await?;
 
-    let q = "
+    let q = r#"
     mutation($id: ID!) {
-        taskUpdate(id: $id, data: { title: \"Updated\" }) {
+        taskUpdate(id: $id, data: { title: "Updated" }) {
             id
         }
     }
-    ";
+    "#;
     let v = value!({
         "id": d.task1_id,
     });
@@ -340,13 +340,13 @@ async fn update_filter_match() -> Res<()> {
     };
     let d = row_crud_setup(pol, cfg).await?;
 
-    let q = "
+    let q = r#"
     mutation($id: ID!) {
-        taskUpdate(id: $id, data: { title: \"Updated\" }) {
+        taskUpdate(id: $id, data: { title: "Updated" }) {
             id
         }
     }
-    ";
+    "#;
     let v = value!({
         "id": d.task1_id,
     });
@@ -370,13 +370,13 @@ async fn update_filter_no_match() -> Res<()> {
     };
     let d = row_crud_setup(pol, cfg).await?;
 
-    let q = "
+    let q = r#"
     mutation($id: ID!) {
-        taskUpdate(id: $id, data: { title: \"Updated\" }) {
+        taskUpdate(id: $id, data: { title: "Updated" }) {
             id
         }
     }
-    ";
+    "#;
     let v = value!({
         "id": d.task2_id,
     });
@@ -431,13 +431,13 @@ async fn update_unauthorized_does_not_change_db_row() -> Res<()> {
     };
     let d = row_crud_setup(pol, cfg).await?;
 
-    let q = "
+    let q = r#"
     mutation($id: ID!) {
-        taskUpdate(id: $id, data: { title: \"ShouldNotChange\" }) {
+        taskUpdate(id: $id, data: { title: "ShouldNotChange" }) {
             id
         }
     }
-    ";
+    "#;
     let v = value!({
         "id": d.task2_id,
     });

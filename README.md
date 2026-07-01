@@ -459,8 +459,12 @@ Soft-deleted related records are excluded by default. Override per field:
 ```graphql
 query {
     userDetail(id: "...") {
-        profile(includeDeleted: true) { bio }
-        orgs(filter: { deletedAt_ne: null }) { name }
+        profile(includeDeleted: true) {
+          bio
+        }
+        orgs(filter: { deletedAt_ne: null }) {
+          name
+        }
     }
 }
 ```

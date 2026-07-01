@@ -8,7 +8,9 @@ async fn t() -> Res<()> {
 
     let q = "
     query test {
-        userCount(filter: { deletedAt_ne: null })
+        userCount(
+            filter: { deletedAt_ne: null },
+        )
     }
     ";
     let expected = value!({

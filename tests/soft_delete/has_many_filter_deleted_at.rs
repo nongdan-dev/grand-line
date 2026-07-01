@@ -9,7 +9,9 @@ async fn t() -> Res<()> {
     let q = "
     query test($id: ID!) {
         userDetail(id: $id) {
-            aliases(filter: { deletedAt_ne: null }) {
+            aliases(
+                filter: { deletedAt_ne: null },
+            ) {
                 name
             }
         }
