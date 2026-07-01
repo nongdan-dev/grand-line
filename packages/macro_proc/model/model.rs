@@ -138,12 +138,14 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
     // active model get/set
     let am_field = |skip: bool, field: &str| -> SynRes<(Ts2, Ts2)> {
         if skip {
-            let r = (quote!(NotSet), quote!(self));
-            return Ok(r);
+            let not = quote!(NotSet);
+            let set = quote!(self);
+            return Ok((not, set));
         }
         let f = field.ts2_or_err()?;
-        let r = (quote!(self.#f.clone()), quote! { self.#f = Set(v); self });
-        Ok(r)
+        let not = quote!(self.#f.clone());
+        let set = quote!(self.#f = Set(v); self);
+        Ok((not, set))
     };
     let (am_get_created_at, am_set_created_at) = am_field(!a.created_at, "created_at")?;
     let (am_get_updated_at, am_set_updated_at) = am_field(!a.updated_at, "updated_at")?;

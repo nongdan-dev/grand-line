@@ -46,7 +46,8 @@ fn try_gen_delete(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
                 &id,
                 #authz_row_filter.clone(),
                 #authz_err,
-            ).await?;
+            )
+            .await?;
 
             #body
             #model::gql_delete(
@@ -55,7 +56,8 @@ fn try_gen_delete(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
                 #permanent,
                 #authz_row_filter,
                 #authz_err,
-            ).await?
+            )
+            .await?
         };
     }
 

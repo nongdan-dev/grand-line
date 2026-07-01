@@ -941,18 +941,15 @@ struct MyHandlers;
 
 #[async_trait]
 impl AuthzHandlers for MyHandlers {
-    async fn execute_script(
-        &self,
-        ctx: &Context<'_>,
-        script: &str,
-    ) -> Res<Option<JsonValue>> {
+    async fn execute_script(&self, ctx: &Context<'_>, script: &str) -> Res<Option<JsonValue>> {
         let user_id = ctx.auth().await?;
         let org_id = ctx.authz().await?;
         // evaluate `script` (Rhai, hand-written match, etc.)
-        Ok(Some(serde_json::json!({
+        let script_result = json!({
             "assignee_id_eq": user_id,
             "org_id_eq": org_id,
-        })))
+        });
+        Ok(Some(script_result))
     }
 }
 

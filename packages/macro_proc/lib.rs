@@ -25,6 +25,11 @@ pub fn model(attr: TokenStream, item: TokenStream) -> TokenStream {
     gen_model(attr, item)
 }
 
+#[proc_macro_attribute]
+pub fn many_resolver(attr: TokenStream, item: TokenStream) -> TokenStream {
+    gen_many_resolver(attr, item)
+}
+
 // ============================================================================
 // resolver
 

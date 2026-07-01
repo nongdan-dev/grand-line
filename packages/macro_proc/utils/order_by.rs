@@ -28,5 +28,6 @@ pub fn gen_order_by(item: TokenStream) -> TokenStream {
 fn try_gen_order_by(item: Item) -> SynRes<TokenStream> {
     let order_by = ty_order_by(item.model)?;
     let paths = item.fields.iter().map(|f| quote!(#order_by::#f,));
-    Ok(quote!(vec![#(#paths)*]).into())
+    let r = quote!(vec![#(#paths)*]);
+    Ok(r.into())
 }

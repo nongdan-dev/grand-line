@@ -22,7 +22,7 @@ pub fn gen_grand_line_err_derive(item: TokenStream) -> TokenStream {
 
     let Data::Enum(d) = &item.data else {
         let msg = "GrandLineErrDerive only support enum with ThisErr";
-        return SynErr::new_spanned(&item.ident, msg).to_compile_error().into();
+        return SynErr::new(name.span(), msg).to_compile_error().into();
     };
 
     let mut codes = Vec::new();
@@ -32,22 +32,22 @@ pub fn gen_grand_line_err_derive(item: TokenStream) -> TokenStream {
         let v_ident = &v.ident;
 
         let field = match &v.fields {
-            Fields::Unit => quote! { Self::#v_ident },
-            Fields::Unnamed(_) => quote! { Self::#v_ident ( .. ) },
-            Fields::Named(_) => quote! { Self::#v_ident { .. } },
+            Fields::Unit => quote!(Self::#v_ident),
+            Fields::Unnamed(_) => quote!(Self::#v_ident(..)),
+            Fields::Named(_) => quote!(Self::#v_ident{..}),
         };
 
         let mut code = None;
         for attr in &v.attrs {
             if attr.path().is_ident("code")
                 && let Meta::NameValue(MetaNameValue {
-                    value,
+                    value:
+                        Expr::Lit(ExprLit {
+                            lit: Lit::Str(s),
+                            ..
+                        }),
                     ..
                 }) = &attr.meta
-                && let Expr::Lit(ExprLit {
-                    lit: Lit::Str(s),
-                    ..
-                }) = value
             {
                 code = Some(s.value());
             }

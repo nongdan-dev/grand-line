@@ -55,14 +55,12 @@ impl Parse for ResolverTyItem {
         let body = ifn.block.stmts;
         let body = quote!(#(#body)*);
 
-        let r = Self {
+        Ok(Self {
             gql_name,
             inputs,
             output,
             body,
             span,
-        };
-
-        Ok(r)
+        })
     }
 }

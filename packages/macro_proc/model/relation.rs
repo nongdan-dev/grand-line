@@ -24,12 +24,12 @@ impl GenRelation {
         let to = self.a.to()?;
         let filter = ty_filter(&to)?;
         let order_by = ty_order_by(&to)?;
-        let mut inputs = quote! {
+        let inputs = quote! {
             filter: Option<#filter>,
             order_by: Option<Vec<#order_by>>,
             page: Option<Pagination>,
         };
-        inputs = push_include_deleted(inputs, self.a.include_deleted);
+        let inputs = push_include_deleted(inputs, self.a.include_deleted);
         Ok(inputs)
     }
 
@@ -49,14 +49,16 @@ impl GenRelation {
         } else {
             quote!(None)
         };
-        Ok(quote! {
+
+        let r = quote! {
             if let Some(id) = self.#sql_dep.clone() {
                 let tx = &*ctx.tx().await?;
                 #r
             } else {
                 #none
             }
-        })
+        };
+        Ok(r)
     }
 
     fn col(&self) -> SynRes<Ts2> {
@@ -86,9 +88,56 @@ impl GenRelation {
                 id,
                 #authz_row_filter,
                 #include_deleted,
-            ).await?
+            )
+            .await?
         };
         self.body_utils(&r, false)
+    }
+
+    fn body_many(&self, extra_cond: &Ts2) -> SynRes<Ts2> {
+        let model = self.a.to()?;
+        let filter = ty_filter(&model)?;
+        let order_by = ty_order_by(&model)?;
+        let include_deleted = get_include_deleted(self.a.include_deleted);
+        let authz_row_filter = gen_authz_row_filter(&filter, self.a.authz_row);
+
+        let (resolver, filter_extra, order_by_default) = if let Some(f) = &self.a.resolver {
+            let filter_extra = unique_ident();
+            let order_by_default = unique_ident();
+            let resolver = quote! {
+                let (#filter_extra, #order_by_default): (Option<#filter>, Option<Vec<#order_by>>) = #f(
+                    self,
+                    ctx,
+                    tx,
+                    &filter,
+                    &order_by,
+                    &page,
+                    &#include_deleted,
+                )
+                .await?;
+            };
+            (resolver, filter_extra, order_by_default)
+        } else {
+            (quote!(), quote!(None), quote!(None))
+        };
+
+        let r = quote! {
+            #resolver
+            #model::gql_search(
+                ctx,
+                tx,
+                filter,
+                order_by,
+                page,
+                #include_deleted,
+                #filter_extra,
+                #order_by_default,
+                Some(#extra_cond),
+                #authz_row_filter,
+            )
+            .await?
+        };
+        self.body_utils(&r, true)
     }
 
     fn body_has_many(&self) -> SynRes<Ts2> {
@@ -97,26 +146,7 @@ impl GenRelation {
         let extra_cond = quote! {
             Condition::all().add(#column::#col.eq(id))
         };
-
-        let model = self.a.to()?;
-        let authz_row_filter = gen_authz_row_filter(&ty_filter(&model)?, self.a.authz_row);
-        let include_deleted = get_include_deleted(self.a.include_deleted);
-
-        let r = quote! {
-            #model::gql_search(
-                ctx,
-                tx,
-                filter,
-                order_by,
-                page,
-                #include_deleted,
-                None,
-                None,
-                Some(#extra_cond),
-                #authz_row_filter,
-            ).await?
-        };
-        self.body_utils(&r, true)
+        self.body_many(&extra_cond)
     }
 
     fn body_many_to_many(&self) -> SynRes<Ts2> {
@@ -126,34 +156,22 @@ impl GenRelation {
         let through_column = ty_column(&through)?;
         let through_key_col = self.a.key_str()?.to_pascal_case().ts2_or_err()?;
         let through_other_key_col = self.a.other_key()?.to_string().to_pascal_case().ts2_or_err()?;
+        let through_include_deleted = get_include_deleted(self.a.include_deleted);
         let extra_cond = quote! {{
-            let sub = #through::find()
-                .select_only()
-                .column(#through_column::#through_other_key_col)
-                .filter(#through_column::#through_key_col.eq(id))
-                .into_query();
+            let sub = {
+                let mut q = #through::find()
+                    .select_only()
+                    .column(#through_column::#through_other_key_col)
+                    .filter(#through_column::#through_key_col.eq(id));
+                if !#through_include_deleted.unwrap_or(false) {
+                    q = q.exclude_deleted();
+                }
+                q
+            }
+            .into_query();
             Condition::all().add(#column::#col.in_subquery(sub))
         }};
-
-        let model = self.a.to()?;
-        let include_deleted = get_include_deleted(self.a.include_deleted);
-        let authz_row_filter = gen_authz_row_filter(&ty_filter(&model)?, self.a.authz_row);
-
-        let r = quote! {
-            #model::gql_search(
-                ctx,
-                tx,
-                filter,
-                order_by,
-                page,
-                #include_deleted,
-                None,
-                None,
-                Some(#extra_cond),
-                #authz_row_filter,
-            ).await?
-        };
-        self.body_utils(&r, true)
+        self.body_many(&extra_cond)
     }
 
     fn column(&self) -> SynRes<Ts2> {

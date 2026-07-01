@@ -1,5 +1,4 @@
 use crate::prelude::*;
-use core::iter::once;
 
 #[field_names]
 pub struct CrudAttr {
@@ -39,7 +38,7 @@ impl AttrValidate for CrudAttr {
                 }
             })
             .chain(ResolverTyAttr::attr_fields(a))
-            .chain(once(a.model_from_first_path().unwrap_or_default()))
+            .chain(a.first_path.iter().cloned())
             .collect()
     }
 }

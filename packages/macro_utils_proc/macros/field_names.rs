@@ -27,7 +27,7 @@ fn try_gen_field_names(attr: TokenStream, mut item: ItemStruct) -> SynRes<TokenS
                 .map(|b| b.field_attr())
                 .collect::<SynRes<Vec<_>>>()?;
             let a = a.clone().try_into_with_validate::<FieldNamesAttr>()?;
-            if a.virt {
+            if a.key_only {
                 if f.to_token_stream().to_string().starts_with("pub ") {
                     return Err(a.inner.syn_err("virtual field should not be public"));
                 }
@@ -38,7 +38,7 @@ fn try_gen_field_names(attr: TokenStream, mut item: ItemStruct) -> SynRes<TokenS
             if !a.skip {
                 idents.push(f.ident.to_token_stream());
             }
-            if !a.virt {
+            if !a.key_only {
                 fields.push(f);
             }
         } else {
@@ -66,20 +66,20 @@ fn try_gen_field_names(attr: TokenStream, mut item: ItemStruct) -> SynRes<TokenS
     }
     let l = all.len();
 
-    Ok(quote! {
+    let r = quote! {
         #attr
         #item
         impl #name {
             pub const FIELDS: [&'static str; #l] = [#(#all)*];
             #(#impls)*
         }
-    }
-    .into())
+    };
+    Ok(r.into())
 }
 
 struct FieldNamesAttr {
-    skip: bool,
-    virt: bool,
+    pub skip: bool,
+    pub key_only: bool,
     pub inner: Attr,
 }
 impl TryFrom<Attr> for FieldNamesAttr {
@@ -87,13 +87,13 @@ impl TryFrom<Attr> for FieldNamesAttr {
     fn try_from(a: Attr) -> SynRes<Self> {
         Ok(Self {
             skip: a.bool("skip")?.unwrap_or(false),
-            virt: a.bool("virt")?.unwrap_or(false),
+            key_only: a.bool("key_only")?.unwrap_or(false),
             inner: a,
         })
     }
 }
 impl AttrValidate for FieldNamesAttr {
     fn attr_fields(_: &Attr) -> Vec<String> {
-        ["skip", "virt"].map(|f| f.to_owned()).to_vec()
+        ["skip", "key_only"].map(|f| f.to_owned()).to_vec()
     }
 }

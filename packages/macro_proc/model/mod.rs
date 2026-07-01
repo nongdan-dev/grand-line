@@ -1,6 +1,7 @@
 mod filter;
 mod filter_and_or_not;
 mod gql;
+mod many_resolver;
 mod model;
 mod model_attr;
 mod model_fields_attr;
@@ -13,6 +14,7 @@ mod virtual_resolver_fn;
 pub use filter::*;
 pub use filter_and_or_not::*;
 pub use gql::*;
+pub use many_resolver::*;
 pub use model::*;
 pub use model_attr::*;
 pub use model_fields_attr::*;

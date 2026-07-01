@@ -49,11 +49,13 @@ impl ResolverFn for GenResolver {
         self.a.inner.field_ty()?.ts2_or_err()
     }
     fn body(&self) -> SynRes<Ts2> {
-        let f = self.a.call.ts2_or_err()?;
-        Ok(if self.ctx() {
+        let f = &self.a.f;
+
+        let r = if self.ctx() {
             quote!(#f(self, ctx).await?)
         } else {
             quote!(#f(self).await?)
-        })
+        };
+        Ok(r)
     }
 }

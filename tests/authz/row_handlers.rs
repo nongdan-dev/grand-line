@@ -84,7 +84,10 @@ pub struct WrongTypeHandler;
 #[async_trait]
 impl AuthzHandlers for WrongTypeHandler {
     async fn execute_script(&self, _ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
-        Ok(Some(json!({ "org_id": 123 })))
+        let f = json!({
+            "org_id": 123,
+        });
+        Ok(Some(f))
     }
 }
 
@@ -95,6 +98,9 @@ pub struct UnknownFieldHandler;
 #[async_trait]
 impl AuthzHandlers for UnknownFieldHandler {
     async fn execute_script(&self, _ctx: &Context<'_>, _script: &str) -> Res<Option<JsonValue>> {
-        Ok(Some(json!({ "unknown_col": "x" })))
+        let f = json!({
+            "unknown_col": "x",
+        });
+        Ok(Some(f))
     }
 }

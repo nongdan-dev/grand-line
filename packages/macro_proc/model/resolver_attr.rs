@@ -2,7 +2,8 @@ use crate::prelude::*;
 
 #[field_names]
 pub struct ResolverAttr {
-    pub call: String,
+    #[field_names(skip)]
+    pub f: Ident,
     pub sql_dep: Vec<String>,
     #[field_names(skip)]
     pub ra: ResolverTyAttr,
@@ -12,11 +13,11 @@ pub struct ResolverAttr {
 impl TryFrom<Attr> for ResolverAttr {
     type Error = SynErr;
     fn try_from(a: Attr) -> SynRes<Self> {
-        let call = if let Some(v) = a.str(Self::FIELD_CALL)? {
-            v
+        let f = if let Some(custom) = &a.first_path {
+            format_ident!("{custom}")
         } else {
             let field = a.field_name()?;
-            format!("resolve_{field}")
+            format_ident!("resolve_{field}")
         };
         let sql_dep = a
             .str(Self::FIELD_SQL_DEP)?
@@ -26,7 +27,7 @@ impl TryFrom<Attr> for ResolverAttr {
             .collect();
         let ra = a.clone().try_into()?;
         Ok(Self {
-            call,
+            f,
             sql_dep,
             ra,
             inner: a,
@@ -40,6 +41,7 @@ impl AttrValidate for ResolverAttr {
             .copied()
             .map(|f| f.to_owned())
             .chain(ResolverTyAttr::attr_fields(a))
+            .chain(a.first_path.iter().cloned())
             .collect()
     }
 }

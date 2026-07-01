@@ -35,7 +35,8 @@ fn try_gen_detail(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
                 &id,
                 #include_deleted,
                 #authz_row_filter,
-            ).await?
+            )
+            .await?
         }
     }
 

@@ -12,15 +12,15 @@ pub fn expr_struct(item: TokenStream, suf: &str, wrap: &str, method: &str) -> To
 }
 
 fn try_expr_struct(item: &ExprStruct, suf: &str, wrap: &str, method: &str) -> SynRes<TokenStream> {
-    let r = build_expr_struct(item, suf, wrap)?;
+    let struk = build_expr_struct(item, suf, wrap)?;
 
-    Ok(if method.is_empty() {
-        r
+    let r = if method.is_empty() {
+        struk
     } else {
         let method = method.ts2_or_err()?;
-        quote!(#r.#method())
-    }
-    .into())
+        quote!(#struk.#method())
+    };
+    Ok(r.into())
 }
 
 pub fn expr_struct_am_wrapper(item: TokenStream, suf: &str, op_ty: &str) -> TokenStream {
@@ -36,9 +36,13 @@ pub fn expr_struct_am_wrapper(item: TokenStream, suf: &str, op_ty: &str) -> Toke
 
 fn try_expr_struct_am_wrapper(item: &ExprStruct, suf: &str, op_ty: &str) -> SynRes<TokenStream> {
     let entity = item.path.get_ident().to_token_stream();
-    let r = build_expr_struct(item, suf, "Set")?;
+    let struk = build_expr_struct(item, suf, "Set")?;
     let op_ty = op_ty.ts2_or_err()?;
-    Ok(quote!(ActiveModelWrapper::<#op_ty, #entity, _>::new(#r)).into())
+
+    let r = quote! {
+        ActiveModelWrapper::<#op_ty, #entity, _>::new(#struk)
+    };
+    Ok(r.into())
 }
 
 fn build_expr_struct(item: &ExprStruct, suf: &str, wrap: &str) -> SynRes<Ts2> {
@@ -69,10 +73,11 @@ fn build_expr_struct(item: &ExprStruct, suf: &str, wrap: &str) -> SynRes<Ts2> {
         fields.push(quote!(#wrap(#v),));
     }
 
-    Ok(quote! {
+    let r = quote! {
         #name {
             #(#fields)*
             #rest
         }
-    })
+    };
+    Ok(r)
 }

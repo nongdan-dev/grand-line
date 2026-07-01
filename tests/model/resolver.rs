@@ -71,12 +71,17 @@ async fn sql_dep_exprs() -> Res<()> {
             b: i64,
             #[resolver(sql_dep = "a, b")]
             c: i64,
+            #[resolver(custom_d, sql_dep = "a, b")]
+            d: i64,
         }
 
         async fn resolve_c(u: &UserGql, _: &Context<'_>) -> Res<i64> {
             let a = u.a.ok_or(CoreDbErr::GqlResolverNone)?;
             let b = u.b.ok_or(CoreDbErr::GqlResolverNone)?;
             Ok(a + b)
+        }
+        async fn custom_d(u: &UserGql, ctx: &Context<'_>) -> Res<i64> {
+            resolve_c(u, ctx).await
         }
 
         #[detail(User)]
@@ -98,6 +103,7 @@ async fn sql_dep_exprs() -> Res<()> {
     query test($id: ID!) {
         userDetail(id: $id) {
             c
+            d
         }
     }
     ";
@@ -107,6 +113,7 @@ async fn sql_dep_exprs() -> Res<()> {
     let expected = value!({
         "userDetail": {
             "c": 1002,
+            "d": 1002,
         },
     });
 

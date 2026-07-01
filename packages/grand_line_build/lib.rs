@@ -147,7 +147,7 @@ fn scan_file(content: &str, query_types: &mut Vec<String>, mutation_types: &mut 
 fn scan_items(items: &[Item], query_types: &mut Vec<String>, mutation_types: &mut Vec<String>) {
     for item in items {
         match item {
-            Item::Fn(fn_item) => scan_fn(fn_item, query_types, mutation_types),
+            Item::Fn(ifn) => scan_fn(ifn, query_types, mutation_types),
             // Recurse into inline mod blocks.
             Item::Mod(m) => {
                 if let Some((_, items)) = &m.content {
@@ -159,30 +159,28 @@ fn scan_items(items: &[Item], query_types: &mut Vec<String>, mutation_types: &mu
     }
 }
 
-fn scan_fn(fn_item: &ItemFn, query_types: &mut Vec<String>, mutation_types: &mut Vec<String>) {
-    let fn_name = fn_item.sig.ident.to_string();
+fn scan_fn(ifn: &ItemFn, query_types: &mut Vec<String>, mutation_types: &mut Vec<String>) {
+    let f = ifn.sig.ident.to_string();
     let resolver_attrs: Vec<(String, &'static str, String)> =
-        fn_item.attrs.iter().filter_map(detect_resolver_attr).collect();
+        ifn.attrs.iter().filter_map(detect_resolver_attr).collect();
 
     if resolver_attrs.len() > 1 {
-        let msg =
-            format!("`{fn_name}` has multiple resolver attributes; only one resolver attribute per function is valid");
+        let msg = format!("`{f}` has multiple resolver attributes; only one resolver attribute per function is valid");
         println!("cargo:warning=grand_line_build: {msg}");
     }
 
     if let Some((crud, operation, model)) = resolver_attrs.into_iter().next() {
         if !crud.is_empty() && model.is_empty() {
-            let msg = format!(
-                "#[{crud}] on `{fn_name}` is missing a model argument (expected #[{crud}(Model, ...)]); skipped",
-            );
+            let msg =
+                format!("#[{crud}] on `{f}` is missing a model argument (expected #[{crud}(Model, ...)]); skipped");
             println!("cargo:warning=grand_line_build: {msg}");
             return;
         }
-        let struct_name = resolver_struct_name(&fn_name, &crud, &model, operation);
+        let struk = resolver_struct_name(&f, &crud, &model, operation);
         if operation == "query" {
-            query_types.push(struct_name);
+            query_types.push(struk);
         } else {
-            mutation_types.push(struct_name);
+            mutation_types.push(struk);
         }
     }
 }
@@ -237,11 +235,11 @@ fn first_arg_ident(attr: &Attribute) -> Option<String> {
 // ============================================================================
 // Name computation - mirrors resolver_ty_item.rs::init exactly
 
-fn resolver_struct_name(fn_name: &str, crud: &str, model: &str, operation: &str) -> String {
-    let gql_name = if fn_name == "resolver" && !crud.is_empty() {
+fn resolver_struct_name(f: &str, crud: &str, model: &str, operation: &str) -> String {
+    let gql_name = if f == "resolver" && !crud.is_empty() {
         format!("{model}_{crud}").to_lower_camel_case()
     } else {
-        fn_name.to_lower_camel_case()
+        f.to_lower_camel_case()
     };
     let name = gql_name.to_snake_case();
     format!("{name}_{operation}").to_pascal_case()

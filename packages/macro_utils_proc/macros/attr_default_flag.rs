@@ -7,11 +7,10 @@ pub fn gen_attr_default_flag(input: TokenStream) -> TokenStream {
 
 fn try_gen_attr_default_flag(f_str: &str) -> SynRes<TokenStream> {
     let f = format!("default_{f_str}").ts2_or_err()?;
-
-    Ok(quote! {
+    let r = quote! {
         pub fn #f() -> bool {
             cfg!(feature = #f_str)
         }
-    }
-    .into())
+    };
+    Ok(r.into())
 }

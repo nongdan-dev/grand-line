@@ -118,12 +118,13 @@ where
         };
         let docs = self.docs();
 
-        Ok(quote! {
+        let r = quote! {
             #graphql
             #(#[doc = #docs])*
             async fn #name(&self, #inputs) -> #output {
                 #body
             }
-        })
+        };
+        Ok(r)
     }
 }

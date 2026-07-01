@@ -43,7 +43,8 @@ fn try_gen_update(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
                 &id,
                 #authz_row_filter.clone(),
                 #authz_err,
-            ).await?;
+            )
+            .await?;
             let am: ActiveModelWrapper<AmUpdate, #model, #am> = {
                 #body
             };
@@ -53,7 +54,8 @@ fn try_gen_update(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
                 am.#into,
                 #authz_row_filter,
                 #authz_err,
-            ).await?
+            )
+            .await?
         }
     }
 

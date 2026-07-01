@@ -47,7 +47,8 @@ fn try_gen_search(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
                 order_by_default,
                 None,
                 #authz_row_filter,
-            ).await?
+            )
+            .await?
         };
     }
 

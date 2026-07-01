@@ -5,19 +5,19 @@ use core::any::type_name;
 pub struct Attr {
     /// In proc macro, this is empty.
     /// In field, this will be Model.field.
-    debug: String,
+    pub debug: String,
     /// In proc macro, this is the macro name.
     /// In field, this will be one of `AttrTy`.
     pub attr: String,
     /// Raw args parsed as strings.
-    args: HashMap<String, (String, AttrParseTy)>,
+    pub args: HashMap<String, (String, AttrParseTy)>,
     /// Only in proc macro like crud(Model, ...).
     /// The first path will be the model name.
-    first_path: Option<String>,
+    pub first_path: Option<String>,
     /// Only in field.
-    field: Option<(String, Attribute, Field)>,
+    pub field: Option<(String, Attribute, Field)>,
     /// Only in attr such as #[default(..)], #[`sql_expr`(..)], etc..
-    raw: Option<String>,
+    pub raw: Option<String>,
     /// Span of the attribute for error reporting.
     pub span: Span,
 }
@@ -120,18 +120,19 @@ impl Attr {
     }
 
     pub fn bool(&self, k: &str) -> SynRes<Option<bool>> {
-        match self.args.get(k) {
-            Some((_, AttrParseTy::Path)) => Ok(Some(true)),
+        let r = match self.args.get(k) {
+            Some((_, AttrParseTy::Path)) => Some(true),
             Some((v, AttrParseTy::NameValue)) => {
                 if v == "false" {
-                    Ok(Some(false))
+                    Some(false)
                 } else {
-                    Err(self.err_invalid_bool(k))
+                    return Err(self.err_invalid_bool(k));
                 }
             }
-            Some(_) => Err(self.err_invalid_bool(k)),
-            None => Ok(None),
-        }
+            Some(_) => return Err(self.err_invalid_bool(k)),
+            None => None,
+        };
+        Ok(r)
     }
     pub fn bool_required(&self, k: &str) -> SynRes<bool> {
         self.bool(k)?.ok_or_else(|| self.err_required(k))
@@ -150,24 +151,27 @@ impl Attr {
     }
 
     pub fn str(&self, k: &str) -> SynRes<Option<String>> {
-        match self.args.get(k) {
-            Some((v, AttrParseTy::NameValue)) => parse2::<LitStr>(v.ts2_or_err()?)
-                .map(|v| Ok(Some(v.value())))
-                .unwrap_or_else(|_| Err(self.err_invalid_string(k))),
-            Some(_) => Err(self.err_invalid_string(k)),
-            None => Ok(None),
-        }
+        let r = match self.args.get(k) {
+            Some((v, AttrParseTy::NameValue)) => match parse2::<LitStr>(v.ts2_or_err()?) {
+                Ok(v) => Some(v.value()),
+                _ => return Err(self.err_invalid_string(k)),
+            },
+            Some(_) => return Err(self.err_invalid_string(k)),
+            None => None,
+        };
+        Ok(r)
     }
     pub fn str_required(&self, k: &str) -> SynRes<String> {
         self.str(k)?.ok_or_else(|| self.err_required(k))
     }
 
     pub fn nested(&self, k: &str) -> SynRes<Option<String>> {
-        match self.args.get(k) {
-            Some((v, AttrParseTy::List)) => Ok(Some(v.to_owned())),
-            Some(_) => Err(self.err_invalid_nested(k)),
-            None => Ok(None),
-        }
+        let r = match self.args.get(k) {
+            Some((v, AttrParseTy::List)) => Some(v.to_owned()),
+            Some(_) => return Err(self.err_invalid_nested(k)),
+            None => None,
+        };
+        Ok(r)
     }
     pub fn nested_required(&self, k: &str) -> SynRes<String> {
         self.nested(k)?.ok_or_else(|| self.err_required(k))
@@ -176,17 +180,19 @@ impl Attr {
     where
         V: TryFrom<Self, Error = SynErr> + AttrValidate,
     {
-        match self.nested(k)? {
-            Some(v) => Ok(Some(Self::from_ts2_into(&self.attr_debug(), k, &v.ts2_or_err()?)?)),
-            None => Ok(None),
-        }
+        let r = match self.nested(k)? {
+            Some(v) => Some(Self::from_ts2_into(&self.attr_debug(), k, &v.ts2_or_err()?)?),
+            None => None,
+        };
+        Ok(r)
     }
 
     pub fn nested_with_path(&self, k: &str) -> SynRes<Option<(bool, String)>> {
-        match self.args.get(k) {
-            Some((v, AttrParseTy::Path)) => Ok(Some((true, v.to_owned()))),
-            _ => Ok(self.nested(k)?.map(|v| (false, v))),
-        }
+        let r = match self.args.get(k) {
+            Some((v, AttrParseTy::Path)) => Some((true, v.to_owned())),
+            _ => self.nested(k)?.map(|v| (false, v)),
+        };
+        Ok(r)
     }
     pub fn nested_with_path_required(&self, k: &str) -> SynRes<(bool, String)> {
         self.nested_with_path(k)?.ok_or_else(|| self.err_required(k))
@@ -195,35 +201,41 @@ impl Attr {
     where
         V: TryFrom<Self, Error = SynErr> + AttrValidate,
     {
-        match self.nested_with_path(k)? {
-            Some((path, v)) => Ok(Some((
+        let r = match self.nested_with_path(k)? {
+            Some((path, v)) => Some((
                 path,
                 if path {
                     Self::init(&self.attr_debug(), k, vec![], self.span)?.try_into_with_validate()?
                 } else {
                     Self::from_ts2_into(&self.attr_debug(), k, &v.ts2_or_err()?)?
                 },
-            ))),
-            None => Ok(None),
-        }
+            )),
+            None => None,
+        };
+        Ok(r)
     }
 
     pub fn parse<V>(&self, k: &str) -> SynRes<Option<V>>
     where
         V: FromStr,
     {
-        match self.args.get(k) {
-            Some((v, AttrParseTy::NameValue)) => v.parse::<V>().map(|v| Ok(Some(v))).unwrap_or_else(|_| {
-                let t = type_name::<V>();
-                let msg = format!("cannot parse `{v}` as {t}");
-                Err(self.err_by_key(k, &msg))
-            }),
+        let r = match self.args.get(k) {
+            Some((v, AttrParseTy::NameValue)) => {
+                if let Ok(v) = v.parse::<V>() {
+                    Some(v)
+                } else {
+                    let t = type_name::<V>();
+                    let msg = format!("cannot parse `{v}` as {t}");
+                    return Err(self.err_by_key(k, &msg));
+                }
+            }
             Some(_) => {
                 let msg = format!("should be `{k} = some_value`");
-                Err(self.err_by_key(k, &msg))
+                return Err(self.err_by_key(k, &msg));
             }
-            None => Ok(None),
-        }
+            None => None,
+        };
+        Ok(r)
     }
     pub fn parse_required<V>(&self, k: &str) -> SynRes<V>
     where
