@@ -75,7 +75,7 @@ async fn ok_system_realm() -> Res<()> {
 }
 
 #[tokio::test]
-async fn err() -> Res<()> {
+async fn role_from_other_org_returns_unauthorized() -> Res<()> {
     let d = setup_with_col_wildcard().await?;
 
     // user2's role (role_id2) belongs to org2. Sending org1 header -> role not found

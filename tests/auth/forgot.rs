@@ -3,7 +3,7 @@ mod setup;
 use setup::*;
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn forgot_then_resolve_updates_password() -> Res<()> {
     let d = setup().await?;
     let s = d.s.data(d.h).finish();
 

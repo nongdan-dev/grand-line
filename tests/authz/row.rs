@@ -17,9 +17,9 @@ async fn no_row_policy_returns_all() -> Res<()> {
 
     let expected = value!({
         "tasks": [{
-            "title": "Alpha task",
+            "title": "Analyze the tissue sample",
         }, {
-            "title": "Beta task",
+            "title": "Investigate the pattern",
         }]
     });
     exec_assert(&d.schema, Q, None, &expected).await;
@@ -38,9 +38,9 @@ async fn script_none_returns_all() -> Res<()> {
 
     let expected = value!({
         "tasks": [{
-            "title": "Alpha task",
+            "title": "Analyze the tissue sample",
         }, {
-            "title": "Beta task",
+            "title": "Investigate the pattern",
         }],
     });
     exec_assert(&d.schema, Q, None, &expected).await;
@@ -60,7 +60,7 @@ async fn script_filters_tasks_by_assignee() -> Res<()> {
     // user1 is logged in, so only user1's task is returned.
     let expected = value!({
         "tasks": [{
-            "title": "Alpha task",
+            "title": "Analyze the tissue sample",
         }],
     });
     exec_assert(&d.schema, Q, None, &expected).await;
@@ -80,7 +80,7 @@ async fn script_filters_tasks_by_org() -> Res<()> {
     // org1 is the request context, only task belonging to org1 is returned.
     let expected = value!({
         "tasks": [{
-            "title": "Alpha task",
+            "title": "Analyze the tissue sample",
         }],
     });
     exec_assert(&d.schema, Q, None, &expected).await;
@@ -99,7 +99,7 @@ async fn script_filters_tasks_by_assignee_and_org() -> Res<()> {
 
     let expected = value!({
         "tasks": [{
-            "title": "Alpha task",
+            "title": "Analyze the tissue sample",
         }],
     });
     exec_assert(&d.schema, Q, None, &expected).await;
@@ -118,7 +118,7 @@ async fn script_string_forwarded_verbatim() -> Res<()> {
 
     let expected = value!({
         "tasks": [{
-            "title": "Alpha task",
+            "title": "Analyze the tissue sample",
         }],
     });
     exec_assert(&d.schema, Q, None, &expected).await;
@@ -170,9 +170,9 @@ async fn handler_unknown_field_silently_ignored_returns_all() -> Res<()> {
 
     let expected = value!({
         "tasks": [{
-            "title": "Alpha task",
+            "title": "Analyze the tissue sample",
         }, {
-            "title": "Beta task",
+            "title": "Investigate the pattern",
         }],
     });
     exec_assert(&d.schema, Q, None, &expected).await;
@@ -191,7 +191,7 @@ async fn wildcard_col_key_with_row_filter() -> Res<()> {
 
     let expected = value!({
         "tasks": [{
-            "title": "Alpha task",
+            "title": "Analyze the tissue sample",
         }],
     });
     exec_assert(&d.schema, Q, None, &expected).await;

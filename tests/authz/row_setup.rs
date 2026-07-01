@@ -26,7 +26,7 @@ pub async fn row_setup_with_col(col_key: &str, row_script: Option<&str>, cfg: Op
 
     // task1: assigned to user1, belongs to org1
     am_create!(Task {
-        title: "Alpha task",
+        title: "Analyze the tissue sample",
         assignee_id: d.user_id1.clone(),
         org_id: d.org_id1.clone(),
     })
@@ -35,7 +35,7 @@ pub async fn row_setup_with_col(col_key: &str, row_script: Option<&str>, cfg: Op
 
     // task2: assigned to user2, belongs to org2
     am_create!(Task {
-        title: "Beta task",
+        title: "Investigate the pattern",
         assignee_id: d.user_id2.clone(),
         org_id: d.org_id2.clone(),
     })

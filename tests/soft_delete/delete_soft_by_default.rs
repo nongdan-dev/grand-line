@@ -3,7 +3,7 @@ mod setup;
 use setup::*;
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn delete_sets_deleted_at_by_default() -> Res<()> {
     let d = setup().await?;
 
     let q = "

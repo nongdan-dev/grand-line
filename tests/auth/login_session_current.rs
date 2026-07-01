@@ -3,7 +3,7 @@ mod setup;
 use setup::*;
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn login_session_current_returns_authenticated_user() -> Res<()> {
     let d = setup().await?;
 
     let mut h = d.h;

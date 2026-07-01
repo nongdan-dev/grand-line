@@ -1,7 +1,7 @@
 pub use grand_line::prelude::*;
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn has_one_returns_child() -> Res<()> {
     mod test {
         use super::*;
 

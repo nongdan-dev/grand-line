@@ -3,7 +3,7 @@ mod setup;
 use setup::*;
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn count_excludes_soft_deleted_by_default() -> Res<()> {
     let d = setup().await?;
 
     let q = "

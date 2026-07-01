@@ -155,7 +155,7 @@ fn scan_items(items: &[Item], query_types: &mut Vec<String>, mutation_types: &mu
                     scan_items(items, query_types, mutation_types);
                 }
             }
-            _ => {},
+            _ => {}
         }
     }
 }

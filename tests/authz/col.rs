@@ -3,7 +3,7 @@ mod setup;
 use setup::*;
 
 #[tokio::test]
-async fn ok() -> Res<()> {
+async fn allowed_field_returns_value() -> Res<()> {
     let d = setup_with_col_policy(col_policy_with_children("org", "name")).await?;
 
     let mut h = d.h;
@@ -32,7 +32,7 @@ async fn ok() -> Res<()> {
 }
 
 #[tokio::test]
-async fn err() -> Res<()> {
+async fn denied_field_returns_unauthorized() -> Res<()> {
     let d = setup_with_col_policy(col_policy_with_children("org", "name")).await?;
 
     let mut h = d.h;

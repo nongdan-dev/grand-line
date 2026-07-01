@@ -53,11 +53,11 @@ impl AuthzHandlers for ScriptCheckHandler {
     async fn execute_script(&self, _ctx: &Context<'_>, script: &str) -> Res<Option<JsonValue>> {
         let f = if script == SCRIPT_ALPHA {
             json!({
-                "title": "Alpha task",
+                "title": "Analyze the tissue sample",
             })
         } else {
             json!({
-                "title": "Beta task",
+                "title": "Investigate the pattern",
             })
         };
         Ok(Some(f))

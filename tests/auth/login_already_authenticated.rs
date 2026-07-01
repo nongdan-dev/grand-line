@@ -4,7 +4,7 @@ use setup::*;
 
 // Calling login while already authenticated returns AlreadyAuthenticated.
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn login_while_authenticated_returns_already_authenticated() -> Res<()> {
     let d = setup().await?;
 
     let mut h = d.h;

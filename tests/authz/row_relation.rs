@@ -26,9 +26,9 @@ async fn has_many_no_policy() -> Res<()> {
     let expected = value!({
         "postDetail": {
             "comments": [{
-                "body": "A",
+                "body": "Anomaly detected",
             }, {
-                "body": "B",
+                "body": "Case closed",
             }],
         },
     });
@@ -62,7 +62,7 @@ async fn has_many_with_filter() -> Res<()> {
     let expected = value!({
         "postDetail": {
             "comments": [{
-                "body": "A",
+                "body": "Anomaly detected",
             }],
         },
     });
@@ -95,7 +95,7 @@ async fn has_one_no_policy() -> Res<()> {
     let expected = value!({
         "postDetail": {
             "meta": {
-                "text": "M1",
+                "text": "Case file notes",
             },
         },
     });
@@ -129,7 +129,7 @@ async fn has_one_filter_match() -> Res<()> {
     let expected = value!({
         "postDetail": {
             "meta": {
-                "text": "M1",
+                "text": "Case file notes",
             },
         },
     });
@@ -292,9 +292,9 @@ async fn many_to_many_no_policy() -> Res<()> {
     let expected = value!({
         "postDetail": {
             "tags": [{
-                "name": "T1",
+                "name": "Anomaly",
             }, {
-                "name": "T2",
+                "name": "Pattern",
             }],
         },
     });
@@ -328,7 +328,7 @@ async fn many_to_many_with_filter() -> Res<()> {
     let expected = value!({
         "postDetail": {
             "tags": [{
-                "name": "T1",
+                "name": "Anomaly",
             }],
         },
     });

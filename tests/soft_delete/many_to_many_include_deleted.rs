@@ -3,7 +3,7 @@ mod setup;
 use setup::*;
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn many_to_many_include_deleted_returns_all() -> Res<()> {
     let d = setup().await?;
 
     let q = "

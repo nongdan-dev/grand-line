@@ -203,7 +203,7 @@ async fn nested_alias_on_root() -> Res<()> {
     let expected = value!({
         "pd": {
             "comments": [{
-                "body": "A",
+                "body": "Anomaly detected",
             }],
         },
     });
@@ -240,7 +240,7 @@ async fn deep_nested_alias_translates_to_schema_path() -> Res<()> {
     let expected = value!({
         "pd": {
             "cmt": [{
-                "body": "A",
+                "body": "Anomaly detected",
             }],
         },
     });
@@ -286,7 +286,7 @@ async fn nested_two_ops_each_isolated() -> Res<()> {
     let expected = value!({
         "postDetail": {
             "comments": [{
-                "body": "A",
+                "body": "Anomaly detected",
             }],
         },
         "commentDetail": {

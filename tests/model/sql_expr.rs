@@ -1,7 +1,7 @@
 pub use grand_line::prelude::*;
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn sql_expr_computes_derived_column() -> Res<()> {
     mod test {
         use super::*;
 

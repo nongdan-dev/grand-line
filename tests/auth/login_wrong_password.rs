@@ -4,7 +4,7 @@ use setup::*;
 
 // Login with incorrect password returns LoginIncorrect error.
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn login_with_wrong_password_returns_login_incorrect() -> Res<()> {
     let d = setup().await?;
     let s = d.s.data(d.h).finish();
 

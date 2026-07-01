@@ -3,7 +3,7 @@ mod setup;
 use setup::*;
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn register_then_resolve_creates_user() -> Res<()> {
     let d = setup().await?;
     let s = d.s.data(d.h).finish();
 

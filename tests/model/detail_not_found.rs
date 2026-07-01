@@ -2,7 +2,7 @@ pub use grand_line::prelude::*;
 
 // detail resolver returns null when the record does not exist.
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn returns_null_when_record_not_found() -> Res<()> {
     mod test {
         use super::*;
 

@@ -69,7 +69,7 @@ pub async fn row_crud_setup(row_pol: RowPolicy, cfg: AuthzConfig) -> Res<RowCrud
     let ua = Context::get_ua_raw(Context::axum_headers(&h))?;
 
     let u1 = am_create!(User {
-        email: "alice@example.com",
+        email: "walter@example.com",
         password_hashed: rand_utils::password_hash("pw")?,
     })
     .exec_without_ctx(&tmp.db)
@@ -87,12 +87,12 @@ pub async fn row_crud_setup(row_pol: RowPolicy, cfg: AuthzConfig) -> Res<RowCrud
     let token1 = rand_utils::qs_token(&ls1.id, &secret1)?;
 
     let o1 = am_create!(Org {
-        name: "Alpha"
+        name: "Fringe Division"
     })
     .exec_without_ctx(&tmp.db)
     .await?;
     let o2 = am_create!(Org {
-        name: "Beta"
+        name: "Massive Dynamic"
     })
     .exec_without_ctx(&tmp.db)
     .await?;
@@ -116,14 +116,14 @@ pub async fn row_crud_setup(row_pol: RowPolicy, cfg: AuthzConfig) -> Res<RowCrud
 
     // task1: org1, task2: org2
     let t1 = am_create!(Task {
-        title: "Task1",
+        title: "Analyze the sample",
         assignee_id: u1.id.clone(),
         org_id: o1.id.clone(),
     })
     .exec_without_ctx(&tmp.db)
     .await?;
     let t2 = am_create!(Task {
-        title: "Task2",
+        title: "Interview the witness",
         assignee_id: u1.id.clone(),
         org_id: o2.id.clone(),
     })

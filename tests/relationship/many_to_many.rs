@@ -122,12 +122,12 @@ async fn resolver_custom_fn() -> Res<()> {
 
     let u = am_create!(User).exec_without_ctx(&tmp.db).await?;
     let o1 = am_create!(Org {
-        name: "Aaa",
+        name: "Fringe Division",
     })
     .exec_without_ctx(&tmp.db)
     .await?;
     let o2 = am_create!(Org {
-        name: "Zzz",
+        name: "Massive Dynamic",
     })
     .exec_without_ctx(&tmp.db)
     .await?;
@@ -159,9 +159,9 @@ async fn resolver_custom_fn() -> Res<()> {
     let expected = value!({
         "userDetail": {
             "orgs": [{
-                "name": "Zzz",
+                "name": "Massive Dynamic",
             }, {
-                "name": "Aaa",
+                "name": "Fringe Division",
             }],
         },
     });
@@ -171,7 +171,7 @@ async fn resolver_custom_fn() -> Res<()> {
 }
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn many_to_many_returns_related() -> Res<()> {
     mod test {
         use super::*;
 

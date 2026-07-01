@@ -3,7 +3,7 @@ mod setup;
 use setup::*;
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn delete_permanent_removes_row_from_db() -> Res<()> {
     let d = setup().await?;
 
     let q = "

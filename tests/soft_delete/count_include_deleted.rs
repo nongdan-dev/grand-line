@@ -3,7 +3,7 @@ mod setup;
 use setup::*;
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn count_include_deleted_returns_all() -> Res<()> {
     let d = setup().await?;
 
     let q = "

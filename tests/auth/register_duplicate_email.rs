@@ -4,7 +4,7 @@ use setup::*;
 
 // Registering with an email that is already in use returns RegisterEmailExists.
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn register_with_existing_email_returns_email_exists() -> Res<()> {
     let d = setup().await?;
     let s = d.s.data(d.h).finish();
 

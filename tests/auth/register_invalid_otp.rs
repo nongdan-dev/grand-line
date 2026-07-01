@@ -4,7 +4,7 @@ use setup::*;
 
 // Submitting a wrong OTP during registration resolve returns OtpResolveInvalid.
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn register_resolve_with_wrong_otp_returns_invalid() -> Res<()> {
     let d = setup().await?;
     let s = d.s.data(d.h).finish();
 

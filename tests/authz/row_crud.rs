@@ -20,9 +20,9 @@ async fn search_no_policy() -> Res<()> {
     ";
     let expected = value!({
         "taskSearch": [{
-            "title": "Task1",
+            "title": "Analyze the sample",
         }, {
-            "title": "Task2",
+            "title": "Interview the witness",
         }],
     });
     exec_assert(&d.schema, q, None, &expected).await;
@@ -49,7 +49,7 @@ async fn search_with_filter() -> Res<()> {
     ";
     let expected = value!({
         "taskSearch": [{
-            "title": "Task1",
+            "title": "Analyze the sample",
         }],
     });
     exec_assert(&d.schema, q, None, &expected).await;
@@ -123,7 +123,7 @@ async fn detail_no_policy() -> Res<()> {
     });
     let expected = value!({
         "taskDetail": {
-            "title": "Task1",
+            "title": "Analyze the sample",
         },
     });
     exec_assert(&d.schema, q, Some(v), &expected).await;
@@ -153,7 +153,7 @@ async fn detail_filter_match() -> Res<()> {
     });
     let expected = value!({
         "taskDetail": {
-            "title": "Task1",
+            "title": "Analyze the sample",
         },
     });
     exec_assert(&d.schema, q, Some(v), &expected).await;
@@ -443,12 +443,15 @@ async fn update_unauthorized_does_not_change_db_row() -> Res<()> {
     });
     exec_assert_err(&d.schema, q, Some(v), &AuthzErr::Unauthorized).await;
 
-    // task2 belongs to org2; the update was rejected, so title must still be "Task2".
+    // task2 belongs to org2; the update was rejected, so title must still be "Interview the witness".
     let task = Task::find_by_id(&d.task2_id)
         .one(&d.tmp.db)
         .await?
         .ok_or(CoreDbErr::Db404)?;
-    assert_eq!(task.title, "Task2", "unauthorized update must not change the db row");
+    assert_eq!(
+        task.title, "Interview the witness",
+        "unauthorized update must not change the db row"
+    );
 
     d.tmp.drop().await
 }

@@ -104,13 +104,13 @@ async fn resolver_custom_fn() -> Res<()> {
 
     let u = am_create!(User).exec_without_ctx(&tmp.db).await?;
     am_create!(Alias {
-        name: "Aaa",
+        name: "Astrid",
         user_id: u.id.clone(),
     })
     .exec_without_ctx(&tmp.db)
     .await?;
     am_create!(Alias {
-        name: "Zzz",
+        name: "Walter",
         user_id: u.id.clone(),
     })
     .exec_without_ctx(&tmp.db)
@@ -131,9 +131,9 @@ async fn resolver_custom_fn() -> Res<()> {
     let expected = value!({
         "userDetail": {
             "aliases": [{
-                "name": "Zzz",
+                "name": "Walter",
             }, {
-                "name": "Aaa",
+                "name": "Astrid",
             }],
         },
     });
@@ -143,7 +143,7 @@ async fn resolver_custom_fn() -> Res<()> {
 }
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn has_many_returns_children() -> Res<()> {
     mod test {
         use super::*;
 

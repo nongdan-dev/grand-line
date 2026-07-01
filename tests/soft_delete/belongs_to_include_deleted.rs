@@ -3,7 +3,7 @@ mod setup;
 use setup::*;
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn belongs_to_include_deleted_returns_soft_deleted() -> Res<()> {
     let d = setup().await?;
 
     let q = "

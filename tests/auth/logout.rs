@@ -4,7 +4,7 @@ use setup::*;
 
 // Logout succeeds when the user is authenticated and deletes the session.
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn logout_deletes_session_when_authenticated() -> Res<()> {
     let d = setup().await?;
 
     let mut h = d.h;
@@ -29,7 +29,7 @@ async fn t() -> Res<()> {
 
 // Logout without a token returns Unauthenticated.
 #[tokio::test]
-async fn unauthenticated() -> Res<()> {
+async fn logout_without_token_returns_unauthenticated() -> Res<()> {
     let d = setup().await?;
     let s = d.s.data(d.h).finish();
 

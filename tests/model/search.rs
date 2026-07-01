@@ -73,17 +73,17 @@ async fn pagination_limit() -> Res<()> {
     let s = schema_q::<UserSearchQuery>(&tmp.db).finish();
 
     am_create!(User {
-        name: "Alice",
+        name: "Olivia",
     })
     .exec_without_ctx(&tmp.db)
     .await?;
     am_create!(User {
-        name: "Bob",
+        name: "Peter",
     })
     .exec_without_ctx(&tmp.db)
     .await?;
     am_create!(User {
-        name: "Carol",
+        name: "Walter",
     })
     .exec_without_ctx(&tmp.db)
     .await?;

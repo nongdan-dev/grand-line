@@ -3,7 +3,7 @@ mod setup;
 use setup::*;
 
 #[tokio::test]
-async fn t() -> Res<()> {
+async fn login_with_correct_credentials_returns_session() -> Res<()> {
     let d = setup().await?;
     let s = d.s.data(d.h).finish();
 

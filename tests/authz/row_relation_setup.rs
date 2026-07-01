@@ -106,7 +106,7 @@ pub async fn row_relation_setup(row_pol: RowPolicy, cfg: AuthzConfig) -> Res<Row
 
     // Users
     let u1 = am_create!(User {
-        email: "alice@example.com",
+        email: "astrid@example.com",
         password_hashed: rand_utils::password_hash("pw")?,
     })
     .exec_without_ctx(&tmp.db)
@@ -125,12 +125,12 @@ pub async fn row_relation_setup(row_pol: RowPolicy, cfg: AuthzConfig) -> Res<Row
 
     // Orgs
     let o1 = am_create!(Org {
-        name: "Alpha"
+        name: "Fringe Division"
     })
     .exec_without_ctx(&tmp.db)
     .await?;
     let o2 = am_create!(Org {
-        name: "Beta"
+        name: "Massive Dynamic"
     })
     .exec_without_ctx(&tmp.db)
     .await?;
@@ -167,14 +167,14 @@ pub async fn row_relation_setup(row_pol: RowPolicy, cfg: AuthzConfig) -> Res<Row
 
     // Comments on post1: A (org1), B (org2)
     let ca = am_create!(Comment {
-        body: "A",
+        body: "Anomaly detected",
         post_id: p1.id.clone(),
         org_id: o1.id.clone()
     })
     .exec_without_ctx(&tmp.db)
     .await?;
     let cb = am_create!(Comment {
-        body: "B",
+        body: "Case closed",
         post_id: p1.id.clone(),
         org_id: o2.id.clone()
     })
@@ -182,7 +182,7 @@ pub async fn row_relation_setup(row_pol: RowPolicy, cfg: AuthzConfig) -> Res<Row
     .await?;
     // Comment on post2 (for belongs_to no-match test)
     let cc = am_create!(Comment {
-        body: "C",
+        body: "Report filed",
         post_id: p2.id.clone(),
         org_id: o1.id.clone()
     })
@@ -191,14 +191,14 @@ pub async fn row_relation_setup(row_pol: RowPolicy, cfg: AuthzConfig) -> Res<Row
 
     // PostMeta: meta1 for post1 (org1), meta2 for post2 (org2)
     let m1 = am_create!(PostMeta {
-        text: "M1",
+        text: "Case file notes",
         post_id: p1.id.clone(),
         org_id: o1.id.clone()
     })
     .exec_without_ctx(&tmp.db)
     .await?;
     am_create!(PostMeta {
-        text: "M2",
+        text: "Redacted notes",
         post_id: p2.id.clone(),
         org_id: o2.id.clone()
     })
@@ -207,13 +207,13 @@ pub async fn row_relation_setup(row_pol: RowPolicy, cfg: AuthzConfig) -> Res<Row
 
     // Tags: tag1 (org1), tag2 (org2); both linked to post1
     let t1 = am_create!(Tag {
-        name: "T1",
+        name: "Anomaly",
         org_id: o1.id.clone()
     })
     .exec_without_ctx(&tmp.db)
     .await?;
     let t2 = am_create!(Tag {
-        name: "T2",
+        name: "Pattern",
         org_id: o2.id.clone()
     })
     .exec_without_ctx(&tmp.db)
