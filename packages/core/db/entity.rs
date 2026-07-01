@@ -163,6 +163,8 @@ where
         include_deleted: Option<bool>,
         // From resolver handler.
         filter_extra: Option<Self::F>,
+        // From relation.
+        extra_cond: Option<Condition>,
         // From macro to handle authz row filter.
         authz_row_filter: Option<Self::F>,
     ) -> Res<u64>
@@ -176,7 +178,12 @@ where
         if exclude_deleted {
             r = r.exclude_deleted();
         }
-        let r = r.chain(f).chain(authz_row_filter).count(tx).await?;
+        let r = r
+            .filter_opt(extra_cond)
+            .chain(f)
+            .chain(authz_row_filter)
+            .count(tx)
+            .await?;
         Ok(r)
     }
 

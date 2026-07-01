@@ -15,7 +15,8 @@ pub fn relation_filter(r: &GenRelation, struk: &mut Vec<Ts2>, query: &mut Vec<Ts
 fn push(r: &GenRelation, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>, op_str: &str) -> SynRes<()> {
     let base = r.a.name()?.to_string();
     let name = format!("{base}_{op_str}").ts2_or_err()?;
-    let gql_name = format!("{}_{op_str}", base.to_lower_camel_case());
+    let gql_base = base.to_lower_camel_case();
+    let gql_name = format!("{gql_base}_{op_str}");
 
     let to = r.a.to()?;
     let filter_ty = ty_filter(&to)?;

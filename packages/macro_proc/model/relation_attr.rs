@@ -5,6 +5,7 @@ pub struct RelationAttr {
     pub resolver: Option<Ident>,
     pub include_deleted: bool,
     pub authz_row: bool,
+    pub count: bool,
     #[field_names(skip)]
     pub inner: Attr,
     #[field_names(key_only)]
@@ -46,6 +47,7 @@ impl TryFrom<Attr> for RelationAttr {
                 .bool(Self::FIELD_INCLUDE_DELETED)?
                 .unwrap_or(FEATURE_RESOLVER_INCLUDE_DELETED),
             authz_row: a.bool(Self::FIELD_AUTHZ_ROW)?.unwrap_or(FEATURE_RESOLVER_AUTHZ_ROW),
+            count: a.bool(Self::FIELD_COUNT)?.unwrap_or(false),
             inner: a,
         })
     }
@@ -59,6 +61,7 @@ impl AttrValidate for RelationAttr {
         }
         if a.attr == RelationTy::HasMany || a.attr == RelationTy::ManyToMany {
             f.push(Self::FIELD_RESOLVER);
+            f.push(Self::FIELD_COUNT);
         }
         f.iter().copied().map(|f| f.to_owned()).collect()
     }

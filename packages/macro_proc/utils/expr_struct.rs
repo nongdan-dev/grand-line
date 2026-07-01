@@ -1,18 +1,18 @@
 use crate::prelude::*;
 
 pub fn expr_struct(item: TokenStream, suf: &str, wrap: &str, method: &str) -> TokenStream {
-    let item2 = Into::<Ts2>::into(item.clone());
-    let item = if item2.to_string().trim().ends_with('}') {
+    let item_ts2 = Into::<Ts2>::into(item.clone());
+    let item_with_braces = if item_ts2.to_string().trim().ends_with('}') {
         item
     } else {
-        Into::<TokenStream>::into(quote!(#item2{}))
+        Into::<TokenStream>::into(quote!(#item_ts2{}))
     };
-    let item = parse_macro_input!(item as ExprStruct);
-    try_expr_struct(&item, suf, wrap, method).unwrap_or_else(|e| e.to_compile_error().into())
+    let struk = parse_macro_input!(item_with_braces as ExprStruct);
+    try_expr_struct(&struk, suf, wrap, method).unwrap_or_else(|e| e.to_compile_error().into())
 }
 
-fn try_expr_struct(item: &ExprStruct, suf: &str, wrap: &str, method: &str) -> SynRes<TokenStream> {
-    let struk = build_expr_struct(item, suf, wrap)?;
+fn try_expr_struct(struk: &ExprStruct, suf: &str, wrap: &str, method: &str) -> SynRes<TokenStream> {
+    let struk = build_expr_struct(struk, suf, wrap)?;
 
     let r = if method.is_empty() {
         struk

@@ -221,6 +221,7 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
     // ------------------------------------------------------------------------
     // virtual resolvers
     let mut virtual_resolvers = Vec::<Box<dyn VirtualResolverFn>>::new();
+    let mut relation_counts = Vec::<GenRelationCount>::new();
     let valid_sql_dep = gql_struk_fields.iter().collect::<HashSet<_>>();
     for (f, attrs) in &virtuals {
         let map = attrs
@@ -231,7 +232,7 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
             .iter()
             .filter_map(|v| map.get(v.to_string().as_str()).map(move |a| (a, v)))
         {
-            virtual_resolvers.push(match v {
+            let boxed: Box<dyn VirtualResolverFn> = match v {
                 VirtualTy::Relation(ty) => {
                     let g = GenRelation {
                         ty: ty.clone(),
@@ -239,6 +240,13 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
                         field_attrs: f.attrs.clone(),
                     };
                     relation_filter(&g, &mut filter_struk, &mut filter_query)?;
+                    let is_to_many = matches!(g.ty, RelationTy::HasMany | RelationTy::ManyToMany);
+                    if is_to_many && g.a.count {
+                        relation_counts.push(GenRelationCount {
+                            ty: ty.clone(),
+                            a: a.clone().try_into_with_validate()?,
+                        });
+                    }
                     Box::new(g)
                 }
                 VirtualTy::Resolver => {
@@ -258,8 +266,12 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
                     let msg = "is invalid for virtual resolver";
                     return Err(a.err_by_key(v.as_ref(), msg));
                 }
-            });
+            };
+            virtual_resolvers.push(boxed);
         }
+    }
+    for gc in relation_counts {
+        virtual_resolvers.push(Box::new(gc));
     }
 
     let GqlAttrVirtuals {

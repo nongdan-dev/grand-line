@@ -37,6 +37,7 @@ fn try_gen_count(attr: AttrParse, r: ResolverTyItem) -> SynRes<TokenStream> {
                 filter,
                 #include_deleted,
                 filter_extra,
+                None,
                 #authz_row_filter,
             )
             .await?

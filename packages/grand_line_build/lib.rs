@@ -95,7 +95,8 @@ impl SchemaBuilder {
         for rel_dir in &self.dirs {
             let abs_dir = Path::new(&manifest_dir).join(rel_dir);
             scan_dir(&abs_dir, &mut query_types, &mut mutation_types);
-            println!("cargo:rerun-if-changed={}", abs_dir.display());
+            let abs_dir = abs_dir.display();
+            println!("cargo:rerun-if-changed={abs_dir}");
         }
 
         let query_types = dedup_warn(query_types, "query");
@@ -154,7 +155,7 @@ fn scan_items(items: &[Item], query_types: &mut Vec<String>, mutation_types: &mu
                     scan_items(items, query_types, mutation_types);
                 }
             }
-            _ => {}
+            _ => {},
         }
     }
 }
@@ -279,7 +280,7 @@ fn generate(query_types: &[String], mutation_types: &[String]) -> String {
 }
 
 fn gen_merged_object(out: &mut Vec<String>, name: &str, types: &[String]) {
+    let types = types.join(",");
     out.push("#[derive(Default, MergedObject)]".to_owned());
-    let op = format!("pub struct {}({});", name, types.join(","));
-    out.push(op);
+    out.push(format!("pub struct {name}({types});"));
 }

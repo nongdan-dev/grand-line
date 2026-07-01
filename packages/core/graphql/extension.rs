@@ -66,7 +66,8 @@ impl Extension for GrandLineExtensionImpl {
                 if err_path.is_empty() {
                     err_path = "<unknown>".to_owned();
                 }
-                eprintln!("{} {}", err_path, e.message);
+                let msg = &e.message;
+                eprintln!("{err_path} {msg}");
                 e.message = MyErr::InternalServer.to_string();
                 e.source = None;
                 e.extensions = Some(MyErr::InternalServer.extensions());

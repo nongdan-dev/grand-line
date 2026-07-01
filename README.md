@@ -170,8 +170,10 @@ pub discounted_price: f64,
 pub full_name: String,
 
 async fn resolve_full_name(u: &UserGql, _: &Context<'_>) -> Res<String> {
-    Ok(format!("{} {}", u.first_name.ok_or(CoreDbErr::GqlResolverNone)?,
-                        u.last_name.ok_or(CoreDbErr::GqlResolverNone)?))
+    let first_name = u.first_name.ok_or(CoreDbErr::GqlResolverNone)?;
+    let last_name = u.last_name.ok_or(CoreDbErr::GqlResolverNone)?;
+    let full_name = format!("{first_name} {last_name}");
+    Ok(full_name)
 }
 ```
 
