@@ -62,14 +62,7 @@ impl GenRelation {
     }
 
     fn col(&self) -> SynRes<Ts2> {
-        match self.ty {
-            RelationTy::BelongsTo => "id".to_owned(),
-            RelationTy::HasOne => self.a.key_str()?,
-            RelationTy::HasMany => self.a.key_str()?,
-            RelationTy::ManyToMany => "id".to_owned(),
-        }
-        .to_pascal_case()
-        .ts2_or_err()
+        Ok(relation_shape(&self.ty, &self.a)?.to_col)
     }
 
     fn body_one(&self) -> SynRes<Ts2> {
@@ -150,27 +143,7 @@ impl GenRelation {
     }
 
     fn body_many_to_many(&self) -> SynRes<Ts2> {
-        let column = self.column()?;
-        let col = self.col()?;
-        let through = self.a.through()?;
-        let through_column = ty_column(&through)?;
-        let through_key_col = self.a.key_str()?.to_pascal_case().ts2_or_err()?;
-        let through_other_key_col = self.a.other_key()?.to_string().to_pascal_case().ts2_or_err()?;
-        let through_include_deleted = get_include_deleted(self.a.include_deleted);
-        let extra_cond = quote! {{
-            let sub = {
-                let mut q = #through::find()
-                    .select_only()
-                    .column(#through_column::#through_other_key_col)
-                    .filter(#through_column::#through_key_col.eq(id));
-                if !#through_include_deleted.unwrap_or(false) {
-                    q = q.exclude_deleted();
-                }
-                q
-            }
-            .into_query();
-            Condition::all().add(#column::#col.in_subquery(sub))
-        }};
+        let extra_cond = many_to_many_reachable_ids(&self.a)?;
         self.body_many(&extra_cond)
     }
 
@@ -234,4 +207,35 @@ impl ResolverFn for GenRelation {
             RelationTy::ManyToMany => self.body_many_to_many(),
         }
     }
+}
+
+/// Register one relation field: its main resolver, its `_some`/`_none`/`_every` filter
+/// fields, and its `_count` resolver if enabled. The single entry point so a relation
+/// can not end up with only some of these wired in.
+pub fn register_relation(
+    ty: &RelationTy,
+    raw_attr: &Attr,
+    field_attrs: Vec<Attribute>,
+    filter_struk: &mut Vec<Ts2>,
+    filter_query: &mut Vec<Ts2>,
+    virtual_resolvers: &mut Vec<Box<dyn VirtualResolverFn>>,
+) -> SynRes<()> {
+    let g = GenRelation {
+        ty: ty.clone(),
+        a: raw_attr.clone().try_into_with_validate()?,
+        field_attrs,
+    };
+    g.push_filter(filter_struk, filter_query)?;
+    let is_to_many = matches!(g.ty, RelationTy::HasMany | RelationTy::ManyToMany);
+    let count = g.a.count;
+    virtual_resolvers.push(Box::new(g));
+
+    if is_to_many && count {
+        let gc = GenRelationCount {
+            ty: ty.clone(),
+            a: raw_attr.clone().try_into_with_validate()?,
+        };
+        virtual_resolvers.push(Box::new(gc));
+    }
+    Ok(())
 }

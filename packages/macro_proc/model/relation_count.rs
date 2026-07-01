@@ -11,38 +11,19 @@ pub struct GenRelationCount {
 
 impl GenRelationCount {
     fn extra_cond(&self) -> SynRes<Ts2> {
-        let to = self.a.to()?;
-        let column = ty_column(&to)?;
         match self.ty {
             RelationTy::HasMany => {
-                let col = self.a.key_str()?.to_pascal_case().ts2_or_err()?;
+                let shape = relation_shape(&self.ty, &self.a)?;
+                let to = self.a.to()?;
+                let column = ty_column(&to)?;
+                let col = shape.to_col;
                 Ok(quote! {
                     Condition::all().add(#column::#col.eq(id))
                 })
             }
-            RelationTy::ManyToMany => {
-                let through = self.a.through()?;
-                let through_column = ty_column(&through)?;
-                let through_key_col = self.a.key_str()?.to_pascal_case().ts2_or_err()?;
-                let through_other_key_col = self.a.other_key()?.to_string().to_pascal_case().ts2_or_err()?;
-                let through_include_deleted = get_include_deleted(self.a.include_deleted);
-                Ok(quote! {{
-                    let sub = {
-                        let mut q = #through::find()
-                            .select_only()
-                            .column(#through_column::#through_other_key_col)
-                            .filter(#through_column::#through_key_col.eq(id));
-                        if !#through_include_deleted.unwrap_or(false) {
-                            q = q.exclude_deleted();
-                        }
-                        q
-                    }
-                    .into_query();
-                    Condition::all().add(#column::Id.in_subquery(sub))
-                }})
-            }
+            RelationTy::ManyToMany => many_to_many_reachable_ids(&self.a),
             RelationTy::BelongsTo | RelationTy::HasOne => {
-                let msg = "count is only available for has_many and many_to_many relations, this should already be checked in RelationAttr validate";
+                let msg = "count is only available for has_many and many_to_many relations, this should be checked already in RelationAttr validate";
                 Err(self.a.inner.syn_err(msg))
             }
         }

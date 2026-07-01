@@ -18,6 +18,7 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
         let msg = format!("{model} struct should be named fields");
         return Err(a.inner.syn_err(&msg));
     };
+
     fields.insert(
         0,
         quote! {
@@ -26,54 +27,23 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
         }
         .field_or_err()?,
     );
-    if a.created_at {
-        fields.push(
-            quote! {
-                pub created_at: DateTimeUtc
-            }
-            .field_or_err()?,
-        );
-        if a.by_id {
-            fields.push(
-                quote! {
-                    pub created_by_id: Option<String>
-                }
-                .field_or_err()?,
-            );
+
+    let mut push_timestamp = |enable: bool, name: &str, ty: Ts2| -> SynRes<()> {
+        if !enable {
+            return Ok(());
         }
-    }
-    if a.updated_at {
-        fields.push(
-            quote! {
-                pub updated_at: Option<DateTimeUtc>
-            }
-            .field_or_err()?,
-        );
+        let field = name.ts2_or_err()?;
+        fields.push(quote!(pub #field: #ty).field_or_err()?);
         if a.by_id {
-            fields.push(
-                quote! {
-                    pub updated_by_id: Option<String>
-                }
-                .field_or_err()?,
-            );
+            let stem = name.strip_suffix("_at").unwrap_or(name);
+            let by_id_field = format!("{stem}_by_id").ts2_or_err()?;
+            fields.push(quote!(pub #by_id_field: Option<String>).field_or_err()?);
         }
-    }
-    if a.deleted_at {
-        fields.push(
-            quote! {
-                pub deleted_at: Option<DateTimeUtc>
-            }
-            .field_or_err()?,
-        );
-        if a.by_id {
-            fields.push(
-                quote! {
-                    pub deleted_by_id: Option<String>
-                }
-                .field_or_err()?,
-            );
-        }
-    }
+        Ok(())
+    };
+    push_timestamp(a.created_at, "created_at", quote!(DateTimeUtc))?;
+    push_timestamp(a.updated_at, "updated_at", quote!(Option<DateTimeUtc>))?;
+    push_timestamp(a.deleted_at, "deleted_at", quote!(Option<DateTimeUtc>))?;
 
     // ------------------------------------------------------------------------
     // parse macro attributes, extract and validate fields
@@ -102,6 +72,7 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
     // ------------------------------------------------------------------------
     // model built in cols
     let col_id = quote!(Column::Id);
+
     let col_opt = |skip: bool, col: Ts2| -> Ts2 {
         if skip {
             quote!(None)
@@ -109,6 +80,7 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
             quote!(Some(#col))
         }
     };
+
     let col_created_at = col_opt(!a.created_at, quote!(Column::CreatedAt));
     let col_updated_at = col_opt(!a.updated_at, quote!(Column::UpdatedAt));
     let col_deleted_at = col_opt(!a.deleted_at, quote!(Column::DeletedAt));
@@ -147,6 +119,7 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
         let set = quote!(self.#f = Set(v); self);
         Ok((not, set))
     };
+
     let (am_get_created_at, am_set_created_at) = am_field(!a.created_at, "created_at")?;
     let (am_get_updated_at, am_set_updated_at) = am_field(!a.updated_at, "updated_at")?;
     let (am_get_deleted_at, am_set_deleted_at) = am_field(!a.deleted_at, "deleted_at")?;
@@ -162,8 +135,8 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
         if attr_is_gql_skip(a) {
             continue;
         }
-        filter(f, &mut filter_struk, &mut filter_query)?;
-        order_by(f, &mut order_by_struk, &mut order_by_query)?;
+        f.push_filter(&mut filter_struk, &mut filter_query)?;
+        f.push_order_by(&mut order_by_struk, &mut order_by_query)?;
     }
     let filter = ty_filter(&model)?;
     let order_by = ty_order_by(&model)?;
@@ -220,59 +193,8 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
 
     // ------------------------------------------------------------------------
     // virtual resolvers
-    let mut virtual_resolvers = Vec::<Box<dyn VirtualResolverFn>>::new();
-    let mut relation_counts = Vec::<GenRelationCount>::new();
     let valid_sql_dep = gql_struk_fields.iter().collect::<HashSet<_>>();
-    for (f, attrs) in &virtuals {
-        let map = attrs
-            .iter()
-            .map(|a| (a.attr.clone(), a.clone()))
-            .collect::<HashMap<_, _>>();
-        for (a, v) in VirtualTy::all()
-            .iter()
-            .filter_map(|v| map.get(v.to_string().as_str()).map(move |a| (a, v)))
-        {
-            let boxed: Box<dyn VirtualResolverFn> = match v {
-                VirtualTy::Relation(ty) => {
-                    let g = GenRelation {
-                        ty: ty.clone(),
-                        a: a.clone().try_into_with_validate()?,
-                        field_attrs: f.attrs.clone(),
-                    };
-                    relation_filter(&g, &mut filter_struk, &mut filter_query)?;
-                    let is_to_many = matches!(g.ty, RelationTy::HasMany | RelationTy::ManyToMany);
-                    if is_to_many && g.a.count {
-                        relation_counts.push(GenRelationCount {
-                            ty: ty.clone(),
-                            a: a.clone().try_into_with_validate()?,
-                        });
-                    }
-                    Box::new(g)
-                }
-                VirtualTy::Resolver => {
-                    let g = GenResolver {
-                        a: a.clone().try_into_with_validate()?,
-                        field_attrs: f.attrs.clone(),
-                    };
-                    for d in &g.a.sql_dep {
-                        if !valid_sql_dep.contains(d) {
-                            let msg = format!("can not find column or expr {d}");
-                            return Err(g.a.inner.err_by_key("sql_dep", &msg));
-                        }
-                    }
-                    Box::new(g)
-                }
-                _ => {
-                    let msg = "is invalid for virtual resolver";
-                    return Err(a.err_by_key(v.as_ref(), msg));
-                }
-            };
-            virtual_resolvers.push(boxed);
-        }
-    }
-    for gc in relation_counts {
-        virtual_resolvers.push(Box::new(gc));
-    }
+    let virtual_resolvers = gen_virtual_resolvers(&virtuals, &valid_sql_dep, &mut filter_struk, &mut filter_query)?;
 
     let GqlAttrVirtuals {
         select: gql_select2,
@@ -536,4 +458,56 @@ fn try_gen_model(attr: AttrParse, mut item: ItemStruct) -> SynRes<TokenStream> {
     debug_macro(&model_str, &r);
 
     Ok(r.into())
+}
+
+/// Build one resolver per virtual field: relations (main resolver + filter + optional
+/// count, via `register_relation`) and custom `#[resolver]` fields.
+fn gen_virtual_resolvers(
+    virtuals: &[(Field, Vec<Attr>)],
+    valid_sql_dep: &HashSet<&String>,
+    filter_struk: &mut Vec<Ts2>,
+    filter_query: &mut Vec<Ts2>,
+) -> SynRes<Vec<Box<dyn VirtualResolverFn>>> {
+    let mut virtual_resolvers = Vec::<Box<dyn VirtualResolverFn>>::new();
+    for (f, attrs) in virtuals {
+        let map = attrs
+            .iter()
+            .map(|a| (a.attr.clone(), a.clone()))
+            .collect::<HashMap<_, _>>();
+        for (a, v) in VirtualTy::all()
+            .iter()
+            .filter_map(|v| map.get(v.to_string().as_str()).map(move |a| (a, v)))
+        {
+            match v {
+                VirtualTy::Relation(ty) => {
+                    register_relation(
+                        ty,
+                        a,
+                        f.attrs.clone(),
+                        filter_struk,
+                        filter_query,
+                        &mut virtual_resolvers,
+                    )?;
+                }
+                VirtualTy::Resolver => {
+                    let g = GenResolver {
+                        a: a.clone().try_into_with_validate()?,
+                        field_attrs: f.attrs.clone(),
+                    };
+                    for d in &g.a.sql_dep {
+                        if !valid_sql_dep.contains(d) {
+                            let msg = format!("can not find column or expr {d}");
+                            return Err(g.a.inner.err_by_key("sql_dep", &msg));
+                        }
+                    }
+                    virtual_resolvers.push(Box::new(g));
+                }
+                _ => {
+                    let msg = "is invalid for virtual resolver";
+                    return Err(a.err_by_key(v.as_ref(), msg));
+                }
+            }
+        }
+    }
+    Ok(virtual_resolvers)
 }

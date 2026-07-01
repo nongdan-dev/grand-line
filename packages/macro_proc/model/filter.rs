@@ -20,16 +20,14 @@ pub fn filter(f: &Field, struk: &mut Vec<Ts2>, query: &mut Vec<Ts2>) -> SynRes<(
     if uw_str != "String" {
         return Ok(());
     }
-    #[cfg(not(feature = "postgres"))]
-    {
+    if cfg!(not(feature = "postgres")) {
         push(f, struk, query, "like")?;
         push(f, struk, query, "not_like")?;
     }
-    #[cfg(feature = "postgres")]
-    {
+    if cfg!(feature = "postgres") {
         push(f, struk, query, "ilike")?;
         push(f, struk, query, "not_ilike")?;
-    };
+    }
     push(f, struk, query, "starts_with")?;
     push(f, struk, query, "ends_with")?;
     Ok(())
